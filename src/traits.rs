@@ -1,0 +1,335 @@
+use std::cmp::max;
+use std::ops::Add;
+
+use crate::index::{EdgeIndex, IndexType, VertexIndex};
+use crate::infra::CompactIndexMap;
+use crate::marker::{Direction, EdgeType};
+
+pub trait VertexRef<V> {
+    fn index(&self) -> VertexIndex;
+    fn data(&self) -> &V;
+}
+
+pub trait EdgeRef<E, Ty: EdgeType> {
+    fn index(&self) -> EdgeIndex;
+    fn data(&self) -> &E;
+    fn src(&self) -> VertexIndex;
+    fn dst(&self) -> VertexIndex;
+
+    fn is_directed(&self) -> bool {
+        Ty::is_directed()
+    }
+}
+
+pub trait HyperEdgeRef<E, Ty: EdgeType> {
+    fn index(&self) -> EdgeIndex;
+    fn data(&self) -> &E;
+    fn vertices(&self) -> &[VertexIndex];
+
+    fn is_directed(&self) -> bool {
+        Ty::is_directed()
+    }
+}
+
+pub trait Vertices<V> {
+    type VertexIndicesIter<'a, T: 'a>: Iterator<Item = VertexIndex>;
+    type VertexRef<'a, T: 'a>: VertexRef<T>;
+    type VerticesIter<'a, T: 'a>: Iterator<Item = Self::VertexRef<'a, T>>;
+
+    fn vertex_count(&self) -> usize;
+    fn vertex_bound(&self) -> usize;
+    fn vertex(&self, index: VertexIndex) -> Option<&V>;
+    fn vertex_indices(&self) -> Self::VertexIndicesIter<'_, V>;
+    fn vertices(&self) -> Self::VerticesIter<'_, V>;
+
+    fn contains_vertex(&self, index: VertexIndex) -> bool {
+        self.vertex(index).is_some()
+    }
+
+    fn vertex_index_map(&self) -> CompactIndexMap<VertexIndex> {
+        // Should be overridden to use `isomorphic` whenever possible.
+        CompactIndexMap::new(self.vertex_indices())
+    }
+}
+
+pub trait VerticesMut<V>: Vertices<V> {
+    fn vertex_mut(&mut self, index: VertexIndex) -> Option<&mut V>;
+    fn add_vertex(&mut self, vertex: V) -> VertexIndex;
+    fn remove_vertex(&mut self, index: VertexIndex) -> Option<V>;
+    fn replace_vertex(&mut self, index: VertexIndex, vertex: V) -> V;
+}
+
+pub trait Edges<E, Ty: EdgeType> {
+    type EdgeIndicesIter<'a, T: 'a>: Iterator<Item = EdgeIndex>;
+    type EdgeRef<'a, T: 'a>: EdgeRef<T, Ty>;
+    type EdgesIter<'a, T: 'a>: Iterator<Item = Self::EdgeRef<'a, T>>;
+
+    fn edge_count(&self) -> usize;
+    fn edge_bound(&self) -> usize;
+    fn edge(&self, index: EdgeIndex) -> Option<&E>;
+    fn endpoints(&self, index: EdgeIndex) -> Option<(VertexIndex, VertexIndex)>;
+    fn edge_index(&self, src: VertexIndex, dst: VertexIndex) -> Option<EdgeIndex>;
+    fn edge_indices(&self) -> Self::EdgeIndicesIter<'_, E>;
+    fn edges(&self) -> Self::EdgesIter<'_, E>;
+
+    fn contains_edge(&self, index: EdgeIndex) -> bool {
+        self.edge(index).is_some()
+    }
+
+    fn edge_index_map(&self) -> CompactIndexMap<EdgeIndex> {
+        // Should be overridden to use `isomorphic` whenever possible.
+        CompactIndexMap::new(self.edge_indices())
+    }
+
+    fn is_directed(&self) -> bool {
+        Ty::is_directed()
+    }
+}
+
+pub trait EdgesMut<E, Ty: EdgeType>: Edges<E, Ty> {
+    fn edge_mut(&mut self, index: EdgeIndex) -> Option<&mut E>;
+    fn add_edge(&mut self, src: VertexIndex, dst: VertexIndex, edge: E) -> EdgeIndex;
+    fn remove_edge(&mut self, index: EdgeIndex) -> Option<E>;
+    fn replace_edge(&mut self, index: EdgeIndex, edge: E) -> E;
+}
+
+pub trait MultiEdges<E, Ty: EdgeType>: Edges<E, Ty> {
+    type MultiEdgeRef<'a, T: 'a>: EdgeRef<T, Ty>;
+    type MultiEdgesIter<'a, T: 'a>: Iterator<Item = Self::MultiEdgeRef<'a, T>>;
+
+    fn multi_edge_index(&self, src: VertexIndex, dst: VertexIndex) -> Self::MultiEdgesIter<'_, E>;
+}
+
+pub trait HyperEdges<E, Ty: EdgeType> {
+    fn edge_count(&self) -> usize;
+    fn edge(&self, index: EdgeIndex) -> Option<&E>;
+    fn edge_index(&self, vertices: &[VertexIndex]) -> Option<EdgeIndex>;
+
+    fn contains_edge(&self, index: EdgeIndex) -> bool {
+        self.edge(index).is_some()
+    }
+}
+
+pub trait NeighborRef {
+    fn index(&self) -> VertexIndex;
+    fn edge(&self) -> EdgeIndex;
+    fn src(&self) -> VertexIndex;
+    fn dir(&self) -> Direction;
+}
+
+pub trait Neighbors {
+    type NeighborRef<'a>: NeighborRef;
+    type NeighborsIter<'a>: Iterator<Item = Self::NeighborRef<'a>>;
+
+    fn neighbors(&self, src: VertexIndex) -> Self::NeighborsIter<'_>;
+    fn neighbors_directed(&self, src: VertexIndex, dir: Direction) -> Self::NeighborsIter<'_>;
+
+    fn degree(&self, index: VertexIndex) -> usize {
+        self.neighbors(index).count()
+    }
+
+    fn degree_directed(&self, index: VertexIndex, dir: Direction) -> usize {
+        self.neighbors_directed(index, dir).count()
+    }
+}
+
+pub trait IntoEdge<E, Ty: EdgeType> {
+    fn unpack(self) -> (VertexIndex, VertexIndex, E);
+}
+
+pub trait Create<V, E, Ty: EdgeType>: VerticesMut<V> + EdgesMut<E, Ty> + Default {
+    fn with_capacity(vertex_count: usize, edge_count: usize) -> Self;
+}
+
+pub trait ExtendWithEdges<T, V, E, Ty: EdgeType>
+where
+    T: IntoEdge<E, Ty>,
+    V: Default,
+    Self: Create<V, E, Ty>,
+{
+    fn extend_with_edges<I>(&mut self, iter: I)
+    where
+        I: IntoIterator<Item = T>;
+
+    fn from_edges<I>(iter: I) -> Self
+    where
+        I: IntoIterator<Item = T>,
+    {
+        let iter = iter.into_iter();
+        let edge_count = iter.size_hint().1.unwrap_or(32);
+        let vertex_count = max(edge_count / 4, 2);
+
+        let mut graph = Self::with_capacity(vertex_count, edge_count);
+        graph.extend_with_edges(iter);
+        graph
+    }
+}
+
+impl<T, V, E, Ty: EdgeType, G> ExtendWithEdges<T, V, E, Ty> for G
+where
+    T: IntoEdge<E, Ty>,
+    V: Default,
+    G: Create<V, E, Ty>,
+{
+    fn extend_with_edges<I>(&mut self, iter: I)
+    where
+        I: IntoIterator<Item = T>,
+    {
+        for edge in iter {
+            let (src, dst, edge) = edge.unpack();
+            let vertex_bound = max(src, dst).to_usize();
+
+            while self.vertex_count() <= vertex_bound {
+                self.add_vertex(V::default());
+            }
+
+            self.add_edge(src, dst, edge);
+        }
+    }
+}
+
+pub trait ExtendWithVertices<V, E, Ty: EdgeType>
+where
+    Self: Create<V, E, Ty>,
+{
+    fn extend_with_vertices<I>(&mut self, iter: I)
+    where
+        I: IntoIterator<Item = V>;
+
+    fn from_vertices<I>(iter: I) -> Self
+    where
+        I: IntoIterator<Item = V>,
+    {
+        let iter = iter.into_iter();
+        let vertex_count = iter.size_hint().1.unwrap_or(32);
+
+        let mut graph = Self::with_capacity(vertex_count, 0);
+        graph.extend_with_vertices(iter);
+        graph
+    }
+}
+
+impl<V, E, Ty: EdgeType, G> ExtendWithVertices<V, E, Ty> for G
+where
+    G: Create<V, E, Ty>,
+{
+    fn extend_with_vertices<I>(&mut self, iter: I)
+    where
+        I: IntoIterator<Item = V>,
+    {
+        for vertex in iter {
+            self.add_vertex(vertex);
+        }
+    }
+}
+
+pub trait StableIndices {}
+
+pub trait Weight: Ord + Add<Self, Output = Self> + Clone + Sized {
+    fn zero() -> Self;
+    fn inf() -> Self;
+    fn is_unsigned() -> bool;
+}
+
+mod imp {
+    use super::*;
+
+    impl<'a, V> VertexRef<V> for (VertexIndex, &'a V) {
+        fn index(&self) -> VertexIndex {
+            self.0
+        }
+
+        fn data(&self) -> &V {
+            &self.1
+        }
+    }
+
+    impl<'a, E, Ty: EdgeType> EdgeRef<E, Ty> for (EdgeIndex, &'a E, VertexIndex, VertexIndex) {
+        fn index(&self) -> EdgeIndex {
+            self.0
+        }
+
+        fn data(&self) -> &E {
+            &self.1
+        }
+
+        fn src(&self) -> VertexIndex {
+            self.2
+        }
+
+        fn dst(&self) -> VertexIndex {
+            self.3
+        }
+    }
+
+    impl NeighborRef for (VertexIndex, EdgeIndex, VertexIndex, Direction) {
+        fn index(&self) -> VertexIndex {
+            self.0
+        }
+
+        fn edge(&self) -> EdgeIndex {
+            self.1
+        }
+
+        fn src(&self) -> VertexIndex {
+            self.2
+        }
+
+        fn dir(&self) -> Direction {
+            self.3
+        }
+    }
+
+    impl<E, Ty: EdgeType, I: Into<VertexIndex>> IntoEdge<E, Ty> for (I, I, E) {
+        fn unpack(self) -> (VertexIndex, VertexIndex, E) {
+            (self.0.into(), self.1.into(), self.2)
+        }
+    }
+
+    impl<E: Clone, Ty: EdgeType, I: Into<VertexIndex> + Clone> IntoEdge<E, Ty> for &(I, I, E) {
+        fn unpack(self) -> (VertexIndex, VertexIndex, E) {
+            (self.0.clone().into(), self.1.clone().into(), self.2.clone())
+        }
+    }
+
+    impl<E: Default, Ty: EdgeType, I: Into<VertexIndex>> IntoEdge<E, Ty> for (I, I) {
+        fn unpack(self) -> (VertexIndex, VertexIndex, E) {
+            (self.0.into(), self.1.into(), E::default())
+        }
+    }
+
+    impl<E: Default, Ty: EdgeType, I: Into<VertexIndex> + Clone> IntoEdge<E, Ty> for &(I, I) {
+        fn unpack(self) -> (VertexIndex, VertexIndex, E) {
+            (self.0.clone().into(), self.1.clone().into(), E::default())
+        }
+    }
+
+    macro_rules! impl_num_weight {
+        ($ty:ty, $is_unsigned:expr) => {
+            impl Weight for $ty {
+                fn zero() -> Self {
+                    0
+                }
+
+                fn inf() -> Self {
+                    <$ty>::MAX
+                }
+
+                fn is_unsigned() -> bool {
+                    $is_unsigned
+                }
+            }
+        };
+    }
+
+    impl_num_weight!(i8, false);
+    impl_num_weight!(i16, false);
+    impl_num_weight!(i32, false);
+    impl_num_weight!(i64, false);
+    impl_num_weight!(u8, true);
+    impl_num_weight!(u16, true);
+    impl_num_weight!(u32, true);
+    impl_num_weight!(u64, true);
+    impl_num_weight!(isize, false);
+    impl_num_weight!(usize, true);
+}

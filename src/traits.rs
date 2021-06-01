@@ -94,10 +94,9 @@ pub trait EdgesMut<E, Ty: EdgeType>: Edges<E, Ty> {
 }
 
 pub trait MultiEdges<E, Ty: EdgeType>: Edges<E, Ty> {
-    type MultiEdgeRef<'a, T: 'a>: EdgeRef<T, Ty>;
-    type MultiEdgesIter<'a, T: 'a>: Iterator<Item = Self::MultiEdgeRef<'a, T>>;
+    type MultiEdgeIndicesIter<'a>: Iterator<Item = EdgeIndex>;
 
-    fn multi_edge_index(&self, src: VertexIndex, dst: VertexIndex) -> Self::MultiEdgesIter<'_, E>;
+    fn multi_edge_index(&self, src: VertexIndex, dst: VertexIndex) -> Self::MultiEdgeIndicesIter<'_>;
 }
 
 pub trait HyperEdges<E, Ty: EdgeType> {

@@ -1,5 +1,7 @@
+use std::iter::Enumerate;
 use std::marker::PhantomData;
 use std::mem;
+use std::slice;
 
 use super::shared::{EdgesIter, RangeIndices, VerticesIter};
 use crate::index::{EdgeIndex, IndexType, VertexIndex};
@@ -209,6 +211,25 @@ impl<V, E, Ty: EdgeType> EdgesMut<E, Ty> for EdgeList<V, E, Ty> {
     }
 }
 
+impl<V, E, Ty: EdgeType> MultiEdges<E, Ty> for EdgeList<V, E, Ty> {
+    type MultiEdgeIndicesIter<'a> = MultiEdgeIndicesIter<'a, Ty>;
+
+    fn multi_edge_index(
+        &self,
+        src: VertexIndex,
+        dst: VertexIndex,
+    ) -> Self::MultiEdgeIndicesIter<'_> {
+        self.vertex(src).expect("vertex does not exist");
+
+        MultiEdgeIndicesIter {
+            src,
+            dst,
+            endpoints: self.endpoints.iter().enumerate(),
+            ty: PhantomData,
+        }
+    }
+}
+
 impl<V, E, Ty: EdgeType> Neighbors for EdgeList<V, E, Ty> {
     type NeighborRef<'a> = (VertexIndex, EdgeIndex, VertexIndex, Direction);
     type NeighborsIter<'a> = NeighborsIter<'a>;
@@ -246,6 +267,27 @@ impl<V, E, Ty: EdgeType> Create<V, E, Ty> for EdgeList<V, E, Ty> {
             endpoints: Vec::with_capacity(edge_count),
             ty: PhantomData,
         }
+    }
+}
+
+pub struct MultiEdgeIndicesIter<'a, Ty: EdgeType> {
+    src: VertexIndex,
+    dst: VertexIndex,
+    endpoints: Enumerate<slice::Iter<'a, [VertexIndex; 2]>>,
+    ty: PhantomData<Ty>,
+}
+
+impl<'a, Ty: EdgeType> Iterator for MultiEdgeIndicesIter<'a, Ty> {
+    type Item = EdgeIndex;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some((index, endpoints)) = self.endpoints.next() {
+            if endpoints[0] == self.src && endpoints[1] == self.dst {
+                return Some(index.into());
+            }
+        }
+
+        None
     }
 }
 
@@ -318,11 +360,21 @@ mod tests {
 
     #[test]
     fn basic_undirected() {
-        test_basic::<(), (), Undirected, EdgeList<_, _, _>>();
+        test_basic::<Undirected, EdgeList<_, _, _>>();
     }
 
     #[test]
     fn basic_directed() {
-        test_basic::<(), (), Directed, EdgeList<_, _, _>>();
+        test_basic::<Directed, EdgeList<_, _, _>>();
+    }
+
+    #[test]
+    fn multi_undirected() {
+        test_multi::<Undirected, EdgeList<_, _, _>>();
+    }
+
+    #[test]
+    fn multi_directed() {
+        test_multi::<Directed, EdgeList<_, _, _>>();
     }
 }

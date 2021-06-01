@@ -418,11 +418,11 @@ mod tests {
 
     #[test]
     fn basic_undirected() {
-        test_basic::<(), (), Undirected, Stable<AdjList<_, _, _>>>();
+        test_basic::<Undirected, Stable<AdjList<_, _, _>>>();
     }
 
     #[test]
     fn basic_directed() {
-        test_basic::<(), (), Directed, Stable<AdjList<_, _, _>>>();
+        test_basic::<Directed, Stable<AdjList<_, _, _>>>();
     }
 }

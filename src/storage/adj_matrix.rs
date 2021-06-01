@@ -619,11 +619,11 @@ mod tests {
 
     #[test]
     fn basic_undirected() {
-        test_basic::<(), (), Undirected, AdjMatrix<_, _, _>>();
+        test_basic::<Undirected, AdjMatrix<_, _, _>>();
     }
 
     #[test]
     fn basic_directed() {
-        test_basic::<(), (), Directed, AdjMatrix<_, _, _>>();
+        test_basic::<Directed, AdjMatrix<_, _, _>>();
     }
 }

@@ -16,24 +16,22 @@ mod tests {
     use crate::marker::{Direction, EdgeType};
     use crate::traits::*;
 
-    pub fn test_basic<V, E, Ty: EdgeType, G>()
+    pub fn test_basic<Ty: EdgeType, G>()
     where
-        V: Default,
-        E: Default,
-        G: Create<V, E, Ty> + Neighbors,
+        G: Create<(), (), Ty> + Neighbors,
     {
         let mut graph = G::default();
 
-        let v0 = graph.add_vertex(V::default());
-        let v1 = graph.add_vertex(V::default());
-        let v2 = graph.add_vertex(V::default());
-        let v3 = graph.add_vertex(V::default());
+        let v0 = graph.add_vertex(());
+        let v1 = graph.add_vertex(());
+        let v2 = graph.add_vertex(());
+        let v3 = graph.add_vertex(());
 
-        graph.add_edge(v0, v1, E::default());
-        graph.add_edge(v0, v2, E::default());
-        let e = graph.add_edge(v0, v3, E::default());
-        graph.add_edge(v2, v1, E::default());
-        graph.add_edge(v2, v3, E::default());
+        graph.add_edge(v0, v1, ());
+        graph.add_edge(v0, v2, ());
+        let e = graph.add_edge(v0, v3, ());
+        graph.add_edge(v2, v1, ());
+        graph.add_edge(v2, v3, ());
 
         graph.remove_edge(e);
         graph.remove_vertex(v1);
@@ -80,5 +78,35 @@ mod tests {
             assert_eq!(out_deg, vec![1, 1, 2]);
             assert_eq!(in_deg, vec![1, 1, 2]);
         }
+    }
+
+    pub fn test_multi<Ty: EdgeType, G>()
+    where
+        G: Create<(), i32, Ty> + MultiEdges<i32, Ty>,
+    {
+        let mut graph = G::default();
+
+        let v0 = graph.add_vertex(());
+        let v1 = graph.add_vertex(());
+        let v2 = graph.add_vertex(());
+
+        graph.add_edge(v0, v1, 0);
+        graph.add_edge(v0, v2, 1);
+        graph.add_edge(v0, v1, 2);
+
+        let mut e01 = graph
+            .multi_edge_index(v0, v1)
+            .map(|e| graph.edge(e))
+            .collect::<Vec<_>>();
+
+        e01.sort();
+
+        let e02 = graph
+            .multi_edge_index(v0, v2)
+            .map(|e| graph.edge(e))
+            .collect::<Vec<_>>();
+
+        assert_eq!(e01, vec![Some(&0), Some(&2)]);
+        assert_eq!(e02, vec![Some(&1)]);
     }
 }

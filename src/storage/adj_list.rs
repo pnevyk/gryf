@@ -292,6 +292,28 @@ impl<V, E, Ty: EdgeType> EdgesMut<E, Ty> for AdjList<V, E, Ty> {
     }
 }
 
+impl<V, E, Ty: EdgeType> MultiEdges<E, Ty> for AdjList<V, E, Ty> {
+    type MultiEdgeIndicesIter<'a> = MultiEdgeIndicesIter<'a>;
+
+    fn multi_edge_index(
+        &self,
+        src: VertexIndex,
+        dst: VertexIndex,
+    ) -> Self::MultiEdgeIndicesIter<'_> {
+        let vertex = self
+            .vertices
+            .get(src.to_usize())
+            .expect("vertex does not exist");
+
+        MultiEdgeIndicesIter {
+            src,
+            dst,
+            edges: &vertex.edges[0],
+            endpoints: self.endpoints.as_slice(),
+        }
+    }
+}
+
 impl<V, E, Ty: EdgeType> Neighbors for AdjList<V, E, Ty> {
     type NeighborRef<'a> = (VertexIndex, EdgeIndex, VertexIndex, Direction);
     type NeighborsIter<'a> = NeighborsIter<'a>;
@@ -348,6 +370,30 @@ impl<V, E, Ty: EdgeType> Create<V, E, Ty> for AdjList<V, E, Ty> {
     }
 }
 
+pub struct MultiEdgeIndicesIter<'a> {
+    src: VertexIndex,
+    dst: VertexIndex,
+    edges: &'a [EdgeIndex],
+    endpoints: &'a [[VertexIndex; 2]],
+}
+
+impl<'a> Iterator for MultiEdgeIndicesIter<'a> {
+    type Item = EdgeIndex;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let (edge, tail) = self.edges.split_first()?;
+            self.edges = tail;
+
+            let endpoints = self.endpoints[edge.to_usize()];
+
+            if endpoints[0] == self.src && endpoints[1] == self.dst {
+                return Some(*edge);
+            }
+        }
+    }
+}
+
 pub struct NeighborsIter<'a> {
     src: VertexIndex,
     edges: [&'a [EdgeIndex]; 2],
@@ -397,11 +443,21 @@ mod tests {
 
     #[test]
     fn basic_undirected() {
-        test_basic::<(), (), Undirected, AdjList<_, _, _>>();
+        test_basic::<Undirected, AdjList<_, _, _>>();
     }
 
     #[test]
     fn basic_directed() {
-        test_basic::<(), (), Directed, AdjList<_, _, _>>();
+        test_basic::<Directed, AdjList<_, _, _>>();
+    }
+
+    #[test]
+    fn multi_undirected() {
+        test_multi::<Undirected, AdjList<_, _, _>>();
+    }
+
+    #[test]
+    fn multi_directed() {
+        test_multi::<Directed, AdjList<_, _, _>>();
     }
 }

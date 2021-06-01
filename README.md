@@ -1,7 +1,7 @@
 # gryf
 
-A playground for experimenting with graph library APIs. It may or may not to
-become a real library.
+A playground for experimenting with graph library APIs. It may or may not become
+a real library.
 
 **The code is expected to have bugs. Changes in API are inevitable.**
 

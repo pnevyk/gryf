@@ -115,7 +115,7 @@ where
         self.start
     }
 
-    pub fn get(&self, from: VertexIndex) -> Option<&W> {
+    pub fn dist(&self, from: VertexIndex) -> Option<&W> {
         self.dist.get(&from)
     }
 
@@ -353,13 +353,13 @@ mod tests {
         let graph = create_basic_graph();
         let shortest_paths = ShortestPaths::run_dijkstra(&graph, 0.into(), None, identity).unwrap();
 
-        assert_eq!(shortest_paths.get(4.into()), Some(&8));
+        assert_eq!(shortest_paths.dist(4.into()), Some(&8));
         assert_eq!(
             shortest_paths.reconstruct(4.into()).collect::<Vec<_>>(),
             vec![3.into(), 1.into(), 0.into()]
         );
 
-        assert_eq!(shortest_paths.get(2.into()), Some(&2));
+        assert_eq!(shortest_paths.dist(2.into()), Some(&2));
     }
 
     #[test]
@@ -368,7 +368,7 @@ mod tests {
         let shortest_paths =
             ShortestPaths::run_dijkstra(&graph, 0.into(), Some(4.into()), identity).unwrap();
 
-        assert!(shortest_paths.get(5.into()).is_none());
+        assert!(shortest_paths.dist(5.into()).is_none());
     }
 
     #[test]
@@ -387,13 +387,13 @@ mod tests {
         let graph = create_basic_graph();
         let shortest_paths = ShortestPaths::run_bellman_ford(&graph, 0.into(), identity).unwrap();
 
-        assert_eq!(shortest_paths.get(4.into()), Some(&8));
+        assert_eq!(shortest_paths.dist(4.into()), Some(&8));
         assert_eq!(
             shortest_paths.reconstruct(4.into()).collect::<Vec<_>>(),
             vec![3.into(), 1.into(), 0.into()]
         );
 
-        assert_eq!(shortest_paths.get(2.into()), Some(&2));
+        assert_eq!(shortest_paths.dist(2.into()), Some(&2));
     }
 
     #[test]
@@ -403,13 +403,13 @@ mod tests {
 
         let shortest_paths = ShortestPaths::run_bellman_ford(&graph, 0.into(), identity).unwrap();
 
-        assert_eq!(shortest_paths.get(4.into()), Some(&8));
+        assert_eq!(shortest_paths.dist(4.into()), Some(&8));
         assert_eq!(
             shortest_paths.reconstruct(4.into()).collect::<Vec<_>>(),
             vec![3.into(), 1.into(), 0.into()]
         );
 
-        assert_eq!(shortest_paths.get(2.into()), Some(&2));
+        assert_eq!(shortest_paths.dist(2.into()), Some(&2));
     }
 
     #[test]

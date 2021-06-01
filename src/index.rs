@@ -4,8 +4,16 @@ use std::marker::PhantomData;
 pub trait IndexType:
     Clone + Copy + PartialEq + Eq + PartialOrd + Ord + Hash + private::Sealed
 {
-    fn new(index: usize) -> Self;
-    fn to_usize(self) -> usize;
+    fn from_bits(bits: u64) -> Self;
+    fn to_bits(self) -> u64;
+
+    fn new(index: usize) -> Self {
+        Self::from_bits(index as u64)
+    }
+
+    fn to_usize(self) -> usize {
+        self.to_bits() as usize
+    }
 
     fn null() -> Self {
         Self::new(usize::MAX)
@@ -17,14 +25,14 @@ pub trait IndexType:
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct VertexIndex(usize);
+pub struct VertexIndex(u64);
 
 impl IndexType for VertexIndex {
-    fn new(index: usize) -> Self {
-        Self(index)
+    fn from_bits(bits: u64) -> Self {
+        Self(bits)
     }
 
-    fn to_usize(self) -> usize {
+    fn to_bits(self) -> u64 {
         self.0
     }
 }
@@ -42,14 +50,14 @@ impl From<usize> for VertexIndex {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct EdgeIndex(usize);
+pub struct EdgeIndex(u64);
 
 impl IndexType for EdgeIndex {
-    fn new(index: usize) -> Self {
-        Self(index)
+    fn from_bits(bits: u64) -> Self {
+        Self(bits)
     }
 
-    fn to_usize(self) -> usize {
+    fn to_bits(self) -> u64 {
         self.0
     }
 }
@@ -67,14 +75,14 @@ impl From<usize> for EdgeIndex {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Virtual<I>(usize, PhantomData<I>);
+pub struct Virtual<I>(u64, PhantomData<I>);
 
 impl<I: IndexType> IndexType for Virtual<I> {
-    fn new(index: usize) -> Self {
-        Self(index, PhantomData)
+    fn from_bits(bits: u64) -> Self {
+        Self(bits, PhantomData)
     }
 
-    fn to_usize(self) -> usize {
+    fn to_bits(self) -> u64 {
         self.0
     }
 }

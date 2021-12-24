@@ -36,14 +36,12 @@ impl<V, E, Ty: EdgeType> Vertices<V> for AdjMatrix<V, E, Ty> {
     where
         V: 'a,
         E: 'a,
-        Ty: 'a,
     = RangeIndices<VertexIndex>;
 
     type VerticesIter<'a, T: 'a>
     where
         V: 'a,
         E: 'a,
-        Ty: 'a,
     = VerticesIter<'a, T>;
 
     fn vertex_count(&self) -> usize {
@@ -149,14 +147,12 @@ impl<V, E, Ty: EdgeType> Edges<E, Ty> for AdjMatrix<V, E, Ty> {
     where
         V: 'a,
         E: 'a,
-        Ty: 'a,
     = EdgeIndicesIter<'a, Ty>;
 
     type EdgesIter<'a, T: 'a>
     where
         V: 'a,
         E: 'a,
-        Ty: 'a,
     = EdgesIter<'a, T, Ty>;
 
     fn edge_count(&self) -> usize {
@@ -238,7 +234,6 @@ impl<V, E, Ty: EdgeType> Neighbors for AdjMatrix<V, E, Ty> {
     where
         V: 'a,
         E: 'a,
-        Ty: 'a,
     = NeighborsIter<'a, Ty>;
 
     fn neighbors(&self, src: VertexIndex) -> Self::NeighborsIter<'_> {

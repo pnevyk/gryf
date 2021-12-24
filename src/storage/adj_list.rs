@@ -126,14 +126,12 @@ impl<V, E, Ty: EdgeType> Vertices<V> for AdjList<V, E, Ty> {
     where
         V: 'a,
         E: 'a,
-        Ty: 'a,
     = RangeIndices<VertexIndex>;
 
     type VerticesIter<'a, T: 'a>
     where
         V: 'a,
         E: 'a,
-        Ty: 'a,
     = VerticesIter<'a, T>;
 
     fn vertex_count(&self) -> usize {
@@ -221,14 +219,12 @@ impl<V, E, Ty: EdgeType> Edges<E, Ty> for AdjList<V, E, Ty> {
     where
         V: 'a,
         E: 'a,
-        Ty: 'a,
     = RangeIndices<EdgeIndex>;
 
     type EdgesIter<'a, T: 'a>
     where
         V: 'a,
         E: 'a,
-        Ty: 'a,
     = EdgesIter<'a, T>;
 
     fn edge_count(&self) -> usize {
@@ -321,7 +317,6 @@ impl<V, E, Ty: EdgeType> MultiEdges<E, Ty> for AdjList<V, E, Ty> {
     where
         V: 'a,
         E: 'a,
-        Ty: 'a,
     = MultiEdgeIndicesIter<'a>;
 
     fn multi_edge_index(
@@ -350,7 +345,6 @@ impl<V, E, Ty: EdgeType> Neighbors for AdjList<V, E, Ty> {
     where
         V: 'a,
         E: 'a,
-        Ty: 'a,
     = NeighborsIter<'a>;
 
     fn neighbors(&self, src: VertexIndex) -> Self::NeighborsIter<'_> {

@@ -39,7 +39,7 @@ pub enum Undirected {}
 #[derive(Debug, Clone, Copy)]
 pub enum Directed {}
 
-pub trait EdgeType: private::Sealed {
+pub trait EdgeType: private::Sealed + 'static {
     fn is_directed() -> bool;
     fn directions() -> &'static [Direction];
 }

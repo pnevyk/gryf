@@ -146,6 +146,28 @@ where
 
 impl<S> StableIndices for Frozen<S> {}
 
+impl<S: Guarantee> Guarantee for Frozen<S> {
+    fn is_loop_free() -> bool {
+        S::is_loop_free()
+    }
+
+    fn has_paths_only() -> bool {
+        S::has_paths_only()
+    }
+
+    fn has_trees_only() -> bool {
+        S::has_trees_only()
+    }
+
+    fn has_bipartite_only() -> bool {
+        S::has_bipartite_only()
+    }
+
+    fn is_connected<Ty: EdgeType>() -> bool {
+        S::is_connected::<Ty>()
+    }
+}
+
 impl<S> Deref for Frozen<S> {
     type Target = S;
 

@@ -399,6 +399,8 @@ impl<V, E, Ty: EdgeType> Create<V, E, Ty> for AdjList<V, E, Ty> {
     }
 }
 
+impl<V, E, Ty: EdgeType> Guarantee for AdjList<V, E, Ty> {}
+
 pub struct MultiEdgeIndicesIter<'a> {
     src: VertexIndex,
     dst: VertexIndex,

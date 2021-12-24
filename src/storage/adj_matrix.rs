@@ -276,6 +276,8 @@ impl<V, E, Ty: EdgeType + 'static> Create<V, E, Ty> for AdjMatrix<V, E, Ty> {
     }
 }
 
+impl<V, E, Ty: EdgeType> Guarantee for AdjMatrix<V, E, Ty> {}
+
 pub struct EdgeIndicesIter<'a, Ty> {
     matrix: &'a BitMatrix<Ty>,
     index: usize,

@@ -245,6 +245,30 @@ where
 
 pub trait StableIndices {}
 
+pub trait Guarantee {
+    fn is_loop_free() -> bool {
+        false
+    }
+
+    fn has_paths_only() -> bool {
+        false
+    }
+
+    fn has_trees_only() -> bool {
+        // Paths are also trees by definition.
+        Self::has_paths_only()
+    }
+
+    fn has_bipartite_only() -> bool {
+        // Paths and trees are bipartite by definition.
+        Self::has_paths_only() || Self::has_trees_only()
+    }
+
+    fn is_connected<Ty: EdgeType>() -> bool {
+        false
+    }
+}
+
 pub trait Weight: Ord + Add<Self, Output = Self> + Clone + Sized {
     fn zero() -> Self;
     fn inf() -> Self;

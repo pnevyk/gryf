@@ -245,7 +245,7 @@ impl<V, E, Ty: EdgeType> Neighbors for AdjMatrix<V, E, Ty> {
         };
 
         NeighborsIter {
-            matrix: self.matrix.erase(),
+            matrix: self.matrix.detach(),
             src,
             other: 0,
             vertex_count: self.vertex_count(),
@@ -256,7 +256,7 @@ impl<V, E, Ty: EdgeType> Neighbors for AdjMatrix<V, E, Ty> {
 
     fn neighbors_directed(&self, src: VertexIndex, dir: Direction) -> Self::NeighborsIter<'_> {
         NeighborsIter {
-            matrix: self.matrix.erase(),
+            matrix: self.matrix.detach(),
             src,
             other: 0,
             vertex_count: self.vertex_count(),
@@ -376,12 +376,13 @@ mod matrix {
     use std::mem::{self, MaybeUninit};
     use std::ops::Deref;
 
+    use bitvec::prelude::*;
+
     use crate::index::{EdgeIndex, IndexType};
     use crate::marker::EdgeType;
 
     pub struct BitMatrix<Ty> {
-        // TODO: Use a bit vector implementation.
-        bits: Vec<bool>,
+        bits: BitVec,
         capacity: usize,
         ty: PhantomData<Ty>,
     }
@@ -440,7 +441,7 @@ mod matrix {
     }
 
     fn resize<E, Ty: EdgeType>(
-        bits: &mut Vec<bool>,
+        bits: &mut BitVec,
         data: &mut Vec<MaybeUninit<E>>,
         old_capacity: usize,
     ) -> usize {
@@ -448,14 +449,14 @@ mod matrix {
         let size = size_of::<Ty>(new_capacity);
 
         if Ty::is_directed() {
-            let mut new_bits = Vec::with_capacity(size);
+            let mut new_bits = BitVec::with_capacity(size);
             let mut new_data = Vec::with_capacity(size);
 
             // Add the top-right corner.
-            for (i, bit) in bits.iter().copied().enumerate() {
-                new_bits.push(bit);
+            for (i, bit) in bits.iter().enumerate() {
+                new_bits.push(*bit);
 
-                if bit {
+                if *bit {
                     // Take the edge from the original matrix.
                     let edge = mem::replace(&mut data[i], MaybeUninit::uninit());
                     new_data.push(edge);
@@ -520,7 +521,7 @@ mod matrix {
     impl<Ty: EdgeType> BitMatrix<Ty> {
         fn with_capacity(capacity: usize) -> Self {
             Self {
-                bits: vec![false; size_of::<Ty>(capacity)],
+                bits: bitvec![0; size_of::<Ty>(capacity)],
                 capacity,
                 ty: PhantomData,
             }
@@ -535,7 +536,8 @@ mod matrix {
         }
 
         pub fn set(&mut self, index: EdgeIndex, value: bool) -> bool {
-            mem::replace(&mut self.bits[index.to_usize()], value)
+            let mut bit = self.bits.get_mut(index.to_usize()).unwrap();
+            bit.replace(value)
         }
 
         pub fn contains(&self, index: EdgeIndex) -> bool {
@@ -609,7 +611,7 @@ mod matrix {
             }
         }
 
-        pub fn erase(&self) -> &BitMatrix<Ty> {
+        pub fn detach(&self) -> &BitMatrix<Ty> {
             &self.inner
         }
     }
@@ -619,7 +621,7 @@ mod matrix {
             for (bit, edge) in self.inner.bits.iter_mut().zip(self.data.iter_mut()) {
                 if *bit {
                     // SAFETY: See Matrix::get. Calling drop on the edge
-                    // actually breaks this inconsistency, but that's because we
+                    // actually breaks this consistency, but that's because we
                     // are dropping the matrix anyway.
                     unsafe { edge.assume_init_drop() };
                 }

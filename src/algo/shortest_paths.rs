@@ -122,20 +122,20 @@ where
         self.dist.get(&from)
     }
 
-    pub fn reconstruct(&self, from: VertexIndex) -> Reconstruction<'_> {
-        Reconstruction {
+    pub fn reconstruct(&self, from: VertexIndex) -> PathReconstruction<'_> {
+        PathReconstruction {
             curr: from,
             pred: &self.pred,
         }
     }
 }
 
-pub struct Reconstruction<'a> {
+pub struct PathReconstruction<'a> {
     curr: VertexIndex,
     pred: &'a HashMap<VertexIndex, VertexIndex, BuildHasherDefault<FxHasher>>,
 }
 
-impl<'a> Iterator for Reconstruction<'a> {
+impl<'a> Iterator for PathReconstruction<'a> {
     type Item = VertexIndex;
 
     fn next(&mut self) -> Option<Self::Item> {

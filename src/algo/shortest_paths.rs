@@ -1,5 +1,8 @@
 use std::cmp::{max, Reverse};
 use std::collections::{hash_map::Entry, BinaryHeap, HashMap, HashSet};
+use std::hash::BuildHasherDefault;
+
+use rustc_hash::FxHasher;
 
 use crate::index::{IndexType, VertexIndex, Virtual};
 use crate::infra::VisitSet;
@@ -25,8 +28,8 @@ pub struct ShortestPaths<W> {
     // Using HashMaps because the algorithm supports early termination when
     // reaching given goal. It is likely that reaching goal means visiting a
     // subgraph which is significantly smaller than the original graph.
-    dist: HashMap<VertexIndex, W>,
-    pred: HashMap<VertexIndex, VertexIndex>,
+    dist: HashMap<VertexIndex, W, BuildHasherDefault<FxHasher>>,
+    pred: HashMap<VertexIndex, VertexIndex, BuildHasherDefault<FxHasher>>,
 }
 
 impl<W> ShortestPaths<W>
@@ -129,7 +132,7 @@ where
 
 pub struct Reconstruction<'a> {
     curr: VertexIndex,
-    pred: &'a HashMap<VertexIndex, VertexIndex>,
+    pred: &'a HashMap<VertexIndex, VertexIndex, BuildHasherDefault<FxHasher>>,
 }
 
 impl<'a> Iterator for Reconstruction<'a> {
@@ -164,10 +167,13 @@ where
     // early termination when reaching given goal. It is likely that reaching
     // goal means visiting a subgraph which is significantly smaller than the
     // original graph.
-    let mut visited = HashSet::with_capacity(graph.vertex_count());
+    let mut visited = HashSet::with_capacity_and_hasher(
+        graph.vertex_count(),
+        BuildHasherDefault::<FxHasher>::default(),
+    );
 
-    let mut dist = HashMap::new();
-    let mut pred = HashMap::new();
+    let mut dist = HashMap::with_hasher(BuildHasherDefault::default());
+    let mut pred = HashMap::with_hasher(BuildHasherDefault::default());
     let mut queue = BinaryHeap::new();
 
     dist.insert(start, W::zero());

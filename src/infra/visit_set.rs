@@ -1,4 +1,7 @@
-use std::collections::{BTreeSet, HashSet};
+use std::{
+    collections::{BTreeSet, HashSet},
+    hash::BuildHasher,
+};
 
 use fixedbitset::FixedBitSet;
 
@@ -19,7 +22,7 @@ impl<I: IndexType> VisitSet<I> for BTreeSet<I> {
     }
 }
 
-impl<I: IndexType> VisitSet<I> for HashSet<I> {
+impl<I: IndexType, S: BuildHasher> VisitSet<I> for HashSet<I, S> {
     fn visit(&mut self, index: I) -> bool {
         self.insert(index)
     }

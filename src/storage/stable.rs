@@ -1,6 +1,9 @@
 use std::collections::HashSet;
+use std::hash::BuildHasherDefault;
 use std::marker::PhantomData;
 use std::ops::Deref;
+
+use rustc_hash::FxHasher;
 
 use crate::index::{EdgeIndex, VertexIndex};
 use crate::marker::{Direction, EdgeType};
@@ -11,16 +14,16 @@ pub struct Stable<S> {
     inner: S,
     // TODO: Allow to choose whether removed items can be replaced by new ones
     // or not.
-    removed_vertices: HashSet<VertexIndex>,
-    removed_edges: HashSet<EdgeIndex>,
+    removed_vertices: HashSet<VertexIndex, BuildHasherDefault<FxHasher>>,
+    removed_edges: HashSet<EdgeIndex, BuildHasherDefault<FxHasher>>,
 }
 
 impl<S> Stable<S> {
     pub fn new(inner: S) -> Self {
         Self {
             inner,
-            removed_vertices: HashSet::new(),
-            removed_edges: HashSet::new(),
+            removed_vertices: HashSet::default(),
+            removed_edges: HashSet::default(),
         }
     }
 
@@ -313,7 +316,7 @@ pub trait Stabilize {
 
 pub struct VertexIndices<'a, I> {
     inner: I,
-    removed_vertices: &'a HashSet<VertexIndex>,
+    removed_vertices: &'a HashSet<VertexIndex, BuildHasherDefault<FxHasher>>,
 }
 
 impl<'a, I> Iterator for VertexIndices<'a, I>
@@ -335,7 +338,7 @@ where
 
 pub struct VerticesIter<'a, V: 'a, R, I> {
     inner: I,
-    removed_vertices: &'a HashSet<VertexIndex>,
+    removed_vertices: &'a HashSet<VertexIndex, BuildHasherDefault<FxHasher>>,
     ty: PhantomData<(V, R)>,
 }
 
@@ -359,7 +362,7 @@ where
 
 pub struct EdgeIndices<'a, I> {
     inner: I,
-    removed_edges: &'a HashSet<EdgeIndex>,
+    removed_edges: &'a HashSet<EdgeIndex, BuildHasherDefault<FxHasher>>,
 }
 
 impl<'a, I> Iterator for EdgeIndices<'a, I>
@@ -381,7 +384,7 @@ where
 
 pub struct EdgesIter<'a, E: 'a, Ty: EdgeType, R: EdgeRef<E, Ty>, I> {
     inner: I,
-    removed_edges: &'a HashSet<EdgeIndex>,
+    removed_edges: &'a HashSet<EdgeIndex, BuildHasherDefault<FxHasher>>,
     ty: PhantomData<(E, Ty, R)>,
 }
 
@@ -405,8 +408,8 @@ where
 
 pub struct NeighborsIter<'a, S: Neighbors + 'a> {
     inner: S::NeighborsIter<'a>,
-    removed_vertices: &'a HashSet<VertexIndex>,
-    removed_edges: &'a HashSet<EdgeIndex>,
+    removed_vertices: &'a HashSet<VertexIndex, BuildHasherDefault<FxHasher>>,
+    removed_edges: &'a HashSet<EdgeIndex, BuildHasherDefault<FxHasher>>,
 }
 
 impl<'a, S> Iterator for NeighborsIter<'a, S>

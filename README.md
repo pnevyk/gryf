@@ -49,11 +49,11 @@ fn main() {
 
 *Not everything from the list is implemented*
 
-* Separation graph data storage (adjacency list, adjacency matrix, ...) from graph semantics (simple graph, multigraph, bipartite, ...)
+* Separation of graph data storage (adjacency list, adjacency matrix, ...) from graph semantics (simple graph, multigraph, bipartite, ...)
 * Organized into problems, not algorithms (e.g., `ShortestPaths` instead of `dijkstra` and `bellman_ford`)
   * Most suitable algorithm is automatically selected based on graph instance properties
   * Result structures provide high-level interface (e.g., path reconstruction)
-* Focus on flexible and expressive, yet simple trait system
+* Focus on flexible and expressive, yet not overly complex trait system
   * The core is `Vertices`, `VerticesMut`, `Edges`, `EdgesMut`, `Neighbors`
 * Support for graph generalizations (e.g., hypergraph)
 * Accessible codebase without sacrificing performance and efficiency
@@ -67,8 +67,7 @@ fn main() {
 
 *Gryf* /ɡrɨf/ is the czech word for
 [griffin](https://en.wikipedia.org/wiki/Griffin), a legendary creature from
-medieval times and [one](https://twitter.com/sgrif) of the funniest people in my
-Twitter feed. And edit-distance-wise, it is not far from "graf" which is the
+medieval times. And edit-distance-wise, it is not far from "graf" which is the
 czech for "graph".
 
 ## License

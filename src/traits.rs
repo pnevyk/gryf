@@ -32,9 +32,15 @@ pub trait HyperEdgeRef<E, Ty: EdgeType> {
 }
 
 pub trait Vertices<V> {
-    type VertexIndicesIter<'a, T: 'a>: Iterator<Item = VertexIndex>;
     type VertexRef<'a, T: 'a>: VertexRef<T>;
-    type VerticesIter<'a, T: 'a>: Iterator<Item = Self::VertexRef<'a, T>>;
+
+    type VertexIndicesIter<'a, T: 'a>: Iterator<Item = VertexIndex>
+    where
+        Self: 'a;
+
+    type VerticesIter<'a, T: 'a>: Iterator<Item = Self::VertexRef<'a, T>>
+    where
+        Self: 'a;
 
     fn vertex_count(&self) -> usize;
     fn vertex_bound(&self) -> usize;
@@ -60,9 +66,15 @@ pub trait VerticesMut<V>: Vertices<V> {
 }
 
 pub trait Edges<E, Ty: EdgeType> {
-    type EdgeIndicesIter<'a, T: 'a>: Iterator<Item = EdgeIndex>;
     type EdgeRef<'a, T: 'a>: EdgeRef<T, Ty>;
-    type EdgesIter<'a, T: 'a>: Iterator<Item = Self::EdgeRef<'a, T>>;
+
+    type EdgeIndicesIter<'a, T: 'a>: Iterator<Item = EdgeIndex>
+    where
+        Self: 'a;
+
+    type EdgesIter<'a, T: 'a>: Iterator<Item = Self::EdgeRef<'a, T>>
+    where
+        Self: 'a;
 
     fn edge_count(&self) -> usize;
     fn edge_bound(&self) -> usize;
@@ -94,9 +106,15 @@ pub trait EdgesMut<E, Ty: EdgeType>: Edges<E, Ty> {
 }
 
 pub trait MultiEdges<E, Ty: EdgeType>: Edges<E, Ty> {
-    type MultiEdgeIndicesIter<'a>: Iterator<Item = EdgeIndex>;
+    type MultiEdgeIndicesIter<'a>: Iterator<Item = EdgeIndex>
+    where
+        Self: 'a;
 
-    fn multi_edge_index(&self, src: VertexIndex, dst: VertexIndex) -> Self::MultiEdgeIndicesIter<'_>;
+    fn multi_edge_index(
+        &self,
+        src: VertexIndex,
+        dst: VertexIndex,
+    ) -> Self::MultiEdgeIndicesIter<'_>;
 }
 
 pub trait HyperEdges<E, Ty: EdgeType> {
@@ -118,7 +136,10 @@ pub trait NeighborRef {
 
 pub trait Neighbors {
     type NeighborRef<'a>: NeighborRef;
-    type NeighborsIter<'a>: Iterator<Item = Self::NeighborRef<'a>>;
+
+    type NeighborsIter<'a>: Iterator<Item = Self::NeighborRef<'a>>
+    where
+        Self: 'a;
 
     fn neighbors(&self, src: VertexIndex) -> Self::NeighborsIter<'_>;
     fn neighbors_directed(&self, src: VertexIndex, dir: Direction) -> Self::NeighborsIter<'_>;

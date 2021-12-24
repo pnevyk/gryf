@@ -48,9 +48,21 @@ impl<V, E, Ty: EdgeType> Default for EdgeList<V, E, Ty> {
 }
 
 impl<V, E, Ty: EdgeType> Vertices<V> for EdgeList<V, E, Ty> {
-    type VertexIndicesIter<'a, T: 'a> = RangeIndices<VertexIndex>;
     type VertexRef<'a, T: 'a> = (VertexIndex, &'a T);
-    type VerticesIter<'a, T: 'a> = VerticesIter<'a, T>;
+
+    type VertexIndicesIter<'a, T: 'a>
+    where
+        V: 'a,
+        E: 'a,
+        Ty: 'a,
+    = RangeIndices<VertexIndex>;
+
+    type VerticesIter<'a, T: 'a>
+    where
+        V: 'a,
+        E: 'a,
+        Ty: 'a,
+    = VerticesIter<'a, T>;
 
     fn vertex_count(&self) -> usize {
         self.vertices.len()
@@ -124,9 +136,21 @@ impl<V, E, Ty: EdgeType> VerticesMut<V> for EdgeList<V, E, Ty> {
 }
 
 impl<V, E, Ty: EdgeType> Edges<E, Ty> for EdgeList<V, E, Ty> {
-    type EdgeIndicesIter<'a, T: 'a> = RangeIndices<EdgeIndex>;
     type EdgeRef<'a, T: 'a> = (EdgeIndex, &'a T, VertexIndex, VertexIndex);
-    type EdgesIter<'a, T: 'a> = EdgesIter<'a, T>;
+
+    type EdgeIndicesIter<'a, T: 'a>
+    where
+        V: 'a,
+        E: 'a,
+        Ty: 'a,
+    = RangeIndices<EdgeIndex>;
+
+    type EdgesIter<'a, T: 'a>
+    where
+        V: 'a,
+        E: 'a,
+        Ty: 'a,
+    = EdgesIter<'a, T>;
 
     fn edge_count(&self) -> usize {
         self.edges.len()
@@ -212,7 +236,12 @@ impl<V, E, Ty: EdgeType> EdgesMut<E, Ty> for EdgeList<V, E, Ty> {
 }
 
 impl<V, E, Ty: EdgeType> MultiEdges<E, Ty> for EdgeList<V, E, Ty> {
-    type MultiEdgeIndicesIter<'a> = MultiEdgeIndicesIter<'a, Ty>;
+    type MultiEdgeIndicesIter<'a>
+    where
+        V: 'a,
+        E: 'a,
+        Ty: 'a,
+    = MultiEdgeIndicesIter<'a, Ty>;
 
     fn multi_edge_index(
         &self,
@@ -232,7 +261,13 @@ impl<V, E, Ty: EdgeType> MultiEdges<E, Ty> for EdgeList<V, E, Ty> {
 
 impl<V, E, Ty: EdgeType> Neighbors for EdgeList<V, E, Ty> {
     type NeighborRef<'a> = (VertexIndex, EdgeIndex, VertexIndex, Direction);
-    type NeighborsIter<'a> = NeighborsIter<'a>;
+
+    type NeighborsIter<'a>
+    where
+        V: 'a,
+        E: 'a,
+        Ty: 'a,
+    = NeighborsIter<'a>;
 
     fn neighbors(&self, src: VertexIndex) -> Self::NeighborsIter<'_> {
         self.vertex(src).expect("vertex does not exist");

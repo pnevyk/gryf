@@ -1,6 +1,5 @@
 #![allow(incomplete_features)]
 #![feature(generic_associated_types)]
-#![feature(maybe_uninit_ref)]
 #![feature(maybe_uninit_extra)]
 #![feature(assert_matches)]
 

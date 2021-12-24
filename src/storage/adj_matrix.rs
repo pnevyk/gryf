@@ -30,9 +30,21 @@ impl<V, E, Ty: EdgeType> Default for AdjMatrix<V, E, Ty> {
 }
 
 impl<V, E, Ty: EdgeType> Vertices<V> for AdjMatrix<V, E, Ty> {
-    type VertexIndicesIter<'a, T: 'a> = RangeIndices<VertexIndex>;
     type VertexRef<'a, T: 'a> = (VertexIndex, &'a T);
-    type VerticesIter<'a, T: 'a> = VerticesIter<'a, T>;
+
+    type VertexIndicesIter<'a, T: 'a>
+    where
+        V: 'a,
+        E: 'a,
+        Ty: 'a,
+    = RangeIndices<VertexIndex>;
+
+    type VerticesIter<'a, T: 'a>
+    where
+        V: 'a,
+        E: 'a,
+        Ty: 'a,
+    = VerticesIter<'a, T>;
 
     fn vertex_count(&self) -> usize {
         self.vertices.len()
@@ -130,10 +142,22 @@ impl<V, E, Ty: EdgeType> VerticesMut<V> for AdjMatrix<V, E, Ty> {
     }
 }
 
-impl<V, E, Ty: EdgeType + 'static> Edges<E, Ty> for AdjMatrix<V, E, Ty> {
-    type EdgeIndicesIter<'a, T: 'a> = EdgeIndicesIter<'a, Ty>;
+impl<V, E, Ty: EdgeType> Edges<E, Ty> for AdjMatrix<V, E, Ty> {
     type EdgeRef<'a, T: 'a> = (EdgeIndex, &'a T, VertexIndex, VertexIndex);
-    type EdgesIter<'a, T: 'a> = EdgesIter<'a, T, Ty>;
+
+    type EdgeIndicesIter<'a, T: 'a>
+    where
+        V: 'a,
+        E: 'a,
+        Ty: 'a,
+    = EdgeIndicesIter<'a, Ty>;
+
+    type EdgesIter<'a, T: 'a>
+    where
+        V: 'a,
+        E: 'a,
+        Ty: 'a,
+    = EdgesIter<'a, T, Ty>;
 
     fn edge_count(&self) -> usize {
         self.n_edges
@@ -207,9 +231,15 @@ impl<V, E, Ty: EdgeType + 'static> EdgesMut<E, Ty> for AdjMatrix<V, E, Ty> {
     }
 }
 
-impl<V, E, Ty: EdgeType + 'static> Neighbors for AdjMatrix<V, E, Ty> {
+impl<V, E, Ty: EdgeType> Neighbors for AdjMatrix<V, E, Ty> {
     type NeighborRef<'a> = (VertexIndex, EdgeIndex, VertexIndex, Direction);
-    type NeighborsIter<'a> = NeighborsIter<'a, Ty>;
+
+    type NeighborsIter<'a>
+    where
+        V: 'a,
+        E: 'a,
+        Ty: 'a,
+    = NeighborsIter<'a, Ty>;
 
     fn neighbors(&self, src: VertexIndex) -> Self::NeighborsIter<'_> {
         let filter = if Ty::is_directed() {

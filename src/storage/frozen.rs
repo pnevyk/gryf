@@ -30,9 +30,17 @@ impl<V, S> Vertices<V> for Frozen<S>
 where
     S: Vertices<V>,
 {
-    type VertexIndicesIter<'a, T: 'a> = S::VertexIndicesIter<'a, T>;
     type VertexRef<'a, T: 'a> = S::VertexRef<'a, T>;
-    type VerticesIter<'a, T: 'a> = S::VerticesIter<'a, T>;
+
+    type VertexIndicesIter<'a, T: 'a>
+    where
+        S: 'a,
+    = S::VertexIndicesIter<'a, T>;
+
+    type VerticesIter<'a, T: 'a>
+    where
+        S: 'a,
+    = S::VerticesIter<'a, T>;
 
     fn vertex_count(&self) -> usize {
         self.inner.vertex_count()
@@ -67,9 +75,17 @@ impl<E, Ty: EdgeType, S> Edges<E, Ty> for Frozen<S>
 where
     S: Edges<E, Ty>,
 {
-    type EdgeIndicesIter<'a, T: 'a> = S::EdgeIndicesIter<'a, T>;
     type EdgeRef<'a, T: 'a> = S::EdgeRef<'a, T>;
-    type EdgesIter<'a, T: 'a> = S::EdgesIter<'a, T>;
+
+    type EdgeIndicesIter<'a, T: 'a>
+    where
+        S: 'a,
+    = S::EdgeIndicesIter<'a, T>;
+
+    type EdgesIter<'a, T: 'a>
+    where
+        S: 'a,
+    = S::EdgesIter<'a, T>;
 
     fn edge_count(&self) -> usize {
         self.inner.edge_count()
@@ -113,7 +129,11 @@ where
     S: Neighbors,
 {
     type NeighborRef<'a> = S::NeighborRef<'a>;
-    type NeighborsIter<'a> = S::NeighborsIter<'a>;
+
+    type NeighborsIter<'a>
+    where
+        S: 'a,
+    = S::NeighborsIter<'a>;
 
     fn neighbors(&self, src: VertexIndex) -> Self::NeighborsIter<'_> {
         self.inner.neighbors(src)

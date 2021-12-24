@@ -62,10 +62,17 @@ impl<V, S> Vertices<V> for Stable<S>
 where
     S: Vertices<V>,
 {
-    type VertexIndicesIter<'a, T: 'a> = VertexIndices<'a, S::VertexIndicesIter<'a, T>>;
     type VertexRef<'a, T: 'a> = S::VertexRef<'a, T>;
-    type VerticesIter<'a, T: 'a> =
-        VerticesIter<'a, T, Self::VertexRef<'a, T>, S::VerticesIter<'a, T>>;
+
+    type VertexIndicesIter<'a, T: 'a>
+    where
+        S: 'a,
+    = VertexIndices<'a, S::VertexIndicesIter<'a, T>>;
+
+    type VerticesIter<'a, T: 'a>
+    where
+        S: 'a,
+    = VerticesIter<'a, T, Self::VertexRef<'a, T>, S::VerticesIter<'a, T>>;
 
     fn vertex_count(&self) -> usize {
         self.inner.vertex_count() - self.removed_vertices.len()
@@ -149,9 +156,17 @@ impl<E, Ty: EdgeType, S> Edges<E, Ty> for Stable<S>
 where
     S: Edges<E, Ty>,
 {
-    type EdgeIndicesIter<'a, T: 'a> = EdgeIndices<'a, S::EdgeIndicesIter<'a, T>>;
     type EdgeRef<'a, T: 'a> = S::EdgeRef<'a, T>;
-    type EdgesIter<'a, T: 'a> = EdgesIter<'a, T, Ty, Self::EdgeRef<'a, T>, S::EdgesIter<'a, T>>;
+
+    type EdgeIndicesIter<'a, T: 'a>
+    where
+        S: 'a,
+    = EdgeIndices<'a, S::EdgeIndicesIter<'a, T>>;
+
+    type EdgesIter<'a, T: 'a>
+    where
+        S: 'a,
+    = EdgesIter<'a, T, Ty, Self::EdgeRef<'a, T>, S::EdgesIter<'a, T>>;
 
     fn edge_count(&self) -> usize {
         self.inner.edge_count() - self.removed_edges.len()
@@ -244,7 +259,11 @@ where
     S: Neighbors,
 {
     type NeighborRef<'a> = S::NeighborRef<'a>;
-    type NeighborsIter<'a> = NeighborsIter<'a, S>;
+
+    type NeighborsIter<'a>
+    where
+        S: 'a,
+    = NeighborsIter<'a, S>;
 
     fn neighbors(&self, src: VertexIndex) -> Self::NeighborsIter<'_> {
         NeighborsIter {
@@ -384,7 +403,7 @@ where
     }
 }
 
-pub struct NeighborsIter<'a, S: Neighbors> {
+pub struct NeighborsIter<'a, S: Neighbors + 'a> {
     inner: S::NeighborsIter<'a>,
     removed_vertices: &'a HashSet<VertexIndex>,
     removed_edges: &'a HashSet<EdgeIndex>,

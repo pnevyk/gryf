@@ -34,7 +34,7 @@ pub trait HyperEdgeRef<E, Ty: EdgeType> {
 pub trait Vertices<V> {
     type VertexRef<'a, T: 'a>: VertexRef<T>;
 
-    type VertexIndicesIter<'a, T: 'a>: Iterator<Item = VertexIndex>
+    type VertexIndicesIter<'a>: Iterator<Item = VertexIndex>
     where
         Self: 'a;
 
@@ -45,7 +45,7 @@ pub trait Vertices<V> {
     fn vertex_count(&self) -> usize;
     fn vertex_bound(&self) -> usize;
     fn vertex(&self, index: VertexIndex) -> Option<&V>;
-    fn vertex_indices(&self) -> Self::VertexIndicesIter<'_, V>;
+    fn vertex_indices(&self) -> Self::VertexIndicesIter<'_>;
     fn vertices(&self) -> Self::VerticesIter<'_, V>;
 
     fn contains_vertex(&self, index: VertexIndex) -> bool {
@@ -68,7 +68,7 @@ pub trait VerticesMut<V>: Vertices<V> {
 pub trait Edges<E, Ty: EdgeType> {
     type EdgeRef<'a, T: 'a>: EdgeRef<T, Ty>;
 
-    type EdgeIndicesIter<'a, T: 'a>: Iterator<Item = EdgeIndex>
+    type EdgeIndicesIter<'a>: Iterator<Item = EdgeIndex>
     where
         Self: 'a;
 
@@ -81,7 +81,7 @@ pub trait Edges<E, Ty: EdgeType> {
     fn edge(&self, index: EdgeIndex) -> Option<&E>;
     fn endpoints(&self, index: EdgeIndex) -> Option<(VertexIndex, VertexIndex)>;
     fn edge_index(&self, src: VertexIndex, dst: VertexIndex) -> Option<EdgeIndex>;
-    fn edge_indices(&self) -> Self::EdgeIndicesIter<'_, E>;
+    fn edge_indices(&self) -> Self::EdgeIndicesIter<'_>;
     fn edges(&self) -> Self::EdgesIter<'_, E>;
 
     fn contains_edge(&self, index: EdgeIndex) -> bool {

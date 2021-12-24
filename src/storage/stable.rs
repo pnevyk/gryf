@@ -67,10 +67,10 @@ where
 {
     type VertexRef<'a, T: 'a> = S::VertexRef<'a, T>;
 
-    type VertexIndicesIter<'a, T: 'a>
+    type VertexIndicesIter<'a>
     where
         S: 'a,
-    = VertexIndices<'a, S::VertexIndicesIter<'a, T>>;
+    = VertexIndices<'a, S::VertexIndicesIter<'a>>;
 
     type VerticesIter<'a, T: 'a>
     where
@@ -93,7 +93,7 @@ where
         }
     }
 
-    fn vertex_indices(&self) -> Self::VertexIndicesIter<'_, V> {
+    fn vertex_indices(&self) -> Self::VertexIndicesIter<'_> {
         VertexIndices {
             inner: self.inner.vertex_indices(),
             removed_vertices: &self.removed_vertices,
@@ -161,10 +161,10 @@ where
 {
     type EdgeRef<'a, T: 'a> = S::EdgeRef<'a, T>;
 
-    type EdgeIndicesIter<'a, T: 'a>
+    type EdgeIndicesIter<'a>
     where
         S: 'a,
-    = EdgeIndices<'a, S::EdgeIndicesIter<'a, T>>;
+    = EdgeIndices<'a, S::EdgeIndicesIter<'a>>;
 
     type EdgesIter<'a, T: 'a>
     where
@@ -205,7 +205,7 @@ where
         }
     }
 
-    fn edge_indices(&self) -> Self::EdgeIndicesIter<'_, E> {
+    fn edge_indices(&self) -> Self::EdgeIndicesIter<'_> {
         EdgeIndices {
             inner: self.inner.edge_indices(),
             removed_edges: &self.removed_edges,

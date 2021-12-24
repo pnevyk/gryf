@@ -50,7 +50,7 @@ impl<V, E, Ty: EdgeType> Default for EdgeList<V, E, Ty> {
 impl<V, E, Ty: EdgeType> Vertices<V> for EdgeList<V, E, Ty> {
     type VertexRef<'a, T: 'a> = (VertexIndex, &'a T);
 
-    type VertexIndicesIter<'a, T: 'a>
+    type VertexIndicesIter<'a>
     where
         V: 'a,
         E: 'a,
@@ -74,7 +74,7 @@ impl<V, E, Ty: EdgeType> Vertices<V> for EdgeList<V, E, Ty> {
         self.vertices.get(index.to_usize())
     }
 
-    fn vertex_indices(&self) -> Self::VertexIndicesIter<'_, V> {
+    fn vertex_indices(&self) -> Self::VertexIndicesIter<'_> {
         (0..self.vertex_bound()).into()
     }
 
@@ -136,7 +136,7 @@ impl<V, E, Ty: EdgeType> VerticesMut<V> for EdgeList<V, E, Ty> {
 impl<V, E, Ty: EdgeType> Edges<E, Ty> for EdgeList<V, E, Ty> {
     type EdgeRef<'a, T: 'a> = (EdgeIndex, &'a T, VertexIndex, VertexIndex);
 
-    type EdgeIndicesIter<'a, T: 'a>
+    type EdgeIndicesIter<'a>
     where
         V: 'a,
         E: 'a,
@@ -181,7 +181,7 @@ impl<V, E, Ty: EdgeType> Edges<E, Ty> for EdgeList<V, E, Ty> {
             })
     }
 
-    fn edge_indices(&self) -> Self::EdgeIndicesIter<'_, E> {
+    fn edge_indices(&self) -> Self::EdgeIndicesIter<'_> {
         (0..self.edge_bound()).into()
     }
 

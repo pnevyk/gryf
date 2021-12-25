@@ -269,6 +269,15 @@ pub trait Guarantee {
     }
 }
 
+pub trait Constrained<G> {
+    type Error;
+
+    fn check(graph: &G) -> Result<(), Self::Error>;
+    fn constrain(graph: G) -> Result<Self, Self::Error>
+    where
+        Self: Sized;
+}
+
 pub trait Weight: Ord + Add<Self, Output = Self> + Clone + Sized {
     fn zero() -> Self;
     fn inf() -> Self;

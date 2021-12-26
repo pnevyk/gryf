@@ -100,9 +100,11 @@ pub trait VerticesMut<V>: Vertices<V> {
 }
 
 pub trait VerticesWeak<V> {
+    type VertexIndex = VertexIndex;
+
     fn vertex_count_hint(&self) -> Option<usize>;
     fn vertex_bound_hint(&self) -> Option<usize>;
-    fn vertex_weak(&self, index: VertexIndex) -> Option<WeakRef<'_, V>>;
+    fn vertex_weak(&self, index: Self::VertexIndex) -> Option<WeakRef<'_, V>>;
 }
 
 impl<V, G> VerticesWeak<V> for G
@@ -163,13 +165,23 @@ pub trait EdgesMut<E, Ty: EdgeType>: Edges<E, Ty> {
 }
 
 pub trait EdgesWeak<E, Ty: EdgeType> {
+    type VertexIndex = VertexIndex;
+    type EdgeIndex = EdgeIndex;
+
     fn edge_count_hint(&self) -> Option<usize>;
     fn edge_bound_hint(&self) -> Option<usize>;
-    fn edge_weak(&self, index: EdgeIndex) -> Option<WeakRef<'_, E>>;
-    fn endpoints_weak(&self, index: EdgeIndex) -> Option<(VertexIndex, VertexIndex)>;
-    fn edge_index_weak(&self, src: VertexIndex, dst: VertexIndex) -> Option<EdgeIndex>;
+    fn edge_weak(&self, index: Self::EdgeIndex) -> Option<WeakRef<'_, E>>;
+    fn endpoints_weak(
+        &self,
+        index: Self::EdgeIndex,
+    ) -> Option<(Self::VertexIndex, Self::VertexIndex)>;
+    fn edge_index_weak(
+        &self,
+        src: Self::VertexIndex,
+        dst: Self::VertexIndex,
+    ) -> Option<Self::EdgeIndex>;
 
-    fn contains_edge_weak(&self, index: EdgeIndex) -> bool {
+    fn contains_edge_weak(&self, index: Self::EdgeIndex) -> bool {
         self.edge_weak(index).is_some()
     }
 

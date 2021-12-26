@@ -76,19 +76,18 @@ where
     }
 }
 
-impl<V, E, G1, G2> OpOwned<G2> for Complement<V, E, G1>
+impl<V, E, G> OpOwned<G> for Complement<V, E, G>
 where
-    G1: Vertices<V> + Edges<E, Undirected>,
-    G2: VerticesMut<V> + EdgesMut<E, Undirected> + Create<V, E, Undirected>,
+    G: VerticesMut<V> + EdgesMut<E, Undirected> + Create<V, E, Undirected>,
     V: Clone,
     E: Clone,
 {
-    fn apply(self) -> G2 {
+    fn apply(self) -> G {
         // XXX: Is it possible to do it in place in a way that would be more
         // efficient that the out-of-place approach? It would also have a nice
         // side effect of not changing the vertex indices when they are holes.
 
-        let mut result = G2::with_capacity(self.graph.vertex_count(), self.edge_count());
+        let mut result = G::with_capacity(self.graph.vertex_count(), self.edge_count());
         self.apply_mut(&mut result);
         result
     }
@@ -301,7 +300,7 @@ mod tests {
 
         graph.remove_vertex(v3);
 
-        let complement: AdjList<_, _, _> = Complement::new(graph, ()).apply();
+        let complement: Stable<AdjList<_, _, _>> = Complement::new(graph, ()).apply();
 
         // XXX: Complement does not preserve the vertex indices when there are
         // holes. This would change if we implement an in-place algorithm.

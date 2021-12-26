@@ -6,8 +6,8 @@ use crate::index::IndexType;
 use crate::marker::EdgeType;
 use crate::traits::*;
 
-pub trait Export<'a, G> {
-    fn export<W: Write>(&self, graph: &'a G, out: &mut W) -> io::Result<()>;
+pub trait Export<G> {
+    fn export<W: Write>(&self, graph: &G, out: &mut W) -> io::Result<()>;
 }
 
 pub struct Dot<V, E, Ty: EdgeType> {
@@ -38,11 +38,11 @@ impl<V: Display, E: Display, Ty: EdgeType> Dot<V, E, Ty> {
     }
 }
 
-impl<'a, V: 'a, E: 'a, Ty: EdgeType, G> Export<'a, G> for Dot<V, E, Ty>
+impl<V, E, Ty: EdgeType, G> Export<G> for Dot<V, E, Ty>
 where
     G: Vertices<V> + Edges<E, Ty>,
 {
-    fn export<W: Write>(&self, graph: &'a G, out: &mut W) -> io::Result<()> {
+    fn export<W: Write>(&self, graph: &G, out: &mut W) -> io::Result<()> {
         if Ty::is_directed() {
             out.write(b"digraph ")?;
         } else {

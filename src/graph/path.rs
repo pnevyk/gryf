@@ -6,9 +6,11 @@ use crate::infra::{CompactIndexMap, TypedBitSet, VisitSet};
 use crate::marker::{Direction, EdgeType, Undirected};
 use crate::storage::AdjList;
 use crate::traits::*;
+use crate::{Vertices, Edges, Neighbors};
 
-#[derive(Debug)]
+#[derive(Debug, Vertices, Edges, Neighbors)]
 pub struct Path<V, E, S = AdjList<V, E, Undirected>> {
+    #[graph]
     graph: S,
     ends: Option<[VertexIndex; 2]>,
     ty: PhantomData<(V, E)>,
@@ -251,132 +253,6 @@ where
         // `try_add_vertex` cannot fail.
         self.try_add_vertex(vertex, Some(E::default()), end)
             .unwrap()
-    }
-}
-
-impl<V, E, S> Vertices<V> for Path<V, E, S>
-where
-    S: Vertices<V>,
-{
-    type VertexRef<'a, T: 'a> = S::VertexRef<'a, T>;
-
-    type VertexIndicesIter<'a>
-    where
-        Self: 'a,
-    = S::VertexIndicesIter<'a>;
-
-    type VerticesIter<'a, T: 'a>
-    where
-        Self: 'a,
-    = S::VerticesIter<'a, T>;
-
-    fn vertex_count(&self) -> usize {
-        self.graph.vertex_count()
-    }
-
-    fn vertex_bound(&self) -> usize {
-        self.graph.vertex_bound()
-    }
-
-    fn vertex(&self, index: VertexIndex) -> Option<&V> {
-        self.graph.vertex(index)
-    }
-
-    fn vertex_indices(&self) -> Self::VertexIndicesIter<'_> {
-        self.graph.vertex_indices()
-    }
-
-    fn vertices(&self) -> Self::VerticesIter<'_, V> {
-        self.graph.vertices()
-    }
-
-    fn contains_vertex(&self, index: VertexIndex) -> bool {
-        self.graph.contains_vertex(index)
-    }
-
-    fn vertex_index_map(&self) -> CompactIndexMap<VertexIndex> {
-        self.graph.vertex_index_map()
-    }
-}
-
-impl<V, E, S> Edges<E, Undirected> for Path<V, E, S>
-where
-    S: Edges<E, Undirected>,
-{
-    type EdgeRef<'a, T: 'a> = S::EdgeRef<'a, T>;
-
-    type EdgeIndicesIter<'a>
-    where
-        Self: 'a,
-    = S::EdgeIndicesIter<'a>;
-
-    type EdgesIter<'a, T: 'a>
-    where
-        Self: 'a,
-    = S::EdgesIter<'a, T>;
-
-    fn edge_count(&self) -> usize {
-        self.graph.edge_count()
-    }
-
-    fn edge_bound(&self) -> usize {
-        self.graph.edge_bound()
-    }
-
-    fn edge(&self, index: EdgeIndex) -> Option<&E> {
-        self.graph.edge(index)
-    }
-
-    fn endpoints(&self, index: EdgeIndex) -> Option<(VertexIndex, VertexIndex)> {
-        self.graph.endpoints(index)
-    }
-
-    fn edge_index(&self, src: VertexIndex, dst: VertexIndex) -> Option<EdgeIndex> {
-        self.graph.edge_index(src, dst)
-    }
-
-    fn edge_indices(&self) -> Self::EdgeIndicesIter<'_> {
-        self.graph.edge_indices()
-    }
-
-    fn edges(&self) -> Self::EdgesIter<'_, E> {
-        self.graph.edges()
-    }
-
-    fn contains_edge(&self, index: EdgeIndex) -> bool {
-        self.graph.contains_edge(index)
-    }
-
-    fn edge_index_map(&self) -> CompactIndexMap<EdgeIndex> {
-        self.graph.edge_index_map()
-    }
-}
-
-impl<V, E, S> Neighbors for Path<V, E, S>
-where
-    S: Neighbors,
-{
-    type NeighborRef<'a> = S::NeighborRef<'a>;
-
-    type NeighborsIter<'a>
-    where
-        Self: 'a,
-    = S::NeighborsIter<'a>;
-
-    fn neighbors(&self, src: VertexIndex) -> Self::NeighborsIter<'_> {
-        self.graph.neighbors(src)
-    }
-
-    fn neighbors_directed(&self, src: VertexIndex, dir: Direction) -> Self::NeighborsIter<'_> {
-        self.graph.neighbors_directed(src, dir)
-    }
-
-    fn degree(&self, index: VertexIndex) -> usize {
-        self.graph.degree(index)
-    }
-
-    fn degree_directed(&self, index: VertexIndex, dir: Direction) -> usize {
-        self.graph.degree_directed(index, dir)
     }
 }
 

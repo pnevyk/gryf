@@ -15,6 +15,8 @@ mod util;
 pub mod visit;
 pub mod weight;
 
+pub use macros::{Edges, EdgesMut, MultiEdges, Neighbors, Vertices, VerticesMut};
+
 #[cfg(feature = "arbitrary")]
 pub mod arbitrary;
 

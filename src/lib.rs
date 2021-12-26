@@ -2,6 +2,7 @@
 #![feature(generic_associated_types)]
 #![feature(maybe_uninit_extra)]
 #![feature(assert_matches)]
+#![feature(int_log)]
 
 pub mod algo;
 pub mod export;

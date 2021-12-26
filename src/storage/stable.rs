@@ -144,6 +144,11 @@ where
             let data = data.clone();
             self.removed_vertices.insert(index);
 
+            // Iterate over remaining neighbors only to get edges to be marked
+            // as removed. An alternative could be to iterate over all neighbors
+            // in the inner graph and let HashMap to handle duplicates, but that
+            // may cause unnecessary overhead if a lot of edges incident to the
+            // vertex has been removed.
             let mut removed_edges = FxHashSet::default();
             for neighbor in self.neighbors(index) {
                 removed_edges.insert(neighbor.edge());
@@ -161,6 +166,16 @@ where
 
     fn replace_vertex(&mut self, index: VertexIndex, vertex: V) -> V {
         self.inner.replace_vertex(index, vertex)
+    }
+
+    fn clear(&mut self) {
+        for vertex in self.inner.vertex_indices() {
+            self.removed_vertices.insert(vertex);
+
+            for neighbor in self.inner.neighbors(vertex) {
+                self.removed_edges.insert(neighbor.edge());
+            }
+        }
     }
 }
 
@@ -271,6 +286,12 @@ where
 
     fn replace_edge(&mut self, index: EdgeIndex, edge: E) -> E {
         self.inner.replace_edge(index, edge)
+    }
+
+    fn clear_edges(&mut self) {
+        for edge in self.inner.edge_indices() {
+            self.removed_edges.insert(edge);
+        }
     }
 }
 

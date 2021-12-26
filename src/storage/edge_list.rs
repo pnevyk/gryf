@@ -129,6 +129,12 @@ impl<V, E, Ty: EdgeType> VerticesMut<V> for EdgeList<V, E, Ty> {
 
         mem::replace(slot, vertex)
     }
+
+    fn clear(&mut self) {
+        self.vertices.clear();
+        self.edges.clear();
+        self.endpoints.clear();
+    }
 }
 
 impl<V, E, Ty: EdgeType> Edges<E, Ty> for EdgeList<V, E, Ty> {
@@ -226,6 +232,11 @@ impl<V, E, Ty: EdgeType> EdgesMut<E, Ty> for EdgeList<V, E, Ty> {
             .expect("edge does not exist");
 
         mem::replace(slot, edge)
+    }
+
+    fn clear_edges(&mut self) {
+        self.edges.clear();
+        self.endpoints.clear();
     }
 }
 

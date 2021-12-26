@@ -140,6 +140,12 @@ impl<V, E, Ty: EdgeType> VerticesMut<V> for AdjMatrix<V, E, Ty> {
 
         mem::replace(slot, vertex)
     }
+
+    fn clear(&mut self) {
+        self.matrix.clear();
+        self.vertices.clear();
+        self.n_edges = 0;
+    }
 }
 
 impl<V, E, Ty: EdgeType> Edges<E, Ty> for AdjMatrix<V, E, Ty> {
@@ -226,6 +232,11 @@ impl<V, E, Ty: EdgeType + 'static> EdgesMut<E, Ty> for AdjMatrix<V, E, Ty> {
         let old = self.matrix.remove(index).expect("edge does not exist");
         self.matrix.insert(index, edge);
         old
+    }
+
+    fn clear_edges(&mut self) {
+        self.matrix.clear_edges();
+        self.n_edges = 0;
     }
 }
 
@@ -587,16 +598,28 @@ mod matrix {
         }
     }
 
-    impl<E, Ty> Drop for Matrix<E, Ty> {
-        fn drop(&mut self) {
-            for (bit, edge) in self.inner.bits.iter_mut().zip(self.data.iter_mut()) {
+    impl<E, Ty> Matrix<E, Ty> {
+        pub fn clear(&mut self) {
+            self.clear_edges();
+            self.inner.bits.clear();
+            self.data.clear();
+        }
+
+        pub fn clear_edges(&mut self) {
+            for (mut bit, edge) in self.inner.bits.iter_mut().zip(self.data.iter_mut()) {
                 if *bit {
-                    // SAFETY: See Matrix::get. Calling drop on the edge
-                    // actually breaks this consistency, but that's because we
-                    // are dropping the matrix anyway.
+                    *bit = false;
+
+                    // SAFETY: See Matrix::get.
                     unsafe { edge.assume_init_drop() };
                 }
             }
+        }
+    }
+
+    impl<E, Ty> Drop for Matrix<E, Ty> {
+        fn drop(&mut self) {
+            self.clear_edges()
         }
     }
 

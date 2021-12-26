@@ -106,6 +106,15 @@ pub trait VerticesMut<V>: Vertices<V> {
     fn add_vertex(&mut self, vertex: V) -> VertexIndex;
     fn remove_vertex(&mut self, index: VertexIndex) -> Option<V>;
     fn replace_vertex(&mut self, index: VertexIndex, vertex: V) -> V;
+
+    fn clear(&mut self) {
+        // Should be overridden by an efficient implementation whenever
+        // possible.
+        let vertices = self.vertex_indices().collect::<Vec<_>>();
+        for vertex in vertices {
+            self.remove_vertex(vertex);
+        }
+    }
 }
 
 pub trait VerticesWeak<V> {
@@ -154,6 +163,15 @@ pub trait EdgesMut<E, Ty: EdgeType>: Edges<E, Ty> {
     fn add_edge(&mut self, src: VertexIndex, dst: VertexIndex, edge: E) -> EdgeIndex;
     fn remove_edge(&mut self, index: EdgeIndex) -> Option<E>;
     fn replace_edge(&mut self, index: EdgeIndex, edge: E) -> E;
+
+    fn clear_edges(&mut self) {
+        // Should be overridden by an efficient implementation whenever
+        // possible.
+        let edges = self.edge_indices().collect::<Vec<_>>();
+        for edge in edges {
+            self.remove_edge(edge);
+        }
+    }
 }
 
 pub trait EdgesWeak<E, Ty: EdgeType> {

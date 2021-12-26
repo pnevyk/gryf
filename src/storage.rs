@@ -78,6 +78,17 @@ mod tests {
             assert_eq!(out_deg, vec![1, 1, 2]);
             assert_eq!(in_deg, vec![1, 1, 2]);
         }
+
+        graph.clear_edges();
+        assert_eq!(graph.edge_count(), 0);
+        assert_eq!(graph.vertex_count(), 3);
+
+        graph.add_edge(v0, v1, ());
+        assert_eq!(graph.edge_count(), 1);
+
+        graph.clear();
+        assert_eq!(graph.vertex_count(), 0);
+        assert_eq!(graph.edge_count(), 0);
     }
 
     pub fn test_multi<Ty: EdgeType, G>()

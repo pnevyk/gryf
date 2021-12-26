@@ -48,8 +48,8 @@ where
     E: Clone,
 {
     fn apply_mut(self, result: &mut G2) {
-        // TODO: Clear result to make sure that the indices of added vertices go
-        // from zero.
+        // Make sure that the result graph is initially empty.
+        result.clear();
 
         let vertex_map = self.graph.vertex_index_map();
 

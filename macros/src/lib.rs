@@ -102,6 +102,10 @@ pub fn vertices_mut(tokens: TokenStream) -> TokenStream {
             fn replace_vertex(&mut self, index: VertexIndex, vertex: V) -> V {
                 self.#field_name.replace_vertex(index, vertex)
             }
+
+            fn clear(&mut self) {
+                self.#field_name.clear();
+            }
         }
     };
 
@@ -257,6 +261,10 @@ pub fn edges_mut(tokens: TokenStream) -> TokenStream {
 
             fn replace_edge(&mut self, index: EdgeIndex, edge: E) -> E {
                 self.#field_name.replace_edge(index, edge)
+            }
+
+            fn clear_edges(&mut self) {
+                self.#field_name.clear_edges();
             }
         }
     };

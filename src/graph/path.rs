@@ -223,6 +223,11 @@ where
         self.graph.replace_vertex(index, vertex)
     }
 
+    pub fn clear(&mut self) {
+        self.graph.clear();
+        self.ends = None;
+    }
+
     pub fn edge_mut(&mut self, index: EdgeIndex) -> Option<&mut E> {
         self.graph.edge_mut(index)
     }

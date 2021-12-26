@@ -65,6 +65,15 @@ impl<T> Deref for WeakRef<'_, T> {
     }
 }
 
+impl<T> AsRef<T> for WeakRef<'_, T> {
+    fn as_ref(&self) -> &T {
+        match self.data {
+            WeakRefData::Borrowed(data) => data,
+            WeakRefData::Owned(ref data) => data,
+        }
+    }
+}
+
 pub trait Vertices<V> {
     type VertexRef<'a, T: 'a>: VertexRef<T>;
 

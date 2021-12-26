@@ -4,7 +4,7 @@ use std::hash::BuildHasherDefault;
 
 use rustc_hash::{FxHashMap, FxHashSet, FxHasher};
 
-use crate::index::{IndexType, VertexIndex, Virtual};
+use crate::index::{EdgeIndex, IndexType, VertexIndex, Virtual};
 use crate::infra::VisitSet;
 use crate::marker::{EdgeType, Outgoing};
 use crate::traits::*;
@@ -45,7 +45,11 @@ where
         algo: Option<Algo>,
     ) -> Result<Self, Error>
     where
-        G: Vertices<V> + Edges<E, Ty> + Neighbors,
+        G: Vertices<V>
+            + Edges<E, Ty>
+            + VerticesWeak<V>
+            + EdgesWeak<E, Ty, EdgeIndex = EdgeIndex>
+            + Neighbors,
         F: Fn(&E) -> W,
     {
         let algo = algo.unwrap_or_else(|| {
@@ -84,7 +88,11 @@ where
         edge_weight: F,
     ) -> Result<Self, Error>
     where
-        G: Vertices<V> + Edges<E, Ty> + Neighbors,
+        G: Vertices<V>
+            + Edges<E, Ty>
+            + VerticesWeak<V>
+            + EdgesWeak<E, Ty, EdgeIndex = EdgeIndex>
+            + Neighbors,
         F: Fn(&E) -> W,
     {
         Self::run_algo(graph, start, goal, edge_weight, None)
@@ -97,7 +105,7 @@ where
         edge_weight: F,
     ) -> Result<Self, Error>
     where
-        G: Vertices<V> + Edges<E, Ty> + Neighbors,
+        G: VerticesWeak<V> + EdgesWeak<E, Ty, EdgeIndex = EdgeIndex> + Neighbors,
         F: Fn(&E) -> W,
     {
         dijkstra(graph, start, goal, edge_weight)
@@ -160,7 +168,7 @@ fn dijkstra<'a, V, E, Ty: EdgeType, G, W, F>(
     edge_weight: F,
 ) -> Result<ShortestPaths<W>, Error>
 where
-    G: Vertices<V> + Edges<E, Ty> + Neighbors,
+    G: VerticesWeak<V> + EdgesWeak<E, Ty, EdgeIndex = EdgeIndex> + Neighbors,
     W: Weight,
     F: Fn(&E) -> W,
 {
@@ -169,7 +177,7 @@ where
     // goal means visiting a subgraph which is significantly smaller than the
     // original graph.
     let mut visited: FxHashSet<_> = HashSet::with_capacity_and_hasher(
-        graph.vertex_count(),
+        graph.vertex_count_hint().unwrap_or(32),
         BuildHasherDefault::<FxHasher>::default(),
     );
 
@@ -192,14 +200,14 @@ where
         }
 
         for neighbor in graph.neighbors_directed(vertex, Outgoing) {
-            let edge = graph.edge(neighbor.edge()).unwrap();
+            let edge = graph.edge_weak(neighbor.edge()).unwrap();
             let next = neighbor.index();
 
             if visited.is_visited(next) {
                 continue;
             }
 
-            let edge_dist = edge_weight(edge);
+            let edge_dist = edge_weight(edge.as_ref());
 
             // The check for unsignedness should eliminate the negativity weight
             // check, because the implementation of `is_unsigned` method is

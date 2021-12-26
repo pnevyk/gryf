@@ -108,6 +108,44 @@ pub fn vertices_mut(tokens: TokenStream) -> TokenStream {
     TokenStream::from(implemented)
 }
 
+#[proc_macro_derive(VerticesWeak)]
+pub fn vertices_weak(tokens: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(tokens as DeriveInput);
+
+    let name = &input.ident;
+
+    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
+    let impl_generics = util::augment_impl_generics_if_necessary(impl_generics, vec!["V"]);
+    let where_clause = util::augment_where_clause(
+        where_clause,
+        vec![
+            // The derived implementation is based on non-weak functionality.
+            (
+                syn::parse_str::<Type>("Self").unwrap(),
+                quote! { Vertices<V> },
+            ),
+        ],
+    );
+
+    let implemented = quote! {
+        impl #impl_generics VerticesWeak<V> for #name #ty_generics #where_clause {
+            fn vertex_count_hint(&self) -> Option<usize> {
+                Some(self.vertex_count())
+            }
+
+            fn vertex_bound_hint(&self) -> Option<usize> {
+                Some(self.vertex_bound())
+            }
+
+            fn vertex_weak(&self, index: VertexIndex) -> Option<WeakRef<'_, V>> {
+                self.vertex(index).map(|vertex| WeakRef::borrowed(vertex))
+            }
+        }
+    };
+
+    TokenStream::from(implemented)
+}
+
 #[proc_macro_derive(Edges, attributes(graph))]
 pub fn edges(tokens: TokenStream) -> TokenStream {
     let input = parse_macro_input!(tokens as DeriveInput);
@@ -219,6 +257,57 @@ pub fn edges_mut(tokens: TokenStream) -> TokenStream {
 
             fn replace_edge(&mut self, index: EdgeIndex, edge: E) -> E {
                 self.#field_name.replace_edge(index, edge)
+            }
+        }
+    };
+
+    TokenStream::from(implemented)
+}
+
+#[proc_macro_derive(EdgesWeak)]
+pub fn edges_weak(tokens: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(tokens as DeriveInput);
+
+    let name = &input.ident;
+
+    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
+    let impl_generics = util::augment_impl_generics_if_necessary(impl_generics, vec!["E", "Ty"]);
+    let where_clause = util::augment_where_clause(
+        where_clause,
+        vec![
+            // The derived implementation is based on non-weak functionality.
+            (
+                syn::parse_str::<Type>("Self").unwrap(),
+                quote! { Edges<E, Ty> },
+            ),
+            (syn::parse_str::<Type>("Ty").unwrap(), quote! { EdgeType }),
+        ],
+    );
+
+    let implemented = quote! {
+        impl #impl_generics EdgesWeak<E, Ty> for #name #ty_generics #where_clause {
+            fn edge_count_hint(&self) -> Option<usize> {
+                Some(self.edge_count())
+            }
+
+            fn edge_bound_hint(&self) -> Option<usize> {
+                Some(self.edge_bound())
+            }
+
+            fn edge_weak(&self, index: EdgeIndex) -> Option<WeakRef<'_, E>> {
+                self.edge(index).map(|edge| WeakRef::borrowed(edge))
+            }
+
+            fn endpoints_weak(&self, index: EdgeIndex) -> Option<(VertexIndex, VertexIndex)> {
+                self.endpoints(index)
+            }
+
+            fn edge_index_weak(&self, src: VertexIndex, dst: VertexIndex) -> Option<EdgeIndex> {
+                self.edge_index(src, dst)
+            }
+
+            fn contains_edge_weak(&self, index: EdgeIndex) -> bool {
+                self.contains_edge(index)
             }
         }
     };

@@ -6,9 +6,9 @@ use crate::infra::{CompactIndexMap, TypedBitSet, VisitSet};
 use crate::marker::{Direction, EdgeType, Undirected};
 use crate::storage::AdjList;
 use crate::traits::*;
-use crate::{Vertices, Edges, Neighbors};
+use crate::{Edges, EdgesWeak, Neighbors, Vertices, VerticesWeak};
 
-#[derive(Debug, Vertices, Edges, Neighbors)]
+#[derive(Debug, Vertices, Edges, Neighbors, VerticesWeak, EdgesWeak)]
 pub struct Path<V, E, S = AdjList<V, E, Undirected>> {
     #[graph]
     graph: S,

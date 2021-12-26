@@ -8,8 +8,9 @@ use crate::index::{EdgeIndex, IndexType, VertexIndex};
 use crate::infra::CompactIndexMap;
 use crate::marker::{Direction, EdgeType};
 use crate::traits::*;
+use crate::{EdgesWeak, VerticesWeak};
 
-#[derive(Debug)]
+#[derive(Debug, VerticesWeak, EdgesWeak)]
 pub struct EdgeList<V, E, Ty> {
     vertices: Vec<V>,
     edges: Vec<E>,
@@ -17,10 +18,7 @@ pub struct EdgeList<V, E, Ty> {
     ty: PhantomData<Ty>,
 }
 
-impl<V, E, Ty> EdgeList<V, E, Ty>
-where
-    Ty: EdgeType,
-{
+impl<V, E, Ty: EdgeType> EdgeList<V, E, Ty> {
     pub fn new() -> Self {
         Self {
             vertices: Vec::new(),

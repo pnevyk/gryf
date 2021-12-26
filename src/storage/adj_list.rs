@@ -7,8 +7,9 @@ use crate::index::{EdgeIndex, IndexType, VertexIndex};
 use crate::infra::CompactIndexMap;
 use crate::marker::{Direction, EdgeType};
 use crate::traits::*;
+use crate::{EdgesWeak, VerticesWeak};
 
-#[derive(Debug)]
+#[derive(Debug, VerticesWeak, EdgesWeak)]
 pub struct AdjList<V, E, Ty> {
     vertices: Vec<Vertex<V>>,
     edges: Vec<E>,

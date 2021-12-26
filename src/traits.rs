@@ -107,23 +107,6 @@ pub trait VerticesWeak<V> {
     fn vertex_weak(&self, index: Self::VertexIndex) -> Option<WeakRef<'_, V>>;
 }
 
-impl<V, G> VerticesWeak<V> for G
-where
-    G: Vertices<V>,
-{
-    fn vertex_count_hint(&self) -> Option<usize> {
-        Some(self.vertex_count())
-    }
-
-    fn vertex_bound_hint(&self) -> Option<usize> {
-        Some(self.vertex_bound())
-    }
-
-    fn vertex_weak(&self, index: VertexIndex) -> Option<WeakRef<'_, V>> {
-        self.vertex(index).map(|vertex| WeakRef::borrowed(vertex))
-    }
-}
-
 pub trait Edges<E, Ty: EdgeType> {
     type EdgeRef<'a, T: 'a>: EdgeRef<T, Ty>;
 
@@ -187,35 +170,6 @@ pub trait EdgesWeak<E, Ty: EdgeType> {
 
     fn is_directed_weak(&self) -> bool {
         Ty::is_directed()
-    }
-}
-
-impl<E, Ty: EdgeType, G> EdgesWeak<E, Ty> for G
-where
-    G: Edges<E, Ty>,
-{
-    fn edge_count_hint(&self) -> Option<usize> {
-        Some(self.edge_count())
-    }
-
-    fn edge_bound_hint(&self) -> Option<usize> {
-        Some(self.edge_bound())
-    }
-
-    fn edge_weak(&self, index: EdgeIndex) -> Option<WeakRef<'_, E>> {
-        self.edge(index).map(|edge| WeakRef::borrowed(edge))
-    }
-
-    fn endpoints_weak(&self, index: EdgeIndex) -> Option<(VertexIndex, VertexIndex)> {
-        self.endpoints(index)
-    }
-
-    fn edge_index_weak(&self, src: VertexIndex, dst: VertexIndex) -> Option<EdgeIndex> {
-        self.edge_index(src, dst)
-    }
-
-    fn contains_edge_weak(&self, index: EdgeIndex) -> bool {
-        self.contains_edge(index)
     }
 }
 

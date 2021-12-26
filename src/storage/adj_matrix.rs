@@ -6,7 +6,9 @@ use crate::index::{EdgeIndex, IndexType, VertexIndex};
 use crate::infra::CompactIndexMap;
 use crate::marker::{Direction, EdgeType};
 use crate::traits::*;
+use crate::{EdgesWeak, VerticesWeak};
 
+#[derive(Debug, VerticesWeak, EdgesWeak)]
 pub struct AdjMatrix<V, E, Ty> {
     matrix: Matrix<E, Ty>,
     vertices: Vec<V>,
@@ -373,7 +375,6 @@ impl<'a, Ty: EdgeType> Iterator for NeighborsIter<'a, Ty> {
 }
 
 mod matrix {
-    use std::fmt;
     use std::marker::PhantomData;
     use std::mem::{self, MaybeUninit};
     use std::ops::Deref;
@@ -383,20 +384,11 @@ mod matrix {
     use crate::index::{EdgeIndex, IndexType};
     use crate::marker::EdgeType;
 
+    #[derive(Debug)]
     pub struct BitMatrix<Ty> {
         bits: BitVec,
         capacity: usize,
         ty: PhantomData<Ty>,
-    }
-
-    impl<Ty: EdgeType> fmt::Debug for BitMatrix<Ty> {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            f.debug_struct("BitMatrix")
-                .field("bits", &self.bits)
-                .field("capacity", &self.capacity)
-                .field("is_directed", &Ty::is_directed())
-                .finish()
-        }
     }
 
     // The matrix could be implemented safely as Vec<Option<E>>. However, that
@@ -405,33 +397,10 @@ mod matrix {
     // to detach the information of the edges presence from the data solves this
     // problem. Unfortunately, it brings unsafe code and a bit more logic
     // complexity.
+    #[derive(Debug)]
     pub struct Matrix<E, Ty> {
         inner: BitMatrix<Ty>,
         data: Vec<MaybeUninit<E>>,
-    }
-
-    impl<E: fmt::Debug, Ty: EdgeType> fmt::Debug for Matrix<E, Ty> {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            let data = self
-                .inner
-                .bits
-                .iter()
-                .zip(self.data.iter())
-                .map(|(bit, edge)| {
-                    if *bit {
-                        Some(unsafe { edge.assume_init_ref() })
-                    } else {
-                        None
-                    }
-                })
-                .collect::<Vec<_>>();
-
-            f.debug_struct("Matrix")
-                .field("data", &data)
-                .field("capacity", &self.inner.capacity)
-                .field("is_directed", &Ty::is_directed())
-                .finish()
-        }
     }
 
     fn size_of<Ty: EdgeType>(capacity: usize) -> usize {

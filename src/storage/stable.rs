@@ -9,8 +9,9 @@ use crate::index::{EdgeIndex, VertexIndex};
 use crate::infra::CompactIndexMap;
 use crate::marker::{Direction, EdgeType};
 use crate::traits::*;
+use crate::{EdgesWeak, VerticesWeak};
 
-#[derive(Debug)]
+#[derive(Debug, VerticesWeak, EdgesWeak)]
 pub struct Stable<S> {
     inner: S,
     // TODO: Allow to choose whether removed items can be replaced by new ones

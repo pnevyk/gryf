@@ -4,9 +4,9 @@ use crate::index::{EdgeIndex, VertexIndex};
 use crate::infra::CompactIndexMap;
 use crate::marker::{Direction, EdgeType};
 use crate::traits::*;
-use crate::{Vertices, Edges, Neighbors};
+use crate::{Edges, EdgesWeak, Neighbors, Vertices, VerticesWeak};
 
-#[derive(Debug, Vertices, Edges, Neighbors)]
+#[derive(Debug, Vertices, Edges, Neighbors, VerticesWeak, EdgesWeak)]
 pub struct Frozen<S> {
     #[graph]
     inner: S,

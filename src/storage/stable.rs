@@ -6,6 +6,7 @@ use std::ops::Deref;
 use rustc_hash::FxHasher;
 
 use crate::index::{EdgeIndex, VertexIndex};
+use crate::infra::CompactIndexMap;
 use crate::marker::{Direction, EdgeType};
 use crate::traits::*;
 
@@ -110,6 +111,14 @@ where
 
     fn contains_vertex(&self, index: VertexIndex) -> bool {
         self.inner.contains_vertex(index)
+    }
+
+    fn vertex_index_map(&self) -> CompactIndexMap<VertexIndex> {
+        if self.removed_vertices.is_empty() {
+            self.inner.vertex_index_map()
+        } else {
+            CompactIndexMap::new(self.vertex_indices())
+        }
     }
 }
 
@@ -222,6 +231,14 @@ where
 
     fn contains_edge(&self, index: EdgeIndex) -> bool {
         self.inner.contains_edge(index)
+    }
+
+    fn edge_index_map(&self) -> CompactIndexMap<EdgeIndex> {
+        if self.removed_edges.is_empty() {
+            self.inner.edge_index_map()
+        } else {
+            CompactIndexMap::new(self.edge_indices())
+        }
     }
 }
 

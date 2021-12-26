@@ -4,9 +4,9 @@ use crate::index::{EdgeIndex, VertexIndex};
 use crate::infra::CompactIndexMap;
 use crate::marker::{Direction, EdgeType};
 use crate::traits::*;
-use crate::{Edges, EdgesWeak, Neighbors, Vertices, VerticesWeak};
+use crate::{Edges, EdgesWeak, Guarantee, Neighbors, Vertices, VerticesWeak};
 
-#[derive(Debug, Vertices, Edges, Neighbors, VerticesWeak, EdgesWeak)]
+#[derive(Debug, Vertices, Edges, Neighbors, VerticesWeak, EdgesWeak, Guarantee)]
 pub struct Frozen<S> {
     #[graph]
     inner: S,
@@ -29,28 +29,6 @@ impl<S> From<S> for Frozen<S> {
 }
 
 impl<S> StableIndices for Frozen<S> {}
-
-impl<S: Guarantee> Guarantee for Frozen<S> {
-    fn is_loop_free() -> bool {
-        S::is_loop_free()
-    }
-
-    fn has_paths_only() -> bool {
-        S::has_paths_only()
-    }
-
-    fn has_trees_only() -> bool {
-        S::has_trees_only()
-    }
-
-    fn has_bipartite_only() -> bool {
-        S::has_bipartite_only()
-    }
-
-    fn is_connected<Ty: EdgeType>() -> bool {
-        S::is_connected::<Ty>()
-    }
-}
 
 impl<S> Deref for Frozen<S> {
     type Target = S;

@@ -9,10 +9,11 @@ use crate::index::{EdgeIndex, VertexIndex};
 use crate::infra::CompactIndexMap;
 use crate::marker::{Direction, EdgeType};
 use crate::traits::*;
-use crate::{EdgesWeak, VerticesWeak};
+use crate::{EdgesWeak, Guarantee, VerticesWeak};
 
-#[derive(Debug, VerticesWeak, EdgesWeak)]
+#[derive(Debug, VerticesWeak, EdgesWeak, Guarantee)]
 pub struct Stable<S> {
+    #[graph]
     inner: S,
     // TODO: Allow to choose whether removed items can be replaced by new ones
     // or not.
@@ -313,28 +314,6 @@ where
 }
 
 impl<S> StableIndices for Stable<S> {}
-
-impl<S: Guarantee> Guarantee for Stable<S> {
-    fn is_loop_free() -> bool {
-        S::is_loop_free()
-    }
-
-    fn has_paths_only() -> bool {
-        S::has_paths_only()
-    }
-
-    fn has_trees_only() -> bool {
-        S::has_trees_only()
-    }
-
-    fn has_bipartite_only() -> bool {
-        S::has_bipartite_only()
-    }
-
-    fn is_connected<Ty: EdgeType>() -> bool {
-        S::is_connected::<Ty>()
-    }
-}
 
 impl<S> Deref for Stable<S> {
     type Target = S;

@@ -401,3 +401,45 @@ pub fn neighbors(tokens: TokenStream) -> TokenStream {
 
     TokenStream::from(implemented)
 }
+
+#[proc_macro_derive(Guarantee, attributes(graph))]
+pub fn guarantee(tokens: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(tokens as DeriveInput);
+
+    let name = &input.ident;
+    let field = util::get_graph_field(&input);
+
+    let field_type = &field.ty;
+
+    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
+    let where_clause = util::augment_where_clause(
+        where_clause,
+        vec![(field_type.clone(), quote! { Guarantee })],
+    );
+
+    let implemented = quote! {
+        impl #impl_generics Guarantee for #name #ty_generics #where_clause {
+            fn is_loop_free() -> bool {
+                #field_type::is_loop_free()
+            }
+
+            fn has_paths_only() -> bool {
+                #field_type::has_paths_only()
+            }
+
+            fn has_trees_only() -> bool {
+                #field_type::has_trees_only()
+            }
+
+            fn has_bipartite_only() -> bool {
+                #field_type::has_bipartite_only()
+            }
+
+            fn is_connected<Ty: EdgeType>() -> bool {
+                #field_type::is_connected::<Ty>()
+            }
+        }
+    };
+
+    TokenStream::from(implemented)
+}

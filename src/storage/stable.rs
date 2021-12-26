@@ -1,9 +1,7 @@
-use std::collections::HashSet;
-use std::hash::BuildHasherDefault;
 use std::marker::PhantomData;
 use std::ops::Deref;
 
-use rustc_hash::FxHasher;
+use rustc_hash::FxHashSet;
 
 use crate::index::{EdgeIndex, VertexIndex};
 use crate::infra::CompactIndexMap;
@@ -17,16 +15,16 @@ pub struct Stable<S> {
     inner: S,
     // TODO: Allow to choose whether removed items can be replaced by new ones
     // or not.
-    removed_vertices: HashSet<VertexIndex, BuildHasherDefault<FxHasher>>,
-    removed_edges: HashSet<EdgeIndex, BuildHasherDefault<FxHasher>>,
+    removed_vertices: FxHashSet<VertexIndex>,
+    removed_edges: FxHashSet<EdgeIndex>,
 }
 
 impl<S> Stable<S> {
     pub fn new(inner: S) -> Self {
         Self {
             inner,
-            removed_vertices: HashSet::default(),
-            removed_edges: HashSet::default(),
+            removed_vertices: FxHashSet::default(),
+            removed_edges: FxHashSet::default(),
         }
     }
 
@@ -146,7 +144,7 @@ where
             let data = data.clone();
             self.removed_vertices.insert(index);
 
-            let mut removed_edges = HashSet::new();
+            let mut removed_edges = FxHashSet::default();
             for neighbor in self.neighbors(index) {
                 removed_edges.insert(neighbor.edge());
             }
@@ -335,7 +333,7 @@ pub trait Stabilize {
 
 pub struct VertexIndices<'a, I> {
     inner: I,
-    removed_vertices: &'a HashSet<VertexIndex, BuildHasherDefault<FxHasher>>,
+    removed_vertices: &'a FxHashSet<VertexIndex>,
 }
 
 impl<'a, I> Iterator for VertexIndices<'a, I>
@@ -357,7 +355,7 @@ where
 
 pub struct VerticesIter<'a, V: 'a, R, I> {
     inner: I,
-    removed_vertices: &'a HashSet<VertexIndex, BuildHasherDefault<FxHasher>>,
+    removed_vertices: &'a FxHashSet<VertexIndex>,
     ty: PhantomData<(V, R)>,
 }
 
@@ -381,7 +379,7 @@ where
 
 pub struct EdgeIndices<'a, I> {
     inner: I,
-    removed_edges: &'a HashSet<EdgeIndex, BuildHasherDefault<FxHasher>>,
+    removed_edges: &'a FxHashSet<EdgeIndex>,
 }
 
 impl<'a, I> Iterator for EdgeIndices<'a, I>
@@ -403,7 +401,7 @@ where
 
 pub struct EdgesIter<'a, E: 'a, Ty: EdgeType, R: EdgeRef<E, Ty>, I> {
     inner: I,
-    removed_edges: &'a HashSet<EdgeIndex, BuildHasherDefault<FxHasher>>,
+    removed_edges: &'a FxHashSet<EdgeIndex>,
     ty: PhantomData<(E, Ty, R)>,
 }
 
@@ -427,8 +425,8 @@ where
 
 pub struct NeighborsIter<'a, S: Neighbors + 'a> {
     inner: S::NeighborsIter<'a>,
-    removed_vertices: &'a HashSet<VertexIndex, BuildHasherDefault<FxHasher>>,
-    removed_edges: &'a HashSet<EdgeIndex, BuildHasherDefault<FxHasher>>,
+    removed_vertices: &'a FxHashSet<VertexIndex>,
+    removed_edges: &'a FxHashSet<EdgeIndex>,
 }
 
 impl<'a, S> Iterator for NeighborsIter<'a, S>

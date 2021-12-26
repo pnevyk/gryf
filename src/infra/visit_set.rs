@@ -11,6 +11,7 @@ pub trait VisitSet<I: IndexType> {
     fn visit(&mut self, index: I) -> bool;
     fn is_visited(&self, index: I) -> bool;
     fn visited_count(&self) -> usize;
+    fn reset_visited(&mut self);
 }
 
 impl<I: IndexType> VisitSet<I> for BTreeSet<I> {
@@ -25,6 +26,10 @@ impl<I: IndexType> VisitSet<I> for BTreeSet<I> {
     fn visited_count(&self) -> usize {
         self.len()
     }
+
+    fn reset_visited(&mut self) {
+        self.clear();
+    }
 }
 
 impl<I: IndexType, S: BuildHasher> VisitSet<I> for HashSet<I, S> {
@@ -38,6 +43,10 @@ impl<I: IndexType, S: BuildHasher> VisitSet<I> for HashSet<I, S> {
 
     fn visited_count(&self) -> usize {
         self.len()
+    }
+
+    fn reset_visited(&mut self) {
+        self.clear()
     }
 }
 
@@ -56,6 +65,10 @@ impl<I: IndexType> VisitSet<I> for FixedBitSet {
     fn visited_count(&self) -> usize {
         self.count_ones(0..self.len())
     }
+
+    fn reset_visited(&mut self) {
+        self.clear()
+    }
 }
 
 impl<I: IndexType> VisitSet<I> for TypedBitSet<I> {
@@ -69,5 +82,9 @@ impl<I: IndexType> VisitSet<I> for TypedBitSet<I> {
 
     fn visited_count(&self) -> usize {
         VisitSet::<I>::visited_count(&**self)
+    }
+
+    fn reset_visited(&mut self) {
+        VisitSet::<I>::reset_visited(&mut **self)
     }
 }

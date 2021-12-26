@@ -7,10 +7,12 @@
 
 pub mod algo;
 pub mod export;
+pub mod facts;
 pub mod graph;
 mod index;
 pub mod infra;
 pub mod marker;
+pub mod operator;
 pub mod storage;
 pub mod traits;
 mod util;

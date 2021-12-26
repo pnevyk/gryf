@@ -1,3 +1,4 @@
+use crate::facts;
 use crate::marker::{Direction, EdgeType};
 use crate::traits::*;
 
@@ -7,13 +8,10 @@ where
     E: Default,
     G: Create<V, E, Ty>,
 {
-    let edge_count = if Ty::is_directed() {
-        vertex_count * (vertex_count - 1)
-    } else {
-        vertex_count * (vertex_count - 1) / 2
-    };
-
-    let mut graph = G::with_capacity(vertex_count, edge_count);
+    let mut graph = G::with_capacity(
+        vertex_count,
+        facts::complete_graph_edge_count::<Ty>(vertex_count),
+    );
 
     for _ in 0..vertex_count {
         graph.add_vertex(V::default());

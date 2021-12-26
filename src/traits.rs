@@ -1,5 +1,5 @@
 use std::cmp::max;
-use std::ops::Add;
+use std::ops::{Add, Deref};
 
 use crate::index::{EdgeIndex, IndexType, VertexIndex};
 use crate::infra::CompactIndexMap;
@@ -28,6 +28,40 @@ pub trait HyperEdgeRef<E, Ty: EdgeType> {
 
     fn is_directed(&self) -> bool {
         Ty::is_directed()
+    }
+}
+
+enum WeakRefData<'a, T> {
+    Borrowed(&'a T),
+    Owned(T),
+}
+
+pub struct WeakRef<'a, T> {
+    data: WeakRefData<'a, T>,
+}
+
+impl<'a, T> WeakRef<'a, T> {
+    pub fn borrowed(borrowed: &'a T) -> Self {
+        Self {
+            data: WeakRefData::Borrowed(borrowed),
+        }
+    }
+
+    pub fn owned(owned: T) -> Self {
+        Self {
+            data: WeakRefData::Owned(owned),
+        }
+    }
+}
+
+impl<T> Deref for WeakRef<'_, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        match self.data {
+            WeakRefData::Borrowed(data) => data,
+            WeakRefData::Owned(ref data) => data,
+        }
     }
 }
 
@@ -63,6 +97,29 @@ pub trait VerticesMut<V>: Vertices<V> {
     fn add_vertex(&mut self, vertex: V) -> VertexIndex;
     fn remove_vertex(&mut self, index: VertexIndex) -> Option<V>;
     fn replace_vertex(&mut self, index: VertexIndex, vertex: V) -> V;
+}
+
+pub trait VerticesWeak<V> {
+    fn vertex_count_hint(&self) -> Option<usize>;
+    fn vertex_bound_hint(&self) -> Option<usize>;
+    fn vertex_weak(&self, index: VertexIndex) -> Option<WeakRef<'_, V>>;
+}
+
+impl<V, G> VerticesWeak<V> for G
+where
+    G: Vertices<V>,
+{
+    fn vertex_count_hint(&self) -> Option<usize> {
+        Some(self.vertex_count())
+    }
+
+    fn vertex_bound_hint(&self) -> Option<usize> {
+        Some(self.vertex_bound())
+    }
+
+    fn vertex_weak(&self, index: VertexIndex) -> Option<WeakRef<'_, V>> {
+        self.vertex(index).map(|vertex| WeakRef::borrowed(vertex))
+    }
 }
 
 pub trait Edges<E, Ty: EdgeType> {
@@ -103,6 +160,51 @@ pub trait EdgesMut<E, Ty: EdgeType>: Edges<E, Ty> {
     fn add_edge(&mut self, src: VertexIndex, dst: VertexIndex, edge: E) -> EdgeIndex;
     fn remove_edge(&mut self, index: EdgeIndex) -> Option<E>;
     fn replace_edge(&mut self, index: EdgeIndex, edge: E) -> E;
+}
+
+pub trait EdgesWeak<E, Ty: EdgeType> {
+    fn edge_count_hint(&self) -> Option<usize>;
+    fn edge_bound_hint(&self) -> Option<usize>;
+    fn edge_weak(&self, index: EdgeIndex) -> Option<WeakRef<'_, E>>;
+    fn endpoints_weak(&self, index: EdgeIndex) -> Option<(VertexIndex, VertexIndex)>;
+    fn edge_index_weak(&self, src: VertexIndex, dst: VertexIndex) -> Option<EdgeIndex>;
+
+    fn contains_edge_weak(&self, index: EdgeIndex) -> bool {
+        self.edge_weak(index).is_some()
+    }
+
+    fn is_directed_weak(&self) -> bool {
+        Ty::is_directed()
+    }
+}
+
+impl<E, Ty: EdgeType, G> EdgesWeak<E, Ty> for G
+where
+    G: Edges<E, Ty>,
+{
+    fn edge_count_hint(&self) -> Option<usize> {
+        Some(self.edge_count())
+    }
+
+    fn edge_bound_hint(&self) -> Option<usize> {
+        Some(self.edge_bound())
+    }
+
+    fn edge_weak(&self, index: EdgeIndex) -> Option<WeakRef<'_, E>> {
+        self.edge(index).map(|edge| WeakRef::borrowed(edge))
+    }
+
+    fn endpoints_weak(&self, index: EdgeIndex) -> Option<(VertexIndex, VertexIndex)> {
+        self.endpoints(index)
+    }
+
+    fn edge_index_weak(&self, src: VertexIndex, dst: VertexIndex) -> Option<EdgeIndex> {
+        self.edge_index(src, dst)
+    }
+
+    fn contains_edge_weak(&self, index: EdgeIndex) -> bool {
+        self.contains_edge(index)
+    }
 }
 
 pub trait MultiEdges<E, Ty: EdgeType>: Edges<E, Ty> {

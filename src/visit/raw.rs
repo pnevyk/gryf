@@ -70,6 +70,7 @@ pub trait RawAlgo {
     type Collection: TraversalCollection<Self::Item>;
 
     fn index(item: &Self::Item) -> Self::Index;
+    fn start(index: Self::Index) -> Self::Item;
     fn visit_on_start() -> bool;
 }
 
@@ -112,7 +113,7 @@ pub struct RawVisitAll<A, I> {
     ty: PhantomData<A>,
 }
 
-impl<A: RawAlgo, I: Iterator<Item = A::Item>> RawVisitAll<A, I> {
+impl<A: RawAlgo, I: Iterator<Item = A::Index>> RawVisitAll<A, I> {
     pub fn new(starts: I) -> Self {
         Self {
             starts,
@@ -138,10 +139,10 @@ impl<A: RawAlgo, I: Iterator<Item = A::Item>> RawVisitAll<A, I> {
                 } else {
                     // There are still some unexplored components.
                     let root = (&mut self.starts)
-                        .filter(|v| !raw.visited.is_visited(A::index(v)))
+                        .filter(|v| !raw.visited.is_visited(*v))
                         .next()?;
 
-                    raw.start(root);
+                    raw.start(A::start(root));
                     get_next(raw)
                 }
             }
@@ -173,6 +174,10 @@ impl RawAlgo for RawBfs {
 
     fn index(item: &Self::Item) -> Self::Index {
         *item
+    }
+
+    fn start(index: Self::Index) -> Self::Item {
+        index
     }
 
     fn visit_on_start() -> bool {
@@ -225,6 +230,10 @@ impl RawAlgo for RawDfs {
 
     fn index(item: &Self::Item) -> Self::Index {
         *item
+    }
+
+    fn start(index: Self::Index) -> Self::Item {
+        index
     }
 
     fn visit_on_start() -> bool {
@@ -294,6 +303,13 @@ impl RawDfsExtraItem {
         }
     }
 
+    pub fn closed(vertex: VertexIndex) -> Self {
+        Self {
+            vertex,
+            neighbors: Vec::new(),
+        }
+    }
+
     fn restart<G>(&mut self, graph: &G)
     where
         G: Neighbors,
@@ -345,6 +361,10 @@ impl RawAlgo for RawDfsExtra {
 
     fn index(item: &Self::Item) -> Self::Index {
         item.vertex
+    }
+
+    fn start(index: Self::Index) -> Self::Item {
+        RawDfsExtraItem::start(index)
     }
 
     fn visit_on_start() -> bool {

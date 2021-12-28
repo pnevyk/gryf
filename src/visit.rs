@@ -381,6 +381,88 @@ where
     }
 }
 
+pub struct DfsPostOrder {
+    raw: RawVisit<RawDfsExtra>,
+}
+
+pub struct DfsPostOrderRooted<'a> {
+    raw: &'a mut RawVisit<RawDfsExtra>,
+}
+
+pub struct DfsPostOrderAll<'a, V, G>
+where
+    G: Vertices<V> + 'a,
+{
+    raw: &'a mut RawVisit<RawDfsExtra>,
+    all: RawVisitAll<RawDfsExtra, G::VertexIndicesIter<'a>>,
+}
+
+impl DfsPostOrder {
+    pub fn new<V, G>(graph: &G) -> Self
+    where
+        G: VerticesWeak<V>,
+    {
+        Self {
+            raw: RawVisit::new(graph.vertex_count_hint()),
+        }
+    }
+
+    pub fn start(&mut self, root: VertexIndex) -> DfsPostOrderRooted<'_> {
+        self.raw.start(RawDfsExtraItem::start(root));
+        DfsPostOrderRooted { raw: &mut self.raw }
+    }
+
+    pub fn start_all<'a, V, G>(&'a mut self, graph: &'a G) -> DfsPostOrderAll<'a, V, G>
+    where
+        G: Vertices<V>,
+    {
+        DfsPostOrderAll {
+            raw: &mut self.raw,
+            all: RawVisitAll::new(graph.vertex_indices()),
+        }
+    }
+
+    pub fn reset(&mut self) {
+        self.raw.reset();
+    }
+
+    pub fn visited(&self) -> &impl VisitSet<VertexIndex> {
+        &self.raw.visited
+    }
+}
+
+impl<'a, G> Visitor<G> for DfsPostOrderRooted<'a>
+where
+    G: Neighbors,
+{
+    type Item = VertexIndex;
+
+    fn next(&mut self, graph: &G) -> Option<Self::Item> {
+        loop {
+            if let RawDfsExtraEvent::Close(vertex) = self.raw.next(graph, |_, _| true)? {
+                return Some(vertex);
+            }
+        }
+    }
+}
+
+impl<'a, V, G> Visitor<G> for DfsPostOrderAll<'a, V, G>
+where
+    G: Neighbors + Vertices<V>,
+{
+    type Item = VertexIndex;
+
+    fn next(&mut self, graph: &G) -> Option<Self::Item> {
+        self.all
+            .next_all(&mut self.raw, graph.vertex_count(), |raw| loop {
+                if let RawDfsExtraEvent::Close(vertex) = raw.next(graph, |_, _| true)? {
+                    return Some(RawDfsExtraItem::closed(vertex));
+                }
+            })
+            .map(|raw_item| RawDfsExtra::index(&raw_item))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{
@@ -740,5 +822,31 @@ mod tests {
         let expected = vec![dfs_event!(open, v0, 0), dfs_event!(close, v0, 1)];
 
         assert_eq!(events, expected);
+    }
+
+    #[test]
+    fn dfs_post_order() {
+        let mut graph = AdjList::<_, _, Undirected>::new();
+
+        let v0 = graph.add_vertex(());
+        let v1 = graph.add_vertex(());
+        let v2 = graph.add_vertex(());
+        let v3 = graph.add_vertex(());
+        let v4 = graph.add_vertex(());
+        let v5 = graph.add_vertex(());
+
+        graph.add_edge(v0, v1, ());
+        graph.add_edge(v1, v2, ());
+        graph.add_edge(v1, v3, ());
+        graph.add_edge(v1, v4, ());
+        graph.add_edge(v2, v5, ());
+        graph.add_edge(v5, v4, ());
+
+        let vertices = DfsPostOrder::new(&graph)
+            .start(v0)
+            .iter(&graph)
+            .collect::<Vec<_>>();
+
+        assert_eq!(vertices, vec![v2, v5, v4, v3, v1, v0]);
     }
 }

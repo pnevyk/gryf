@@ -2,7 +2,8 @@
 
 use std::iter;
 
-use gryf::{marker::Direction, prelude::*, IndexType};
+use gryf::prelude::*;
+use gryf::{marker::Direction, visit::Dfs, IndexType};
 
 // https://stackoverflow.com/questions/58870416/can-you-explain-implicit-graphsin-graph-theory-with-a-simple-example/58887179#58887179
 struct Collatz;
@@ -15,10 +16,6 @@ impl Collatz {
     pub fn vertex_index(&self, n: u64) -> VertexIndex {
         VertexIndex::from_bits(n)
     }
-
-    pub fn vertex_value(&self, index: VertexIndex) -> u64 {
-        index.to_bits()
-    }
 }
 
 struct Neighbor {
@@ -28,7 +25,6 @@ struct Neighbor {
 impl NeighborRef for Neighbor {
     fn index(&self) -> VertexIndex {
         let n = self.src.to_bits();
-        // https://stackoverflow.com/questions/58870416/can-you-explain-implicit-graphsin-graph-theory-with-a-simple-example/58887179#58887179
         let c = if n % 2 == 0 { n / 2 } else { 3 * n + 1 };
         VertexIndex::from_bits(c)
     }
@@ -42,7 +38,7 @@ impl NeighborRef for Neighbor {
     }
 
     fn dir(&self) -> Direction {
-        Direction::Outgoing
+        Outgoing
     }
 }
 
@@ -64,18 +60,27 @@ impl Neighbors for Collatz {
     }
 }
 
+impl VerticesWeak<u64> for Collatz {
+    fn vertex_count_hint(&self) -> Option<usize> {
+        None
+    }
+
+    fn vertex_bound_hint(&self) -> Option<usize> {
+        None
+    }
+
+    fn vertex_weak(&self, index: VertexIndex) -> Option<WeakRef<'_, u64>> {
+        Some(WeakRef::owned(index.to_bits()))
+    }
+}
+
 fn main() {
     let collatz = Collatz::new();
 
-    let mut n = collatz.vertex_index(9);
-
-    // TODO: Use DFS visitor once it is designed and implemented.
-
-    print!("A Collatz sequence: {}", collatz.vertex_value(n));
-    while collatz.vertex_value(n) != 1 {
-        n = collatz.neighbors(n).next().unwrap().index();
-        print!(" -> {}", collatz.vertex_value(n));
-    }
-
-    println!();
+    let sequence = Dfs::new(&collatz)
+        .start(collatz.vertex_index(9))
+        .iter(&collatz)
+        .map(|v| *collatz.vertex_weak(v).unwrap())
+        .collect::<Vec<_>>();
+    println!("A Collatz sequence: {:?}", sequence);
 }

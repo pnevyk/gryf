@@ -463,6 +463,81 @@ where
     }
 }
 
+pub struct DfsNoBacktrack {
+    raw: RawVisit<RawDfsNoBacktrack>,
+}
+
+pub struct DfsNoBacktrackRooted<'a> {
+    raw: &'a mut RawVisit<RawDfsNoBacktrack>,
+}
+
+pub struct DfsNoBacktrackAll<'a, V, G>
+where
+    G: Vertices<V> + 'a,
+{
+    raw: &'a mut RawVisit<RawDfsNoBacktrack>,
+    all: RawVisitAll<RawDfsNoBacktrack, G::VertexIndicesIter<'a>>,
+}
+
+impl DfsNoBacktrack {
+    pub fn new<V, G>(graph: &G) -> Self
+    where
+        G: VerticesWeak<V>,
+    {
+        Self {
+            raw: RawVisit::new(graph.vertex_count_hint()),
+        }
+    }
+
+    pub fn start(&mut self, root: VertexIndex) -> DfsNoBacktrackRooted<'_> {
+        self.raw.start(root);
+        DfsNoBacktrackRooted { raw: &mut self.raw }
+    }
+
+    pub fn start_all<'a, V, G>(&'a mut self, graph: &'a G) -> DfsNoBacktrackAll<'a, V, G>
+    where
+        G: Vertices<V>,
+    {
+        DfsNoBacktrackAll {
+            raw: &mut self.raw,
+            all: RawVisitAll::new(graph.vertex_indices()),
+        }
+    }
+
+    pub fn reset(&mut self) {
+        self.raw.reset();
+    }
+
+    pub fn visited(&self) -> &impl VisitSet<VertexIndex> {
+        &self.raw.visited
+    }
+}
+
+impl<'a, G> Visitor<G> for DfsNoBacktrackRooted<'a>
+where
+    G: Neighbors,
+{
+    type Item = VertexIndex;
+
+    fn next(&mut self, graph: &G) -> Option<Self::Item> {
+        self.raw.next(graph, |_, _| true)
+    }
+}
+
+impl<'a, V, G> Visitor<G> for DfsNoBacktrackAll<'a, V, G>
+where
+    G: Neighbors + Vertices<V>,
+{
+    type Item = VertexIndex;
+
+    fn next(&mut self, graph: &G) -> Option<Self::Item> {
+        self.all
+            .next_all(&mut self.raw, graph.vertex_count(), |raw| {
+                raw.next(graph, |_, _| true)
+            })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{
@@ -848,5 +923,33 @@ mod tests {
             .collect::<Vec<_>>();
 
         assert_eq!(vertices, vec![v2, v5, v4, v3, v1, v0]);
+    }
+
+    #[test]
+    fn dfs_no_backtrack() {
+        let mut graph = AdjList::<_, _, Undirected>::new();
+
+        let v0 = graph.add_vertex(());
+        let v1 = graph.add_vertex(());
+        let v2 = graph.add_vertex(());
+        let v3 = graph.add_vertex(());
+        let v4 = graph.add_vertex(());
+        let v5 = graph.add_vertex(());
+
+        graph.add_edge(v0, v1, ());
+        graph.add_edge(v1, v2, ());
+        graph.add_edge(v1, v3, ());
+        graph.add_edge(v1, v4, ());
+        graph.add_edge(v2, v5, ());
+        graph.add_edge(v5, v4, ());
+
+        let vertices = DfsNoBacktrack::new(&graph)
+            .start(v0)
+            .iter(&graph)
+            .collect::<Vec<_>>();
+
+        // v3 is missing because it would be visited only if the algorithm would
+        // continue from v1 after traversing the "long" branch.
+        assert_eq!(vertices, vec![v0, v1, v2, v5, v4]);
     }
 }

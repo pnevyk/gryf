@@ -64,6 +64,29 @@ impl<T> TraversalCollection<T> for Stack<T> {
     }
 }
 
+#[derive(Debug)]
+pub struct Single<T>(pub Option<T>);
+
+impl<T> Default for Single<T> {
+    fn default() -> Self {
+        Self(None)
+    }
+}
+
+impl<T> TraversalCollection<T> for Single<T> {
+    fn push(&mut self, value: T) {
+        self.0 = Some(value);
+    }
+
+    fn pop(&mut self) -> Option<T> {
+        self.0.take()
+    }
+
+    fn clear(&mut self) {
+        self.0 = None;
+    }
+}
+
 pub trait RawAlgo {
     type Index: IndexType;
     type Item;
@@ -426,5 +449,70 @@ impl RawVisit<RawDfsExtra> {
 
         // All neighbors exhausted.
         Some(RawDfsExtraEvent::Close(v))
+    }
+}
+
+pub enum RawDfsNoBacktrack {}
+
+impl RawAlgo for RawDfsNoBacktrack {
+    type Index = VertexIndex;
+    type Item = VertexIndex;
+    type Collection = Single<VertexIndex>;
+
+    fn index(item: &Self::Item) -> Self::Index {
+        *item
+    }
+
+    fn start(index: Self::Index) -> Self::Item {
+        index
+    }
+
+    fn visit_on_start() -> bool {
+        true
+    }
+}
+
+impl RawVisit<RawDfsNoBacktrack> {
+    pub fn next<G, F>(&mut self, graph: &G, mut f: F) -> Option<VertexIndex>
+    where
+        G: Neighbors,
+        F: FnMut(&Self, RawEvent) -> bool,
+    {
+        let v = self.collection.pop()?;
+
+        let event = RawEvent::Popped { vertex: v };
+        if !f(self, event) {
+            return Some(v);
+        }
+
+        let mut neighbor_chosen = false;
+
+        for n in graph.neighbors_directed(v, Outgoing) {
+            let u = n.index();
+            if !neighbor_chosen && self.visited.visit(u) {
+                let event = RawEvent::Push {
+                    vertex: u,
+                    src: (v, n.edge()),
+                };
+                if f(self, event) {
+                    self.collection.push(u);
+
+                    // Take just one neighbor and ignore the rest, i.e., don't
+                    // backtrack to this vertex. However, just mark this fact
+                    // and continue the iteration to signal `Skip` events. In
+                    // trivial cases when `f = |_, _| true` the compiler might
+                    // be able to optimize to break the iteration.
+                    neighbor_chosen = true;
+                }
+            } else {
+                let event = RawEvent::Skip {
+                    vertex: u,
+                    src: Some((v, n.edge())),
+                };
+                f(self, event);
+            }
+        }
+
+        Some(v)
     }
 }

@@ -1,51 +1,61 @@
-use macros::VerticesMut;
+use std::marker::PhantomData;
 
+use super::OpOwned;
 use crate::index::{EdgeIndex, VertexIndex};
 use crate::infra::CompactIndexMap;
 use crate::marker::{Directed, Direction, EdgeType};
 use crate::traits::*;
-use crate::{EdgesWeak, Guarantee, Vertices, VerticesWeak};
+use crate::{EdgesWeak, Guarantee, Vertices, VerticesMut, VerticesWeak};
 
 #[derive(Debug, Vertices, VerticesMut, Guarantee, VerticesWeak, EdgesWeak)]
-pub struct Reversed<G> {
+pub struct Transpose<V, E, G> {
     #[graph]
-    inner: G,
+    graph: G,
+    ty: PhantomData<(V, E)>,
 }
 
-impl<G> Reversed<G> {
+impl<V, E, G> Transpose<V, E, G>
+where
+    G: Vertices<V> + Edges<E, Directed>,
+{
     pub fn new(graph: G) -> Self {
-        Self { inner: graph }
+        Self {
+            graph,
+            ty: PhantomData,
+        }
     }
 
     pub fn into_unmodified(self) -> G {
-        self.inner
+        self.graph
     }
+}
 
-    pub fn apply<E>(self) -> G
-    where
-        G: EdgesMut<E, Directed> + StableIndices,
-    {
-        let mut inner = self.inner;
+impl<V, E, G> OpOwned<G> for Transpose<V, E, G>
+where
+    G: EdgesMut<E, Directed> + StableIndices,
+{
+    fn apply(self) -> G {
+        let mut graph = self.graph;
 
-        let edges = inner
+        let edges = graph
             .edges()
             .map(|edge| (edge.src(), edge.index(), edge.dst()))
             .collect::<Vec<_>>();
 
         for (src, index, dst) in edges {
-            let data = inner.remove_edge(index).unwrap();
-            inner.add_edge(dst, src, data);
+            let data = graph.remove_edge(index).unwrap();
+            graph.add_edge(dst, src, data);
         }
 
-        inner
+        graph
     }
 }
 
-impl<E, G> Edges<E, Directed> for Reversed<G>
+impl<V, E, G> Edges<E, Directed> for Transpose<V, E, G>
 where
     G: Edges<E, Directed>,
 {
-    type EdgeRef<'a, T: 'a> = ReversedRef<G::EdgeRef<'a, T>>;
+    type EdgeRef<'a, T: 'a> = TransposeRef<G::EdgeRef<'a, T>>;
 
     type EdgeIndicesIter<'a>
     where
@@ -58,47 +68,47 @@ where
     = Iter<G::EdgesIter<'a, T>>;
 
     fn edge_count(&self) -> usize {
-        self.inner.edge_count()
+        self.graph.edge_count()
     }
 
     fn edge_bound(&self) -> usize {
-        self.inner.edge_bound()
+        self.graph.edge_bound()
     }
 
     fn edge(&self, index: EdgeIndex) -> Option<&E> {
-        self.inner.edge(index)
+        self.graph.edge(index)
     }
 
     fn endpoints(&self, index: EdgeIndex) -> Option<(VertexIndex, VertexIndex)> {
-        self.inner.endpoints(index).map(|(src, dst)| (dst, src))
+        self.graph.endpoints(index).map(|(src, dst)| (dst, src))
     }
 
     fn edge_index(&self, src: VertexIndex, dst: VertexIndex) -> Option<EdgeIndex> {
-        self.inner.edge_index(dst, src)
+        self.graph.edge_index(dst, src)
     }
 
     fn edge_indices(&self) -> Self::EdgeIndicesIter<'_> {
-        self.inner.edge_indices()
+        self.graph.edge_indices()
     }
 
     fn edges(&self) -> Self::EdgesIter<'_, E> {
-        Iter(self.inner.edges())
+        Iter(self.graph.edges())
     }
 
     fn contains_edge(&self, index: EdgeIndex) -> bool {
-        self.inner.contains_edge(index)
+        self.graph.contains_edge(index)
     }
 
     fn edge_index_map(&self) -> CompactIndexMap<EdgeIndex> {
-        self.inner.edge_index_map()
+        self.graph.edge_index_map()
     }
 }
 
-impl<G> Neighbors for Reversed<G>
+impl<V, E, G> Neighbors for Transpose<V, E, G>
 where
     G: Neighbors,
 {
-    type NeighborRef<'a> = ReversedRef<G::NeighborRef<'a>>;
+    type NeighborRef<'a> = TransposeRef<G::NeighborRef<'a>>;
 
     type NeighborsIter<'a>
     where
@@ -106,25 +116,25 @@ where
     = Iter<G::NeighborsIter<'a>>;
 
     fn neighbors(&self, src: VertexIndex) -> Self::NeighborsIter<'_> {
-        Iter(self.inner.neighbors(src))
+        Iter(self.graph.neighbors(src))
     }
 
     fn neighbors_directed(&self, src: VertexIndex, dir: Direction) -> Self::NeighborsIter<'_> {
-        Iter(self.inner.neighbors_directed(src, dir.opposite()))
+        Iter(self.graph.neighbors_directed(src, dir.opposite()))
     }
 
     fn degree(&self, index: VertexIndex) -> usize {
-        self.inner.degree(index)
+        self.graph.degree(index)
     }
 
     fn degree_directed(&self, index: VertexIndex, dir: Direction) -> usize {
-        self.inner.degree_directed(index, dir.opposite())
+        self.graph.degree_directed(index, dir.opposite())
     }
 }
 
-pub struct ReversedRef<R>(R);
+pub struct TransposeRef<R>(R);
 
-impl<E, R> EdgeRef<E, Directed> for ReversedRef<R>
+impl<E, R> EdgeRef<E, Directed> for TransposeRef<R>
 where
     R: EdgeRef<E, Directed>,
 {
@@ -145,7 +155,7 @@ where
     }
 }
 
-impl<R> NeighborRef for ReversedRef<R>
+impl<R> NeighborRef for TransposeRef<R>
 where
     R: NeighborRef,
 {
@@ -172,10 +182,10 @@ impl<I> Iterator for Iter<I>
 where
     I: Iterator,
 {
-    type Item = ReversedRef<I::Item>;
+    type Item = TransposeRef<I::Item>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next().map(ReversedRef)
+        self.0.next().map(TransposeRef)
     }
 }
 
@@ -203,7 +213,7 @@ mod tests {
 
     #[test]
     fn endpoints() {
-        let graph = Reversed::new(create_graph());
+        let graph = Transpose::new(create_graph());
 
         assert_eq!(graph.endpoints(1.into()), Some((2.into(), 1.into())));
         assert_eq!(graph.endpoints(3.into()), Some((1.into(), 2.into())));
@@ -211,7 +221,7 @@ mod tests {
 
     #[test]
     fn edge_index() {
-        let graph = Reversed::new(create_graph());
+        let graph = Transpose::new(create_graph());
 
         assert_eq!(graph.edge_index(2.into(), 1.into()), Some(1.into()));
         assert_eq!(graph.edge_index(1.into(), 2.into()), Some(3.into()));
@@ -219,7 +229,7 @@ mod tests {
 
     #[test]
     fn edges() {
-        let graph = Reversed::new(create_graph());
+        let graph = Transpose::new(create_graph());
         let mut edges = graph
             .edges()
             .map(|edge| (edge.src(), edge.dst(), *edge.data()));
@@ -232,7 +242,7 @@ mod tests {
 
     #[test]
     fn neighbors() {
-        let graph = Reversed::new(create_graph());
+        let graph = Transpose::new(create_graph());
         let mut neighbors = graph
             .neighbors(1.into())
             .map(|neighbor| (neighbor.index(), neighbor.src(), neighbor.dir()));
@@ -244,7 +254,7 @@ mod tests {
 
     #[test]
     fn neighbors_directed() {
-        let graph = Reversed::new(create_graph());
+        let graph = Transpose::new(create_graph());
         let mut neighbors = graph
             .neighbors_directed(1.into(), Outgoing)
             .map(|neighbor| (neighbor.index(), neighbor.src(), neighbor.dir()));

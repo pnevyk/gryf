@@ -30,7 +30,7 @@ where
         }
     }
 
-    pub fn into_inner(self) -> G {
+    pub fn into_unmodified(self) -> G {
         self.graph
     }
 
@@ -146,11 +146,7 @@ where
         }
     }
 
-    fn neighbors_directed(
-        &self,
-        src: VertexIndex,
-        dir: crate::marker::Direction,
-    ) -> Self::NeighborsIter<'_> {
+    fn neighbors_directed(&self, src: VertexIndex, dir: Direction) -> Self::NeighborsIter<'_> {
         NeighborsIter {
             src,
             dir,

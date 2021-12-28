@@ -28,7 +28,7 @@ impl<S> Stable<S> {
         }
     }
 
-    pub fn into_inner<V, E, Ty: EdgeType>(self) -> S
+    pub fn apply<V, E, Ty: EdgeType>(self) -> S
     where
         S: VerticesMut<V> + EdgesMut<E, Ty>,
     {

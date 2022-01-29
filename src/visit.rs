@@ -240,6 +240,18 @@ pub struct DfsEventsRooted<'a> {
     is_directed: bool,
 }
 
+pub struct DfsEventsAll<'a, V, G>
+where
+    G: Vertices<V> + 'a,
+{
+    raw: &'a mut RawVisit<RawDfsExtra>,
+    all: RawVisitAll<RawDfsExtra, G::VertexIndicesIter<'a>>,
+    closed: &'a mut FxHashSet<VertexIndex>,
+    queue: VecDeque<DfsEvent>,
+    time: usize,
+    is_directed: bool,
+}
+
 impl DfsEvents {
     pub fn new<V, E, Ty: EdgeType, G>(graph: &G) -> Self
     where
@@ -276,12 +288,114 @@ impl DfsEvents {
         }
     }
 
+    pub fn start_all<'a, V, G>(&'a mut self, graph: &'a G) -> DfsEventsAll<'a, V, G>
+    where
+        G: Vertices<V>,
+    {
+        DfsEventsAll {
+            raw: &mut self.raw,
+            all: RawVisitAll::new(graph.vertex_indices()),
+            closed: &mut self.closed,
+            queue: VecDeque::new(),
+            time: 0,
+            is_directed: self.is_directed,
+        }
+    }
+
     pub fn reset(&mut self) {
         self.raw.reset();
     }
 
     pub fn visited(&self) -> &impl VisitSet<VertexIndex> {
         &self.raw.visited
+    }
+
+    fn process_next_callback(
+        raw: &RawVisit<RawDfsExtra>,
+        raw_event: RawEvent,
+        closed: &mut FxHashSet<VertexIndex>,
+        queue: &mut VecDeque<DfsEvent>,
+        is_directed: bool,
+    ) -> bool {
+        match raw_event {
+            RawEvent::Popped { .. } => {}
+            RawEvent::Push { vertex, src } => {
+                queue.push_back(DfsEvent::TreeEdge {
+                    src: src.0,
+                    dst: vertex,
+                    edge: src.1,
+                });
+            }
+            RawEvent::Skip { vertex, src } => {
+                let src = src.expect("src always available");
+
+                if is_directed {
+                    if !closed.contains(&vertex) {
+                        queue.push_back(DfsEvent::BackEdge {
+                            src: src.0,
+                            dst: vertex,
+                            edge: src.1,
+                        });
+                    } else {
+                        queue.push_back(DfsEvent::CrossForwardEdge {
+                            src: src.0,
+                            dst: vertex,
+                            edge: src.1,
+                        });
+                    }
+                } else {
+                    // `RawDfsExtra` traverses all neighbors of the vertex.
+                    // However, this means that the edge back to the parent
+                    // is also reported (as skipped, since the parent is
+                    // already opened). We need to detect that and avoid
+                    // signalling this edge as back edge. Due to the
+                    // implementation details of `RawDfsExtra`, in the time
+                    // of signalling `Skip` event, the item on top of the
+                    // stack is the parent of the skipped vertex.
+                    if !closed.contains(&vertex) {
+                        let parent = raw.collection.0.last().map(RawDfsExtra::index);
+
+                        if parent != Some(vertex) {
+                            queue.push_back(DfsEvent::BackEdge {
+                                src: src.0,
+                                dst: vertex,
+                                edge: src.1,
+                            });
+                        }
+                    }
+
+                    // Cross-forward edges do not make sense in undirected
+                    // graphs.
+                }
+            }
+        }
+
+        true
+    }
+
+    fn process_next_event(
+        raw_extra_event: RawDfsExtraEvent,
+        closed: &mut FxHashSet<VertexIndex>,
+        queue: &mut VecDeque<DfsEvent>,
+        time: &mut usize,
+    ) {
+        if let RawDfsExtraEvent::Close(vertex) = raw_extra_event {
+            closed.insert(vertex);
+        }
+
+        let event = match raw_extra_event {
+            RawDfsExtraEvent::Open(vertex) => DfsEvent::Open {
+                vertex,
+                time: Time(*time),
+            },
+            RawDfsExtraEvent::Close(vertex) => DfsEvent::Close {
+                vertex,
+                time: Time(*time),
+            },
+        };
+
+        *time += 1;
+        queue.push_back(event);
     }
 }
 
@@ -297,79 +411,55 @@ where
         }
 
         if let Some(raw_extra_event) = self.raw.next(graph, |raw, raw_event| {
-            match raw_event {
-                RawEvent::Popped { .. } => {}
-                RawEvent::Push { vertex, src } => {
-                    self.queue.push_back(DfsEvent::TreeEdge {
-                        src: src.0,
-                        dst: vertex,
-                        edge: src.1,
-                    });
-                }
-                RawEvent::Skip { vertex, src } => {
-                    let src = src.expect("src always available");
-
-                    if self.is_directed {
-                        if !self.closed.contains(&vertex) {
-                            self.queue.push_back(DfsEvent::BackEdge {
-                                src: src.0,
-                                dst: vertex,
-                                edge: src.1,
-                            });
-                        } else {
-                            self.queue.push_back(DfsEvent::CrossForwardEdge {
-                                src: src.0,
-                                dst: vertex,
-                                edge: src.1,
-                            });
-                        }
-                    } else {
-                        // `RawDfsExtra` traverses all neighbors of the vertex.
-                        // However, this means that the edge back to the parent
-                        // is also reported (as skipped, since the parent is
-                        // already opened). We need to detect that and avoid
-                        // signalling this edge as back edge. Due to the
-                        // implementation details of `RawDfsExtra`, in the time
-                        // of signalling `Skip` event, the item on top of the
-                        // stack is the parent of the skipped vertex.
-                        if !self.closed.contains(&vertex) {
-                            let parent = raw.collection.0.last().map(RawDfsExtra::index);
-
-                            if parent != Some(vertex) {
-                                self.queue.push_back(DfsEvent::BackEdge {
-                                    src: src.0,
-                                    dst: vertex,
-                                    edge: src.1,
-                                });
-                            }
-                        }
-
-                        // Cross-forward edges do not make sense in undirected
-                        // graphs.
-                    }
-                }
-            }
-
-            true
+            DfsEvents::process_next_callback(
+                raw,
+                raw_event,
+                self.closed,
+                &mut self.queue,
+                self.is_directed,
+            )
         }) {
-            if let RawDfsExtraEvent::Close(vertex) = raw_extra_event {
-                self.closed.insert(vertex);
-            }
-
-            let event = match raw_extra_event {
-                RawDfsExtraEvent::Open(vertex) => DfsEvent::Open {
-                    vertex,
-                    time: Time(self.time),
-                },
-                RawDfsExtraEvent::Close(vertex) => DfsEvent::Close {
-                    vertex,
-                    time: Time(self.time),
-                },
-            };
-
-            self.time += 1;
-            self.queue.push_back(event);
+            DfsEvents::process_next_event(
+                raw_extra_event,
+                self.closed,
+                &mut self.queue,
+                &mut self.time,
+            );
         };
+
+        self.queue.pop_front()
+    }
+}
+
+impl<'a, V, G> Visitor<G> for DfsEventsAll<'a, V, G>
+where
+    G: Neighbors + Vertices<V>,
+{
+    type Item = DfsEvent;
+
+    fn next(&mut self, graph: &G) -> Option<Self::Item> {
+        if let Some(event) = self.queue.pop_front() {
+            return Some(event);
+        }
+
+        if let Some(raw_extra_event) = self.all.next_all(self.raw, graph.vertex_count(), |raw| {
+            raw.next(graph, |raw, raw_event| {
+                DfsEvents::process_next_callback(
+                    raw,
+                    raw_event,
+                    self.closed,
+                    &mut self.queue,
+                    self.is_directed,
+                )
+            })
+        }) {
+            DfsEvents::process_next_event(
+                raw_extra_event,
+                self.closed,
+                &mut self.queue,
+                &mut self.time,
+            );
+        }
 
         self.queue.pop_front()
     }

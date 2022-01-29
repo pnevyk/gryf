@@ -144,14 +144,14 @@ impl<A: RawAlgo, I: Iterator<Item = A::Index>> RawVisitAll<A, I> {
         }
     }
 
-    pub fn next_all<F>(
+    pub fn next_all<F, R>(
         &mut self,
         raw: &mut RawVisit<A>,
         count: usize,
-        get_next: F,
-    ) -> Option<A::Item>
+        mut get_next: F,
+    ) -> Option<R>
     where
-        F: Fn(&mut RawVisit<A>) -> Option<A::Item>,
+        F: FnMut(&mut RawVisit<A>) -> Option<R>,
     {
         match get_next(raw) {
             Some(next) => Some(next),

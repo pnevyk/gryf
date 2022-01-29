@@ -82,9 +82,8 @@ where
                         2 => {
                             let u = graph
                                 .neighbors(v)
-                                .filter(|n| n.index() != prev)
-                                .next()
-                                .ok_or_else(|| PathError::Cycle)?
+                                .find(|n| n.index() != prev)
+                                .ok_or(PathError::Cycle)?
                                 .index();
 
                             if visited.visit(u) {
@@ -160,7 +159,7 @@ where
                     }
                 };
 
-                let edge = edge.ok_or_else(|| PathError::Disconnected)?;
+                let edge = edge.ok_or(PathError::Disconnected)?;
 
                 let v = self.graph.add_vertex(vertex);
                 self.graph.add_edge(*end, v, edge);

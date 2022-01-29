@@ -161,7 +161,7 @@ pub fn unit<E>(_edge: &E) -> usize {
     1
 }
 
-fn dijkstra<'a, V, E, Ty: EdgeType, G, W, F>(
+fn dijkstra<V, E, Ty: EdgeType, G, W, F>(
     graph: &G,
     start: VertexIndex,
     goal: Option<VertexIndex>,
@@ -247,7 +247,7 @@ where
     Ok(ShortestPaths { start, dist, pred })
 }
 
-fn bellman_ford<'a, V, E, Ty: EdgeType, G, W, F>(
+fn bellman_ford<V, E, Ty: EdgeType, G, W, F>(
     graph: &G,
     start: VertexIndex,
     edge_weight: F,

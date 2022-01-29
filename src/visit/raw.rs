@@ -108,7 +108,7 @@ impl<A: RawAlgo> RawVisit<A> {
     pub fn new(count_hint: Option<usize>) -> Self {
         let visited = count_hint
             .map(|count| HashSet::with_capacity_and_hasher(count, BuildHasherDefault::default()))
-            .unwrap_or_else(|| FxHashSet::default());
+            .unwrap_or_else(FxHashSet::default);
 
         Self {
             collection: A::Collection::default(),
@@ -161,9 +161,7 @@ impl<A: RawAlgo, I: Iterator<Item = A::Index>> RawVisitAll<A, I> {
                     None
                 } else {
                     // There are still some unexplored components.
-                    let root = (&mut self.starts)
-                        .filter(|v| !raw.visited.is_visited(*v))
-                        .next()?;
+                    let root = self.starts.by_ref().find(|v| !raw.visited.is_visited(*v))?;
 
                     raw.start(A::start(root));
                     get_next(raw)

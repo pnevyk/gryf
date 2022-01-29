@@ -25,6 +25,7 @@ impl Direction {
     }
 
     #[inline]
+    #[must_use]
     pub fn opposite(&self) -> Self {
         match self {
             Outgoing => Incoming,

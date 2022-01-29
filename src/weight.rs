@@ -41,6 +41,8 @@ impl FloatWeight {
 
 impl Eq for FloatWeight {}
 
+// FloatWeight is guaranteed to hold only finite or infinity value (not a NaN).
+#[allow(clippy::derive_ord_xor_partial_ord)]
 impl Ord for FloatWeight {
     fn cmp(&self, other: &Self) -> Ordering {
         self.0.partial_cmp(&other.0).unwrap()
@@ -69,9 +71,9 @@ impl DerefMut for FloatWeight {
     }
 }
 
-impl Into<f64> for FloatWeight {
-    fn into(self) -> f64 {
-        self.0
+impl From<FloatWeight> for f64 {
+    fn from(val: FloatWeight) -> Self {
+        val.0
     }
 }
 
@@ -105,6 +107,9 @@ impl UFloatWeight {
 
 impl Eq for UFloatWeight {}
 
+// UFloatWeight is guaranteed to hold only finite or positive infinity value
+// (not a NaN).
+#[allow(clippy::derive_ord_xor_partial_ord)]
 impl Ord for UFloatWeight {
     fn cmp(&self, other: &Self) -> Ordering {
         self.0.partial_cmp(&other.0).unwrap()
@@ -133,9 +138,9 @@ impl DerefMut for UFloatWeight {
     }
 }
 
-impl Into<f64> for UFloatWeight {
-    fn into(self) -> f64 {
-        self.0
+impl From<UFloatWeight> for f64 {
+    fn from(val: UFloatWeight) -> Self {
+        val.0
     }
 }
 

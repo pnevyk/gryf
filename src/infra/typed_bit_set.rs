@@ -26,6 +26,12 @@ impl<T> TypedBitSet<T> {
     }
 }
 
+impl<T> Default for TypedBitSet<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T> Deref for TypedBitSet<T> {
     type Target = FixedBitSet;
 

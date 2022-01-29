@@ -30,9 +30,9 @@ impl<V, E, Ty: EdgeType> EdgeList<V, E, Ty> {
 
     fn relocate_vertex(&mut self, old_index: VertexIndex, new_index: VertexIndex) {
         self.endpoints.iter_mut().for_each(|endpoints| {
-            for i in 0..=1 {
-                if endpoints[i] == old_index {
-                    endpoints[i] = new_index;
+            for endpoint in endpoints.iter_mut() {
+                if *endpoint == old_index {
+                    *endpoint = new_index;
                 }
             }
         })
@@ -175,6 +175,7 @@ impl<V, E, Ty: EdgeType> Edges<E, Ty> for EdgeList<V, E, Ty> {
             .iter()
             .enumerate()
             .find_map(|(i, endpoints)| {
+                #[allow(clippy::if_same_then_else)]
                 if endpoints[0] == src && endpoints[1] == dst {
                     Some(i.into())
                 } else if !Ty::is_directed() && endpoints[1] == src && endpoints[0] == dst {
@@ -321,7 +322,7 @@ impl<'a, Ty: EdgeType> Iterator for MultiEdgeIndicesIter<'a, Ty> {
     type Item = EdgeIndex;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some((index, endpoints)) = self.endpoints.next() {
+        for (index, endpoints) in self.endpoints.by_ref() {
             if endpoints[0] == self.src && endpoints[1] == self.dst {
                 return Some(index.into());
             }

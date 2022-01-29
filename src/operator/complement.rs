@@ -53,15 +53,12 @@ where
 
         let vertex_map = self.graph.vertex_index_map();
 
-        let mut cur = 0;
-
-        for v in self.graph.vertices() {
+        for (cur, v) in self.graph.vertices().enumerate() {
             let idx = result.add_vertex(v.data().clone());
 
             // Assumption: adding vertices to the result graph generates index
             // sequence going from zero with step 1.
             debug_assert!(idx.to_usize() == cur, "unexpected behavior of `add_vertex`");
-            cur += 1;
         }
 
         for u in self.graph.vertex_indices() {

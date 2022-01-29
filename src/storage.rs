@@ -65,9 +65,9 @@ mod tests {
             .map(|index| graph.degree_directed(index, Direction::Incoming))
             .collect::<Vec<_>>();
 
-        deg.sort();
-        out_deg.sort();
-        in_deg.sort();
+        deg.sort_unstable();
+        out_deg.sort_unstable();
+        in_deg.sort_unstable();
 
         if Ty::is_directed() {
             assert_eq!(deg, vec![1, 1, 2]);

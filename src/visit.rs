@@ -44,7 +44,7 @@ where
     type Item = V::Item;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.visitor.next(&self.graph)
+        self.visitor.next(self.graph)
     }
 }
 
@@ -116,10 +116,9 @@ where
     type Item = VertexIndex;
 
     fn next(&mut self, graph: &G) -> Option<Self::Item> {
-        self.all
-            .next_all(&mut self.raw, graph.vertex_count(), |raw| {
-                raw.next(graph, |_, _| true)
-            })
+        self.all.next_all(self.raw, graph.vertex_count(), |raw| {
+            raw.next(graph, |_, _| true)
+        })
     }
 }
 
@@ -191,10 +190,9 @@ where
     type Item = VertexIndex;
 
     fn next(&mut self, graph: &G) -> Option<Self::Item> {
-        self.all
-            .next_all(&mut self.raw, graph.vertex_count(), |raw| {
-                raw.next(graph, |_, _| true)
-            })
+        self.all.next_all(self.raw, graph.vertex_count(), |raw| {
+            raw.next(graph, |_, _| true)
+        })
     }
 }
 
@@ -335,11 +333,7 @@ where
                         // of signalling `Skip` event, the item on top of the
                         // stack is the parent of the skipped vertex.
                         if !self.closed.contains(&vertex) {
-                            let parent = raw
-                                .collection
-                                .0
-                                .last()
-                                .map(|raw_item| RawDfsExtra::index(raw_item));
+                            let parent = raw.collection.0.last().map(RawDfsExtra::index);
 
                             if parent != Some(vertex) {
                                 self.queue.push_back(DfsEvent::BackEdge {
@@ -454,12 +448,13 @@ where
 
     fn next(&mut self, graph: &G) -> Option<Self::Item> {
         self.all
-            .next_all(&mut self.raw, graph.vertex_count(), |raw| loop {
+            .next_all(self.raw, graph.vertex_count(), |raw| loop {
                 if let RawDfsExtraEvent::Close(vertex) = raw.next(graph, |_, _| true)? {
                     return Some(RawDfsExtraItem::closed(vertex));
                 }
             })
-            .map(|raw_item| RawDfsExtra::index(&raw_item))
+            .as_ref()
+            .map(RawDfsExtra::index)
     }
 }
 
@@ -531,10 +526,9 @@ where
     type Item = VertexIndex;
 
     fn next(&mut self, graph: &G) -> Option<Self::Item> {
-        self.all
-            .next_all(&mut self.raw, graph.vertex_count(), |raw| {
-                raw.next(graph, |_, _| true)
-            })
+        self.all.next_all(self.raw, graph.vertex_count(), |raw| {
+            raw.next(graph, |_, _| true)
+        })
     }
 }
 

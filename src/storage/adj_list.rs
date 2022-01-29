@@ -64,9 +64,9 @@ impl<V, E, Ty: EdgeType> AdjList<V, E, Ty> {
         for dir in Ty::directions() {
             for edge_index in vertex.edges[dir.index()].iter().copied() {
                 let endpoints = &mut self.endpoints[edge_index.to_usize()];
-                for i in 0..=1 {
-                    if endpoints[i] == old_index {
-                        endpoints[i] = new_index;
+                for endpoint in endpoints.iter_mut() {
+                    if *endpoint == old_index {
+                        *endpoint = new_index;
                     }
                 }
             }

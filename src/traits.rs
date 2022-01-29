@@ -388,7 +388,7 @@ mod imp {
         }
 
         fn data(&self) -> &V {
-            &self.1
+            self.1
         }
     }
 
@@ -398,7 +398,7 @@ mod imp {
         }
 
         fn data(&self) -> &E {
-            &self.1
+            self.1
         }
 
         fn src(&self) -> VertexIndex {

@@ -24,7 +24,7 @@ impl<V, E, Ty: EdgeType> Dot<V, E, Ty> {
         FE: Fn(&E) -> String + 'static,
     {
         Self {
-            name: name.unwrap_or(String::from("G")),
+            name: name.unwrap_or_else(|| String::from("G")),
             get_vertex_label: Box::new(get_vertex_label),
             get_edge_label: Box::new(get_edge_label),
             ty: PhantomData,
@@ -44,16 +44,16 @@ where
 {
     fn export<W: Write>(&self, graph: &G, out: &mut W) -> io::Result<()> {
         if Ty::is_directed() {
-            out.write(b"digraph ")?;
+            out.write_all(b"digraph ")?;
         } else {
-            out.write(b"graph ")?;
+            out.write_all(b"graph ")?;
         }
 
-        out.write(self.name.as_bytes())?;
-        out.write(b" {\n")?;
+        out.write_all(self.name.as_bytes())?;
+        out.write_all(b" {\n")?;
 
         for vertex in graph.vertices() {
-            out.write(
+            out.write_all(
                 format!(
                     "    v{} [label={:?}];\n",
                     vertex.index().to_usize(),
@@ -65,7 +65,7 @@ where
 
         for edge in graph.edges() {
             let line = if Ty::is_directed() { "->" } else { "--" };
-            out.write(
+            out.write_all(
                 format!(
                     "    v{} {} v{} [label={:?}];\n",
                     edge.src().to_usize(),
@@ -77,7 +77,7 @@ where
             )?;
         }
 
-        out.write(b"}\n")?;
+        out.write_all(b"}\n")?;
 
         Ok(())
     }

@@ -364,7 +364,7 @@ where
     type Item = VertexIndex;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some(index) = self.inner.next() {
+        for index in self.inner.by_ref() {
             if !self.removed_vertices.contains(&index) {
                 return Some(index);
             }
@@ -388,7 +388,7 @@ where
     type Item = R;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some(vertex) = self.inner.next() {
+        for vertex in self.inner.by_ref() {
             if !self.removed_vertices.contains(&vertex.index()) {
                 return Some(vertex);
             }
@@ -410,7 +410,7 @@ where
     type Item = EdgeIndex;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some(index) = self.inner.next() {
+        for index in self.inner.by_ref() {
             if !self.removed_edges.contains(&index) {
                 return Some(index);
             }
@@ -434,7 +434,7 @@ where
     type Item = R;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some(edge) = self.inner.next() {
+        for edge in self.inner.by_ref() {
             if !self.removed_edges.contains(&edge.index()) {
                 return Some(edge);
             }
@@ -457,7 +457,7 @@ where
     type Item = S::NeighborRef<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some(neighbor) = self.inner.next() {
+        for neighbor in self.inner.by_ref() {
             if !self.removed_edges.contains(&neighbor.edge())
                 && !self.removed_vertices.contains(&neighbor.index())
             {

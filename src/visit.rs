@@ -30,6 +30,16 @@ pub trait Visitor<G> {
             graph,
         }
     }
+
+    fn into_iter<'a>(self, graph: &'a G) -> IntoIter<'a, Self, G>
+    where
+        Self: Sized,
+    {
+        IntoIter {
+            visitor: self,
+            graph,
+        }
+    }
 }
 
 pub struct Iter<'a, V, G> {
@@ -38,6 +48,22 @@ pub struct Iter<'a, V, G> {
 }
 
 impl<'a, V, G> Iterator for Iter<'a, V, G>
+where
+    V: Visitor<G>,
+{
+    type Item = V::Item;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.visitor.next(self.graph)
+    }
+}
+
+pub struct IntoIter<'a, V, G> {
+    visitor: V,
+    graph: &'a G,
+}
+
+impl<'a, V, G> Iterator for IntoIter<'a, V, G>
 where
     V: Visitor<G>,
 {

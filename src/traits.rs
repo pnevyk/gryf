@@ -480,4 +480,281 @@ mod imp {
     impl_num_weight!(u64, true);
     impl_num_weight!(isize, false);
     impl_num_weight!(usize, true);
+
+    macro_rules! deref_vertices {
+        ($($ref_kind:tt)*) => {
+            impl<V, G> Vertices<V> for $($ref_kind)* G
+            where
+                G: Vertices<V>,
+            {
+                type VertexRef<'a, T: 'a> = G::VertexRef<'a, T>;
+
+                type VertexIndicesIter<'a>
+                where
+                    Self: 'a,
+                = G::VertexIndicesIter<'a>;
+
+                type VerticesIter<'a, T: 'a>
+                where
+                    Self: 'a,
+                = G::VerticesIter<'a, T>;
+
+                fn vertex_count(&self) -> usize {
+                    (**self).vertex_count()
+                }
+
+                fn vertex_bound(&self) -> usize {
+                    (**self).vertex_bound()
+                }
+
+                fn vertex(&self, index: VertexIndex) -> Option<&V> {
+                    (**self).vertex(index)
+                }
+
+                fn vertex_indices(&self) -> Self::VertexIndicesIter<'_> {
+                    (**self).vertex_indices()
+                }
+
+                fn vertices(&self) -> Self::VerticesIter<'_, V> {
+                    (**self).vertices()
+                }
+
+                fn contains_vertex(&self, index: VertexIndex) -> bool {
+                    (**self).contains_vertex(index)
+                }
+
+                fn vertex_index_map(&self) -> CompactIndexMap<VertexIndex> {
+                    (**self).vertex_index_map()
+                }
+            }
+        };
+    }
+
+    deref_vertices!(&);
+    deref_vertices!(&mut);
+
+    impl<V, G> VerticesMut<V> for &mut G
+    where
+        G: VerticesMut<V>,
+    {
+        fn vertex_mut(&mut self, index: VertexIndex) -> Option<&mut V> {
+            (**self).vertex_mut(index)
+        }
+
+        fn add_vertex(&mut self, vertex: V) -> VertexIndex {
+            (**self).add_vertex(vertex)
+        }
+
+        fn remove_vertex(&mut self, index: VertexIndex) -> Option<V> {
+            (**self).remove_vertex(index)
+        }
+
+        fn replace_vertex(&mut self, index: VertexIndex, vertex: V) -> V {
+            (**self).replace_vertex(index, vertex)
+        }
+
+        fn clear(&mut self) {
+            (**self).clear()
+        }
+    }
+
+    macro_rules! deref_vertices_weak {
+        ($($ref_kind:tt)*) => {
+            impl<V, G> VerticesWeak<V> for $($ref_kind)* G
+            where
+                G: VerticesWeak<V>,
+            {
+                type VertexIndex = G::VertexIndex;
+
+                fn vertex_count_hint(&self) -> Option<usize> {
+                    (**self).vertex_count_hint()
+                }
+
+                fn vertex_bound_hint(&self) -> Option<usize> {
+                    (**self).vertex_bound_hint()
+                }
+
+                fn vertex_weak(&self, index: Self::VertexIndex) -> Option<WeakRef<'_, V>> {
+                    (**self).vertex_weak(index)
+                }
+            }
+        }
+    }
+
+    deref_vertices_weak!(&);
+    deref_vertices_weak!(&mut);
+
+    macro_rules! deref_edges {
+        ($($ref_kind:tt)*) => {
+            impl<E, Ty: EdgeType, G> Edges<E, Ty> for $($ref_kind)* G
+            where
+                G: Edges<E, Ty>,
+            {
+                type EdgeRef<'a, T: 'a> = G::EdgeRef<'a, T>;
+
+                type EdgeIndicesIter<'a>
+                where
+                    Self: 'a,
+                = G::EdgeIndicesIter<'a>;
+
+                type EdgesIter<'a, T: 'a>
+                where
+                    Self: 'a,
+                = G::EdgesIter<'a, T>;
+
+                fn edge_count(&self) -> usize {
+                    (**self).edge_count()
+                }
+
+                fn edge_bound(&self) -> usize {
+                    (**self).edge_bound()
+                }
+
+                fn edge(&self, index: EdgeIndex) -> Option<&E> {
+                    (**self).edge(index)
+                }
+
+                fn endpoints(&self, index: EdgeIndex) -> Option<(VertexIndex, VertexIndex)> {
+                    (**self).endpoints(index)
+                }
+
+                fn edge_index(&self, src: VertexIndex, dst: VertexIndex) -> Option<EdgeIndex> {
+                    (**self).edge_index(src, dst)
+                }
+
+                fn edge_indices(&self) -> Self::EdgeIndicesIter<'_> {
+                    (**self).edge_indices()
+                }
+
+                fn edges(&self) -> Self::EdgesIter<'_, E> {
+                    (**self).edges()
+                }
+
+                fn contains_edge(&self, index: EdgeIndex) -> bool {
+                    (**self).contains_edge(index)
+                }
+
+                fn edge_index_map(&self) -> CompactIndexMap<EdgeIndex> {
+                    (**self).edge_index_map()
+                }
+
+                fn is_directed(&self) -> bool {
+                    (**self).is_directed()
+                }
+            }
+        }
+    }
+
+    deref_edges!(&);
+    deref_edges!(&mut);
+
+    impl<E, Ty: EdgeType, G> EdgesMut<E, Ty> for &mut G
+    where
+        G: EdgesMut<E, Ty>,
+    {
+        fn edge_mut(&mut self, index: EdgeIndex) -> Option<&mut E> {
+            (**self).edge_mut(index)
+        }
+
+        fn add_edge(&mut self, src: VertexIndex, dst: VertexIndex, edge: E) -> EdgeIndex {
+            (**self).add_edge(src, dst, edge)
+        }
+
+        fn remove_edge(&mut self, index: EdgeIndex) -> Option<E> {
+            (**self).remove_edge(index)
+        }
+
+        fn replace_edge(&mut self, index: EdgeIndex, edge: E) -> E {
+            (**self).replace_edge(index, edge)
+        }
+
+        fn clear_edges(&mut self) {
+            (**self).clear_edges()
+        }
+    }
+
+    macro_rules! deref_edges_weak {
+        ($($ref_kind:tt)*) => {
+            impl<E, Ty: EdgeType, G> EdgesWeak<E, Ty> for $($ref_kind)* G
+            where
+                G: EdgesWeak<E, Ty>,
+            {
+                type VertexIndex = G::VertexIndex;
+                type EdgeIndex = G::EdgeIndex;
+
+                fn edge_count_hint(&self) -> Option<usize> {
+                    (**self).edge_count_hint()
+                }
+
+                fn edge_bound_hint(&self) -> Option<usize> {
+                    (**self).edge_bound_hint()
+                }
+
+                fn edge_weak(&self, index: Self::EdgeIndex) -> Option<WeakRef<'_, E>> {
+                    (**self).edge_weak(index)
+                }
+
+                fn endpoints_weak(
+                    &self,
+                    index: Self::EdgeIndex,
+                ) -> Option<(Self::VertexIndex, Self::VertexIndex)> {
+                    (**self).endpoints_weak(index)
+                }
+
+                fn edge_index_weak(
+                    &self,
+                    src: Self::VertexIndex,
+                    dst: Self::VertexIndex,
+                ) -> Option<Self::EdgeIndex> {
+                    (**self).edge_index_weak(src, dst)
+                }
+
+                fn contains_edge_weak(&self, index: Self::EdgeIndex) -> bool {
+                    (**self).contains_edge_weak(index)
+                }
+
+                fn is_directed_weak(&self) -> bool {
+                    (**self).is_directed_weak()
+                }
+            }
+        }
+    }
+
+    deref_edges_weak!(&);
+    deref_edges_weak!(&mut);
+
+    macro_rules! deref_neighbors {
+        ($($ref_kind:tt)*) => {
+            impl<G> Neighbors for $($ref_kind)* G
+            where
+                G: Neighbors,
+            {
+                type NeighborRef<'a> = G::NeighborRef<'a>;
+
+                type NeighborsIter<'a>
+                where
+                    Self: 'a,
+                = G::NeighborsIter<'a>;
+
+                fn neighbors(&self, src: VertexIndex) -> Self::NeighborsIter<'_> {
+                    (**self).neighbors(src)
+                }
+
+                fn neighbors_directed(&self, src: VertexIndex, dir: Direction) -> Self::NeighborsIter<'_> {
+                    (**self).neighbors_directed(src, dir)
+                }
+
+                fn degree(&self, index: VertexIndex) -> usize {
+                    (**self).degree(index)
+                }
+
+                fn degree_directed(&self, index: VertexIndex, dir: Direction) -> usize {
+                    (**self).degree_directed(index, dir)
+                }
+            }
+        }
+    }
+
+    deref_neighbors!(&);
+    deref_neighbors!(&mut);
 }

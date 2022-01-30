@@ -1,7 +1,6 @@
+use std::collections::BTreeSet;
 use std::marker::PhantomData;
 use std::ops::Deref;
-
-use rustc_hash::FxHashSet;
 
 use crate::index::{EdgeIndex, VertexIndex};
 use crate::infra::CompactIndexMap;
@@ -15,16 +14,16 @@ pub struct Stable<S> {
     inner: S,
     // TODO: Allow to choose whether removed items can be replaced by new ones
     // or not.
-    removed_vertices: FxHashSet<VertexIndex>,
-    removed_edges: FxHashSet<EdgeIndex>,
+    removed_vertices: BTreeSet<VertexIndex>,
+    removed_edges: BTreeSet<EdgeIndex>,
 }
 
 impl<S> Stable<S> {
     pub fn new(inner: S) -> Self {
         Self {
             inner,
-            removed_vertices: FxHashSet::default(),
-            removed_edges: FxHashSet::default(),
+            removed_vertices: BTreeSet::default(),
+            removed_edges: BTreeSet::default(),
         }
     }
 
@@ -34,13 +33,17 @@ impl<S> Stable<S> {
     {
         let mut inner = self.inner;
 
-        // Propagate the removals.
-        for edge in self.removed_edges {
-            inner.remove_edge(edge);
+        // Propagate the removals. The descending order of indices is important
+        // for not invalidating the stored indices when creating "holes" in the
+        // underlying graph.
+        for edge in self.removed_edges.iter().rev().copied() {
+            let removed = inner.remove_edge(edge);
+            debug_assert!(removed.is_some());
         }
 
-        for vertex in self.removed_vertices {
-            inner.remove_vertex(vertex);
+        for vertex in self.removed_vertices.iter().rev().copied() {
+            let removed = inner.remove_vertex(vertex);
+            debug_assert!(removed.is_some());
         }
 
         inner
@@ -149,7 +152,7 @@ where
             // in the inner graph and let HashMap to handle duplicates, but that
             // may cause unnecessary overhead if a lot of edges incident to the
             // vertex has been removed.
-            let mut removed_edges = FxHashSet::default();
+            let mut removed_edges = BTreeSet::default();
             for neighbor in self.neighbors(index) {
                 removed_edges.insert(neighbor.edge());
             }
@@ -354,7 +357,7 @@ pub trait Stabilize {
 
 pub struct VertexIndices<'a, I> {
     inner: I,
-    removed_vertices: &'a FxHashSet<VertexIndex>,
+    removed_vertices: &'a BTreeSet<VertexIndex>,
 }
 
 impl<'a, I> Iterator for VertexIndices<'a, I>
@@ -376,7 +379,7 @@ where
 
 pub struct VerticesIter<'a, V: 'a, R, I> {
     inner: I,
-    removed_vertices: &'a FxHashSet<VertexIndex>,
+    removed_vertices: &'a BTreeSet<VertexIndex>,
     ty: PhantomData<(V, R)>,
 }
 
@@ -400,7 +403,7 @@ where
 
 pub struct EdgeIndices<'a, I> {
     inner: I,
-    removed_edges: &'a FxHashSet<EdgeIndex>,
+    removed_edges: &'a BTreeSet<EdgeIndex>,
 }
 
 impl<'a, I> Iterator for EdgeIndices<'a, I>
@@ -446,8 +449,8 @@ where
 
 pub struct NeighborsIter<'a, S: Neighbors + 'a> {
     inner: S::NeighborsIter<'a>,
-    removed_vertices: &'a FxHashSet<VertexIndex>,
-    removed_edges: &'a FxHashSet<EdgeIndex>,
+    removed_vertices: &'a BTreeSet<VertexIndex>,
+    removed_edges: &'a BTreeSet<EdgeIndex>,
 }
 
 impl<'a, S> Iterator for NeighborsIter<'a, S>
@@ -476,6 +479,8 @@ mod tests {
     use crate::storage::tests::*;
     use crate::storage::AdjList;
 
+    use std::collections::HashSet;
+
     #[test]
     fn basic_undirected() {
         test_basic::<Undirected, Stable<AdjList<_, _, _>>>();
@@ -484,5 +489,52 @@ mod tests {
     #[test]
     fn basic_directed() {
         test_basic::<Directed, Stable<AdjList<_, _, _>>>();
+    }
+
+    #[test]
+    fn apply() {
+        let mut graph: Stable<AdjList<_, _, Undirected>> = Stable::new(AdjList::new());
+
+        let u = graph.add_vertex("u");
+        let v = graph.add_vertex("v");
+        let w = graph.add_vertex("w");
+        let x = graph.add_vertex("x");
+        let y = graph.add_vertex("y");
+        let z = graph.add_vertex("z");
+
+        let e = graph.add_edge(u, v, "e");
+        graph.add_edge(w, x, "f");
+        let g = graph.add_edge(y, z, "g");
+
+        // Testing if the apply operation successfully removes all vertices and
+        // edges, even if the underlying graph does not have stable indices.
+
+        graph.remove_edge(e);
+        graph.remove_edge(g);
+
+        graph.remove_vertex(u);
+        graph.remove_vertex(z);
+
+        let graph = graph.apply();
+
+        assert_eq!(graph.vertex_count(), 4);
+        assert_eq!(graph.edge_count(), 1);
+
+        let vertices = graph
+            .vertices()
+            .map(|v| v.data().to_string())
+            .collect::<HashSet<_>>();
+
+        assert!(vertices.contains("v"));
+        assert!(vertices.contains("w"));
+        assert!(vertices.contains("x"));
+        assert!(vertices.contains("y"));
+
+        let edges = graph
+            .edges()
+            .map(|e| e.data().to_string())
+            .collect::<HashSet<_>>();
+
+        assert!(edges.contains("f"));
     }
 }

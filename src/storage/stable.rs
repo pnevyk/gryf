@@ -193,7 +193,7 @@ where
     type EdgesIter<'a, T: 'a>
     where
         S: 'a,
-    = EdgesIter<'a, T, Ty, Self::EdgeRef<'a, T>, S::EdgesIter<'a, T>>;
+    = EdgesIter<'a, T, Self::EdgeRef<'a, T>, S::EdgesIter<'a, T>>;
 
     fn edge_count(&self) -> usize {
         self.inner.edge_count() - self.removed_edges.len()
@@ -420,15 +420,15 @@ where
     }
 }
 
-pub struct EdgesIter<'a, E: 'a, Ty: EdgeType, R: EdgeRef<E, Ty>, I> {
+pub struct EdgesIter<'a, E: 'a, R: EdgeRef<E>, I> {
     inner: I,
-    removed_edges: &'a FxHashSet<EdgeIndex>,
-    ty: PhantomData<(E, Ty, R)>,
+    removed_edges: &'a BTreeSet<EdgeIndex>,
+    ty: PhantomData<(E, R)>,
 }
 
-impl<'a, E: 'a, Ty: EdgeType, R, I> Iterator for EdgesIter<'a, E, Ty, R, I>
+impl<'a, E: 'a, R, I> Iterator for EdgesIter<'a, E, R, I>
 where
-    R: EdgeRef<E, Ty>,
+    R: EdgeRef<E>,
     I: Iterator<Item = R>,
 {
     type Item = R;

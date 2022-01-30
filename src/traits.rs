@@ -10,25 +10,17 @@ pub trait VertexRef<V> {
     fn data(&self) -> &V;
 }
 
-pub trait EdgeRef<E, Ty: EdgeType> {
+pub trait EdgeRef<E> {
     fn index(&self) -> EdgeIndex;
     fn data(&self) -> &E;
     fn src(&self) -> VertexIndex;
     fn dst(&self) -> VertexIndex;
-
-    fn is_directed(&self) -> bool {
-        Ty::is_directed()
-    }
 }
 
-pub trait HyperEdgeRef<E, Ty: EdgeType> {
+pub trait HyperEdgeRef<E> {
     fn index(&self) -> EdgeIndex;
     fn data(&self) -> &E;
     fn vertices(&self) -> &[VertexIndex];
-
-    fn is_directed(&self) -> bool {
-        Ty::is_directed()
-    }
 }
 
 enum WeakRefData<'a, T> {
@@ -126,7 +118,7 @@ pub trait VerticesWeak<V> {
 }
 
 pub trait Edges<E, Ty: EdgeType> {
-    type EdgeRef<'a, T: 'a>: EdgeRef<T, Ty>;
+    type EdgeRef<'a, T: 'a>: EdgeRef<T>;
 
     type EdgeIndicesIter<'a>: Iterator<Item = EdgeIndex>
     where
@@ -392,7 +384,7 @@ mod imp {
         }
     }
 
-    impl<'a, E, Ty: EdgeType> EdgeRef<E, Ty> for (EdgeIndex, &'a E, VertexIndex, VertexIndex) {
+    impl<'a, E> EdgeRef<E> for (EdgeIndex, &'a E, VertexIndex, VertexIndex) {
         fn index(&self) -> EdgeIndex {
             self.0
         }

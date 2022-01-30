@@ -134,9 +134,9 @@ where
 
 pub struct TransposeRef<R>(R);
 
-impl<E, R> EdgeRef<E, Directed> for TransposeRef<R>
+impl<E, R> EdgeRef<E> for TransposeRef<R>
 where
-    R: EdgeRef<E, Directed>,
+    R: EdgeRef<E>,
 {
     fn index(&self) -> EdgeIndex {
         self.0.index()

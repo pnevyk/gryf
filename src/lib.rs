@@ -4,6 +4,7 @@
 #![feature(maybe_uninit_extra)]
 #![feature(assert_matches)]
 #![feature(int_log)]
+#![feature(try_blocks)]
 
 pub mod algo;
 pub mod export;

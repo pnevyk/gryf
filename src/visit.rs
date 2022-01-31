@@ -31,7 +31,7 @@ pub trait Visitor<G> {
         }
     }
 
-    fn into_iter<'a>(self, graph: &'a G) -> IntoIter<'a, Self, G>
+    fn into_iter(self, graph: &G) -> IntoIter<'_, Self, G>
     where
         Self: Sized,
     {

@@ -83,7 +83,7 @@ where
         G::has_bipartite_only()
     }
 
-    fn is_connected<Ty: EdgeType>() -> bool {
+    fn is_connected() -> bool {
         false
     }
 }

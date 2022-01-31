@@ -269,7 +269,7 @@ impl<V, E, S> Guarantee for Path<V, E, S> {
         true
     }
 
-    fn is_connected<Ty: EdgeType>() -> bool {
+    fn is_connected() -> bool {
         true
     }
 }
@@ -282,7 +282,7 @@ where
 
     fn check(graph: &S) -> Result<(), Self::Error> {
         // Statically guaranteed.
-        if S::has_paths_only() && S::is_connected::<Undirected>() {
+        if S::has_paths_only() && S::is_connected() {
             return Ok(());
         }
 

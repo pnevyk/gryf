@@ -351,7 +351,7 @@ pub trait Guarantee {
         Self::has_paths_only() || Self::has_trees_only()
     }
 
-    fn is_connected<Ty: EdgeType>() -> bool {
+    fn is_connected() -> bool {
         false
     }
 }

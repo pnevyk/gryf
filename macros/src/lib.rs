@@ -443,8 +443,8 @@ pub fn guarantee(tokens: TokenStream) -> TokenStream {
                 #field_type::has_bipartite_only()
             }
 
-            fn is_connected<Ty: EdgeType>() -> bool {
-                #field_type::is_connected::<Ty>()
+            fn is_connected() -> bool {
+                #field_type::is_connected()
             }
         }
     };

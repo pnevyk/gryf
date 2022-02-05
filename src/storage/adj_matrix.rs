@@ -1,5 +1,3 @@
-use std::mem;
-
 use self::matrix::{BitMatrix, Matrix};
 pub use super::shared::{RangeIndices, VerticesIter};
 use crate::index::{EdgeIndex, IndexType, VertexIndex};
@@ -132,15 +130,6 @@ impl<V, E, Ty: EdgeType> VerticesMut<V> for AdjMatrix<V, E, Ty> {
         Some(vertex)
     }
 
-    fn replace_vertex(&mut self, index: VertexIndex, vertex: V) -> V {
-        let slot = self
-            .vertices
-            .get_mut(index.to_usize())
-            .expect("vertex does not exist");
-
-        mem::replace(slot, vertex)
-    }
-
     fn clear(&mut self) {
         self.matrix.clear();
         self.vertices.clear();
@@ -226,12 +215,6 @@ impl<V, E, Ty: EdgeType + 'static> EdgesMut<E, Ty> for AdjMatrix<V, E, Ty> {
             }
             None => None,
         }
-    }
-
-    fn replace_edge(&mut self, index: EdgeIndex, edge: E) -> E {
-        let old = self.matrix.remove(index).expect("edge does not exist");
-        self.matrix.insert(index, edge);
-        old
     }
 
     fn clear_edges(&mut self) {

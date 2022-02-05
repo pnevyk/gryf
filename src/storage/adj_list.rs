@@ -1,5 +1,4 @@
 use std::marker::PhantomData;
-use std::mem;
 
 use super::shared::AdjVertex as Vertex;
 pub use super::shared::{AdjVerticesIter as VerticesIter, EdgesIter, RangeIndices};
@@ -203,15 +202,6 @@ impl<V, E, Ty: EdgeType> VerticesMut<V> for AdjList<V, E, Ty> {
         Some(vertex.data)
     }
 
-    fn replace_vertex(&mut self, index: VertexIndex, vertex: V) -> V {
-        let slot = self
-            .vertices
-            .get_mut(index.to_usize())
-            .expect("vertex does not exist");
-
-        mem::replace(&mut slot.data, vertex)
-    }
-
     fn clear(&mut self) {
         self.vertices.clear();
         self.edges.clear();
@@ -307,15 +297,6 @@ impl<V, E, Ty: EdgeType> EdgesMut<E, Ty> for AdjList<V, E, Ty> {
 
     fn remove_edge(&mut self, index: EdgeIndex) -> Option<E> {
         self.remove_edge_inner(index, None)
-    }
-
-    fn replace_edge(&mut self, index: EdgeIndex, edge: E) -> E {
-        let slot = self
-            .edges
-            .get_mut(index.to_usize())
-            .expect("edge does not exist");
-
-        mem::replace(slot, edge)
     }
 
     fn clear_edges(&mut self) {

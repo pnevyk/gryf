@@ -1,4 +1,5 @@
 use std::cmp::max;
+use std::mem;
 use std::ops::{Add, Deref};
 
 use crate::index::{EdgeIndex, IndexType, VertexIndex};
@@ -97,7 +98,11 @@ pub trait VerticesMut<V>: Vertices<V> {
     fn vertex_mut(&mut self, index: VertexIndex) -> Option<&mut V>;
     fn add_vertex(&mut self, vertex: V) -> VertexIndex;
     fn remove_vertex(&mut self, index: VertexIndex) -> Option<V>;
-    fn replace_vertex(&mut self, index: VertexIndex, vertex: V) -> V;
+
+    fn replace_vertex(&mut self, index: VertexIndex, vertex: V) -> V {
+        let slot = self.vertex_mut(index).expect("vertex does not exist");
+        mem::replace(slot, vertex)
+    }
 
     fn clear(&mut self) {
         // Should be overridden by an efficient implementation whenever
@@ -154,7 +159,11 @@ pub trait EdgesMut<E, Ty: EdgeType>: Edges<E, Ty> {
     fn edge_mut(&mut self, index: EdgeIndex) -> Option<&mut E>;
     fn add_edge(&mut self, src: VertexIndex, dst: VertexIndex, edge: E) -> EdgeIndex;
     fn remove_edge(&mut self, index: EdgeIndex) -> Option<E>;
-    fn replace_edge(&mut self, index: EdgeIndex, edge: E) -> E;
+
+    fn replace_edge(&mut self, index: EdgeIndex, edge: E) -> E {
+        let slot = self.edge_mut(index).expect("edge does not exist");
+        mem::replace(slot, edge)
+    }
 
     fn clear_edges(&mut self) {
         // Should be overridden by an efficient implementation whenever

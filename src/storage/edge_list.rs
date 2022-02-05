@@ -1,6 +1,5 @@
 use std::iter::Enumerate;
 use std::marker::PhantomData;
-use std::mem;
 use std::slice;
 
 use super::shared::{EdgesIter, RangeIndices, VerticesIter};
@@ -121,15 +120,6 @@ impl<V, E, Ty: EdgeType> VerticesMut<V> for EdgeList<V, E, Ty> {
         Some(vertex)
     }
 
-    fn replace_vertex(&mut self, index: VertexIndex, vertex: V) -> V {
-        let slot = self
-            .vertices
-            .get_mut(index.to_usize())
-            .expect("vertex does not exist");
-
-        mem::replace(slot, vertex)
-    }
-
     fn clear(&mut self) {
         self.vertices.clear();
         self.edges.clear();
@@ -224,15 +214,6 @@ impl<V, E, Ty: EdgeType> EdgesMut<E, Ty> for EdgeList<V, E, Ty> {
         self.edge(index)?;
         self.endpoints.swap_remove(index.to_usize());
         Some(self.edges.swap_remove(index.to_usize()))
-    }
-
-    fn replace_edge(&mut self, index: EdgeIndex, edge: E) -> E {
-        let slot = self
-            .edges
-            .get_mut(index.to_usize())
-            .expect("edge does not exist");
-
-        mem::replace(slot, edge)
     }
 
     fn clear_edges(&mut self) {

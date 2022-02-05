@@ -113,7 +113,11 @@ where
     }
 
     fn contains_vertex(&self, index: VertexIndex) -> bool {
-        self.inner.contains_vertex(index)
+        if self.removed_vertices.contains(&index) {
+            false
+        } else {
+            self.inner.contains_vertex(index)
+        }
     }
 
     fn vertex_index_map(&self) -> CompactIndexMap<VertexIndex> {
@@ -165,10 +169,6 @@ where
         } else {
             None
         }
-    }
-
-    fn replace_vertex(&mut self, index: VertexIndex, vertex: V) -> V {
-        self.inner.replace_vertex(index, vertex)
     }
 
     fn clear(&mut self) {
@@ -227,7 +227,13 @@ where
             self.removed_vertices.contains(&src),
             self.removed_vertices.contains(&dst),
         ) {
-            (false, false) => self.inner.edge_index(src, dst),
+            (false, false) => self.inner.edge_index(src, dst).and_then(|index| {
+                if self.removed_edges.contains(&index) {
+                    None
+                } else {
+                    Some(index)
+                }
+            }),
             _ => None,
         }
     }
@@ -248,7 +254,11 @@ where
     }
 
     fn contains_edge(&self, index: EdgeIndex) -> bool {
-        self.inner.contains_edge(index)
+        if self.removed_edges.contains(&index) {
+            false
+        } else {
+            self.inner.contains_edge(index)
+        }
     }
 
     fn edge_index_map(&self) -> CompactIndexMap<EdgeIndex> {
@@ -285,10 +295,6 @@ where
         } else {
             None
         }
-    }
-
-    fn replace_edge(&mut self, index: EdgeIndex, edge: E) -> E {
-        self.inner.replace_edge(index, edge)
     }
 
     fn clear_edges(&mut self) {
@@ -536,5 +542,64 @@ mod tests {
             .collect::<HashSet<_>>();
 
         assert!(edges.contains("f"));
+    }
+
+    #[test]
+    fn contains_vertex() {
+        let mut graph: Stable<AdjList<_, (), Undirected>> = Stable::new(AdjList::new());
+
+        let v = graph.add_vertex(());
+        graph.remove_vertex(v);
+
+        assert!(!graph.contains_vertex(v));
+    }
+
+    #[test]
+    fn contains_edge() {
+        let mut graph: Stable<AdjList<_, _, Undirected>> = Stable::new(AdjList::new());
+
+        let v0 = graph.add_vertex(());
+        let v1 = graph.add_vertex(());
+        let e = graph.add_edge(v0, v1, ());
+
+        graph.remove_edge(e);
+
+        assert!(!graph.contains_edge(e));
+    }
+
+    #[test]
+    fn edge_index() {
+        let mut graph: Stable<AdjList<_, _, Undirected>> = Stable::new(AdjList::new());
+
+        let v0 = graph.add_vertex(());
+        let v1 = graph.add_vertex(());
+        let e = graph.add_edge(v0, v1, ());
+
+        graph.remove_edge(e);
+
+        assert!(graph.edge_index(v0, v1).is_none());
+    }
+
+    #[test]
+    #[should_panic]
+    fn replace_vertex() {
+        let mut graph: Stable<AdjList<_, (), Undirected>> = Stable::new(AdjList::new());
+
+        let v = graph.add_vertex(());
+        graph.remove_vertex(v);
+        graph.replace_vertex(v, ());
+    }
+
+    #[test]
+    #[should_panic]
+    fn replace_edge() {
+        let mut graph: Stable<AdjList<_, _, Undirected>> = Stable::new(AdjList::new());
+
+        let v0 = graph.add_vertex(());
+        let v1 = graph.add_vertex(());
+        let e = graph.add_edge(v0, v1, ());
+
+        graph.remove_edge(e);
+        graph.replace_edge(e, ());
     }
 }

@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 use rustc_hash::FxHashSet;
 
 use super::{OpMut, OpOwned};
@@ -11,23 +9,18 @@ use crate::traits::*;
 use crate::{Vertices, VerticesBase, VerticesMut};
 
 #[derive(Debug, VerticesBase, Vertices, VerticesMut)]
-pub struct Complement<V, E, G> {
+pub struct Complement<E, G> {
     #[graph]
     graph: G,
     edge: E,
-    ty: PhantomData<V>,
 }
 
-impl<V, E, G> Complement<V, E, G>
+impl<E, G> Complement<E, G>
 where
     G: VerticesBase + EdgesBase<Undirected>,
 {
     pub fn new(graph: G, edge: E) -> Self {
-        Self {
-            graph,
-            edge,
-            ty: PhantomData,
-        }
+        Self { graph, edge }
     }
 
     pub fn into_unmodified(self) -> G {
@@ -40,7 +33,7 @@ where
     }
 }
 
-impl<V, E, G1, G2> OpMut<G2> for Complement<V, E, G1>
+impl<V, E, G1, G2> OpMut<G2, V> for Complement<E, G1>
 where
     G1: Vertices<V> + Edges<E, Undirected>,
     G2: VerticesMut<V> + EdgesMut<E, Undirected>,
@@ -73,7 +66,7 @@ where
     }
 }
 
-impl<V, E, G> OpOwned<G> for Complement<V, E, G>
+impl<V, E, G> OpOwned<G, V> for Complement<E, G>
 where
     G: VerticesMut<V> + EdgesMut<E, Undirected> + Create<V, E, Undirected>,
     V: Clone,
@@ -90,16 +83,16 @@ where
     }
 }
 
-impl<V, E, G> Neighbors for Complement<V, E, G>
+impl<E, G> Neighbors for Complement<E, G>
 where
-    G: Neighbors + Vertices<V>,
+    G: Neighbors + VerticesBase,
 {
     type NeighborRef<'a> = (VertexIndex, EdgeIndex, VertexIndex, Direction);
 
     type NeighborsIter<'a>
     where
         Self: 'a,
-    = NeighborsIter<'a, V, G>;
+    = NeighborsIter<'a, G>;
 
     fn neighbors(&self, src: VertexIndex) -> Self::NeighborsIter<'_> {
         NeighborsIter {
@@ -107,7 +100,6 @@ where
             dir: Outgoing,
             neighbors: self.graph.neighbors(src).map(|n| n.index()).collect(),
             vertices: self.graph.vertex_indices(),
-            ty: PhantomData,
         }
     }
 
@@ -121,25 +113,23 @@ where
                 .map(|n| n.index())
                 .collect(),
             vertices: self.graph.vertex_indices(),
-            ty: PhantomData,
         }
     }
 }
 
-pub struct NeighborsIter<'a, V, G>
+pub struct NeighborsIter<'a, G>
 where
-    G: Vertices<V> + 'a,
+    G: VerticesBase + 'a,
 {
     src: VertexIndex,
     dir: Direction,
     neighbors: FxHashSet<VertexIndex>,
     vertices: G::VertexIndicesIter<'a>,
-    ty: PhantomData<&'a V>,
 }
 
-impl<'a, V, G> Iterator for NeighborsIter<'a, V, G>
+impl<'a, G> Iterator for NeighborsIter<'a, G>
 where
-    G: Vertices<V> + 'a,
+    G: VerticesBase + 'a,
 {
     type Item = (VertexIndex, EdgeIndex, VertexIndex, Direction);
 
@@ -176,7 +166,7 @@ mod tests {
         graph.add_edge(v2, v3, ());
         graph.add_edge(v3, v1, ());
 
-        let complement = Complement::<(), _, _>::new(graph, ());
+        let complement = Complement::new(graph, ());
         assert_eq!(complement.edge_count(), 2);
     }
 

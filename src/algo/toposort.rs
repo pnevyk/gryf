@@ -126,7 +126,7 @@ where
 
         // Reverse the directions of the edges so the traversal actually works
         // in reverse direction.
-        let graph = &Transpose::<(), _>::new(graph);
+        let graph = &Transpose::new(graph);
 
         loop {
             let mut cycle = false;

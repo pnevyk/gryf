@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 use super::OpOwned;
 use crate::index::{EdgeIndex, VertexIndex};
 use crate::infra::CompactIndexMap;
@@ -21,21 +19,17 @@ use crate::{
     EdgesWeak,
     Guarantee,
 )]
-pub struct Transpose<E, G> {
+pub struct Transpose<G> {
     #[graph]
     graph: G,
-    ty: PhantomData<E>,
 }
 
-impl<E, G> Transpose<E, G>
+impl<G> Transpose<G>
 where
     G: VerticesBase + EdgesBase<Directed>,
 {
     pub fn new(graph: G) -> Self {
-        Self {
-            graph,
-            ty: PhantomData,
-        }
+        Self { graph }
     }
 
     pub fn into_unmodified(self) -> G {
@@ -43,7 +37,7 @@ where
     }
 }
 
-impl<E, G> OpOwned<G> for Transpose<E, G>
+impl<E, G> OpOwned<G, E> for Transpose<G>
 where
     G: EdgesMut<E, Directed> + StableIndices,
 {
@@ -64,7 +58,7 @@ where
     }
 }
 
-impl<E, G> EdgesBase<Directed> for Transpose<E, G>
+impl<G> EdgesBase<Directed> for Transpose<G>
 where
     G: EdgesBase<Directed>,
 {
@@ -102,7 +96,7 @@ where
     }
 }
 
-impl<E, G> Edges<E, Directed> for Transpose<E, G>
+impl<E, G> Edges<E, Directed> for Transpose<G>
 where
     G: Edges<E, Directed>,
 {
@@ -122,7 +116,7 @@ where
     }
 }
 
-impl<E, G> Neighbors for Transpose<E, G>
+impl<G> Neighbors for Transpose<G>
 where
     G: Neighbors,
 {
@@ -231,7 +225,7 @@ mod tests {
 
     #[test]
     fn endpoints() {
-        let graph = Transpose::<i32, _>::new(create_graph());
+        let graph = Transpose::new(create_graph());
 
         assert_eq!(graph.endpoints(1.into()), Some((2.into(), 1.into())));
         assert_eq!(graph.endpoints(3.into()), Some((1.into(), 2.into())));
@@ -239,7 +233,7 @@ mod tests {
 
     #[test]
     fn edge_index() {
-        let graph = Transpose::<i32, _>::new(create_graph());
+        let graph = Transpose::new(create_graph());
 
         assert_eq!(graph.edge_index(2.into(), 1.into()), Some(1.into()));
         assert_eq!(graph.edge_index(1.into(), 2.into()), Some(3.into()));
@@ -260,7 +254,7 @@ mod tests {
 
     #[test]
     fn neighbors() {
-        let graph = Transpose::<i32, _>::new(create_graph());
+        let graph = Transpose::new(create_graph());
         let mut neighbors = graph
             .neighbors(1.into())
             .map(|neighbor| (neighbor.index(), neighbor.src(), neighbor.dir()));
@@ -272,7 +266,7 @@ mod tests {
 
     #[test]
     fn neighbors_directed() {
-        let graph = Transpose::<i32, _>::new(create_graph());
+        let graph = Transpose::new(create_graph());
         let mut neighbors = graph
             .neighbors_directed(1.into(), Outgoing)
             .map(|neighbor| (neighbor.index(), neighbor.src(), neighbor.dir()));

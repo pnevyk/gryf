@@ -1,6 +1,5 @@
 use std::collections::BTreeSet;
 use std::marker::PhantomData;
-use std::ops::Deref;
 
 use crate::index::{EdgeIndex, VertexIndex};
 use crate::infra::CompactIndexMap;
@@ -351,14 +350,6 @@ where
 
 impl<G> StableIndices<VertexIndex, NoReplace> for Stable<G> {}
 impl<G> StableIndices<EdgeIndex, NoReplace> for Stable<G> {}
-
-impl<G> Deref for Stable<G> {
-    type Target = G;
-
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
-}
 
 pub trait Stabilize {
     fn stabilize(self) -> Stable<Self>

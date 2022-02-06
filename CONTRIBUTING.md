@@ -8,8 +8,9 @@ This repository is supposed to be used for wild experimentation and as an
 incubator for fresh ideas. Breaking things on the way and trying blind paths is
 expected, even desirable. Nothing currently implemented is set in stone.
 
-*The main focus is on designing API and coming up with mechanisms to achieve the
-following goals, not on implementing algorithms.*
+*At this moment, the main focus is on designing API and coming up with
+mechanisms to achieve the following goals, not on implementing algorithms.
+However, new algorithms can contribute to or validate API experiments.*
 
 ## Balance between expressiveness/flexibility and complexity of the interfaces
 
@@ -27,11 +28,14 @@ petgraph) or a few coarse-grained traits for which it often happens that one
 cannot implement a trait due to not being able to provide an implementation for
 one functionality out of many.
 
-Currently, the core traits are `Vertices<V>`, `VerticesMut<V>`, `Edges<E, Ty>`,
-`EdgesMut<E, Ty>` and `Neighbors`. There are also "weak" variants `VerticesWeak`
-and `EdgesWeak` which relax on some requirements of their non-weak counterparts.
-All these traits (among others) reside in [`traits.rs`](src/traits.rs) (this
-file should be split into multiple submodules).
+Currently, the core traits are `Vertices`, `Vertices<V>`, `VerticesMut<V>`,
+`EdgesBase<Ty>`, `Edges<E, Ty>`, `EdgesMut<E, Ty>` and `Neighbors`. There are
+also "weak" variants `VerticesBaseWeak`, `VerticesWeak<V>`, `EdgesBaseWeak<Ty>`
+and `EdgesWeak<E, Ty>`, which relax on some requirements of their non-weak
+counterparts. The question whether there should be `NeighborsWeak` remains
+[open](https://github.com/pnevyk/gryf/issues/3). All these traits (among others)
+reside in [`traits.rs`](src/traits.rs) (this file should be split into multiple
+submodules).
 
 An idea is to require the smallest set of functionality that makes sense for the
 trait and add default implementations for functions that can be expressed in the

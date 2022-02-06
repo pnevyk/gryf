@@ -8,9 +8,9 @@ use crate::index::{EdgeIndex, IndexType, VertexIndex};
 use crate::infra::CompactIndexMap;
 use crate::marker::{Direction, Outgoing, Undirected};
 use crate::traits::*;
-use crate::{Vertices, VerticesMut};
+use crate::{Vertices, VerticesBase, VerticesMut};
 
-#[derive(Debug, Vertices, VerticesMut)]
+#[derive(Debug, VerticesBase, Vertices, VerticesMut)]
 pub struct Complement<V, E, G> {
     #[graph]
     graph: G,
@@ -20,7 +20,7 @@ pub struct Complement<V, E, G> {
 
 impl<V, E, G> Complement<V, E, G>
 where
-    G: Vertices<V> + Edges<E, Undirected>,
+    G: Vertices<V> + EdgesBase<Undirected>,
 {
     pub fn new(graph: G, edge: E) -> Self {
         Self {
@@ -90,39 +90,6 @@ where
     }
 }
 
-impl<V, E, G> EdgesWeak<E, Undirected> for Complement<V, E, G>
-where
-    G: Vertices<V> + Edges<E, Undirected>,
-{
-    fn edge_count_hint(&self) -> Option<usize> {
-        Some(self.edge_count())
-    }
-
-    fn edge_bound_hint(&self) -> Option<usize> {
-        self.edge_count_hint()
-    }
-
-    fn edge_weak(&self, index: EdgeIndex) -> Option<WeakRef<'_, E>> {
-        if self.graph.contains_edge(index) {
-            None
-        } else {
-            Some(WeakRef::borrowed(&self.edge))
-        }
-    }
-
-    fn endpoints_weak(&self, _index: EdgeIndex) -> Option<(Self::VertexIndex, Self::VertexIndex)> {
-        None
-    }
-
-    fn edge_index_weak(&self, src: Self::VertexIndex, dst: Self::VertexIndex) -> Option<EdgeIndex> {
-        if self.graph.edge_index(src, dst).is_some() {
-            None
-        } else {
-            Some(EdgeIndex::null())
-        }
-    }
-}
-
 impl<V, E, G> Neighbors for Complement<V, E, G>
 where
     G: Neighbors + Vertices<V>,
@@ -140,6 +107,7 @@ where
             dir: Outgoing,
             neighbors: self.graph.neighbors(src).map(|n| n.index()).collect(),
             vertices: self.graph.vertex_indices(),
+            ty: PhantomData,
         }
     }
 
@@ -153,6 +121,7 @@ where
                 .map(|n| n.index())
                 .collect(),
             vertices: self.graph.vertex_indices(),
+            ty: PhantomData,
         }
     }
 }
@@ -165,6 +134,7 @@ where
     dir: Direction,
     neighbors: FxHashSet<VertexIndex>,
     vertices: G::VertexIndicesIter<'a>,
+    ty: PhantomData<&'a V>,
 }
 
 impl<'a, V, G> Iterator for NeighborsIter<'a, V, G>

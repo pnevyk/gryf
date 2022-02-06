@@ -8,10 +8,24 @@ use crate::marker::{Direction, EdgeType};
 use crate::testing::{Applier, ApplyMutOps, MutOp};
 use crate::traits::*;
 use crate::{
-    Edges, EdgesMut, EdgesWeak, Guarantee, Neighbors, Vertices, VerticesMut, VerticesWeak,
+    Edges, EdgesBase, EdgesBaseWeak, EdgesMut, EdgesWeak, Guarantee, Neighbors, Vertices,
+    VerticesBase, VerticesBaseWeak, VerticesMut, VerticesWeak,
 };
 
-#[derive(Vertices, VerticesMut, VerticesWeak, Edges, EdgesMut, EdgesWeak, Neighbors, Guarantee)]
+#[derive(
+    VerticesBase,
+    Vertices,
+    VerticesMut,
+    EdgesBase,
+    Edges,
+    EdgesMut,
+    Neighbors,
+    VerticesBaseWeak,
+    VerticesWeak,
+    EdgesBaseWeak,
+    EdgesWeak,
+    Guarantee,
+)]
 pub struct ArbitraryGraph<V, E, Ty: EdgeType, G> {
     #[graph]
     graph: G,

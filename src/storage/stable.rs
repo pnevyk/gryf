@@ -6,9 +6,9 @@ use crate::index::{EdgeIndex, VertexIndex};
 use crate::infra::CompactIndexMap;
 use crate::marker::{Direction, EdgeType};
 use crate::traits::*;
-use crate::{EdgesWeak, Guarantee, VerticesWeak};
+use crate::{EdgesBaseWeak, EdgesWeak, Guarantee, VerticesBaseWeak, VerticesWeak};
 
-#[derive(Debug, VerticesWeak, EdgesWeak, Guarantee)]
+#[derive(Debug, VerticesBaseWeak, VerticesWeak, EdgesBaseWeak, EdgesWeak, Guarantee)]
 pub struct Stable<S> {
     #[graph]
     inner: S,
@@ -65,21 +65,14 @@ impl<S> From<S> for Stable<S> {
     }
 }
 
-impl<V, S> Vertices<V> for Stable<S>
+impl<S> VerticesBase for Stable<S>
 where
-    S: Vertices<V>,
+    S: VerticesBase,
 {
-    type VertexRef<'a, T: 'a> = S::VertexRef<'a, T>;
-
     type VertexIndicesIter<'a>
     where
         S: 'a,
     = VertexIndices<'a, S::VertexIndicesIter<'a>>;
-
-    type VerticesIter<'a, T: 'a>
-    where
-        S: 'a,
-    = VerticesIter<'a, T, Self::VertexRef<'a, T>, S::VerticesIter<'a, T>>;
 
     fn vertex_count(&self) -> usize {
         self.inner.vertex_count() - self.removed_vertices.len()
@@ -89,26 +82,10 @@ where
         self.inner.vertex_bound()
     }
 
-    fn vertex(&self, index: VertexIndex) -> Option<&V> {
-        if self.removed_vertices.contains(&index) {
-            None
-        } else {
-            self.inner.vertex(index)
-        }
-    }
-
     fn vertex_indices(&self) -> Self::VertexIndicesIter<'_> {
         VertexIndices {
             inner: self.inner.vertex_indices(),
             removed_vertices: &self.removed_vertices,
-        }
-    }
-
-    fn vertices(&self) -> Self::VerticesIter<'_, V> {
-        VerticesIter {
-            inner: self.inner.vertices(),
-            removed_vertices: &self.removed_vertices,
-            ty: PhantomData,
         }
     }
 
@@ -125,6 +102,34 @@ where
             self.inner.vertex_index_map()
         } else {
             CompactIndexMap::new(self.vertex_indices())
+        }
+    }
+}
+
+impl<V, S> Vertices<V> for Stable<S>
+where
+    S: Vertices<V>,
+{
+    type VertexRef<'a, T: 'a> = S::VertexRef<'a, T>;
+
+    type VerticesIter<'a, T: 'a>
+    where
+        S: 'a,
+    = VerticesIter<'a, T, Self::VertexRef<'a, T>, S::VerticesIter<'a, T>>;
+
+    fn vertex(&self, index: VertexIndex) -> Option<&V> {
+        if self.removed_vertices.contains(&index) {
+            None
+        } else {
+            self.inner.vertex(index)
+        }
+    }
+
+    fn vertices(&self) -> Self::VerticesIter<'_, V> {
+        VerticesIter {
+            inner: self.inner.vertices(),
+            removed_vertices: &self.removed_vertices,
+            ty: PhantomData,
         }
     }
 }
@@ -182,21 +187,14 @@ where
     }
 }
 
-impl<E, Ty: EdgeType, S> Edges<E, Ty> for Stable<S>
+impl<Ty: EdgeType, S> EdgesBase<Ty> for Stable<S>
 where
-    S: Edges<E, Ty>,
+    S: EdgesBase<Ty>,
 {
-    type EdgeRef<'a, T: 'a> = S::EdgeRef<'a, T>;
-
     type EdgeIndicesIter<'a>
     where
         S: 'a,
     = EdgeIndices<'a, S::EdgeIndicesIter<'a>>;
-
-    type EdgesIter<'a, T: 'a>
-    where
-        S: 'a,
-    = EdgesIter<'a, T, Self::EdgeRef<'a, T>, S::EdgesIter<'a, T>>;
 
     fn edge_count(&self) -> usize {
         self.inner.edge_count() - self.removed_edges.len()
@@ -204,14 +202,6 @@ where
 
     fn edge_bound(&self) -> usize {
         self.inner.edge_bound()
-    }
-
-    fn edge(&self, index: EdgeIndex) -> Option<&E> {
-        if self.removed_edges.contains(&index) {
-            None
-        } else {
-            self.inner.edge(index)
-        }
     }
 
     fn endpoints(&self, index: EdgeIndex) -> Option<(VertexIndex, VertexIndex)> {
@@ -245,14 +235,6 @@ where
         }
     }
 
-    fn edges(&self) -> Self::EdgesIter<'_, E> {
-        EdgesIter {
-            inner: self.inner.edges(),
-            removed_edges: &self.removed_edges,
-            ty: PhantomData,
-        }
-    }
-
     fn contains_edge(&self, index: EdgeIndex) -> bool {
         if self.removed_edges.contains(&index) {
             false
@@ -266,6 +248,34 @@ where
             self.inner.edge_index_map()
         } else {
             CompactIndexMap::new(self.edge_indices())
+        }
+    }
+}
+
+impl<E, Ty: EdgeType, S> Edges<E, Ty> for Stable<S>
+where
+    S: Edges<E, Ty>,
+{
+    type EdgeRef<'a, T: 'a> = S::EdgeRef<'a, T>;
+
+    type EdgesIter<'a, T: 'a>
+    where
+        S: 'a,
+    = EdgesIter<'a, T, Self::EdgeRef<'a, T>, S::EdgesIter<'a, T>>;
+
+    fn edge(&self, index: EdgeIndex) -> Option<&E> {
+        if self.removed_edges.contains(&index) {
+            None
+        } else {
+            self.inner.edge(index)
+        }
+    }
+
+    fn edges(&self) -> Self::EdgesIter<'_, E> {
+        EdgesIter {
+            inner: self.inner.edges(),
+            removed_edges: &self.removed_edges,
+            ty: PhantomData,
         }
     }
 }

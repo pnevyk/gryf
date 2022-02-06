@@ -5,9 +5,22 @@ use crate::index::{EdgeIndex, VertexIndex};
 use crate::infra::CompactIndexMap;
 use crate::marker::{Directed, Direction, EdgeType};
 use crate::traits::*;
-use crate::{EdgesWeak, Guarantee, Vertices, VerticesMut, VerticesWeak};
+use crate::{
+    EdgesBaseWeak, EdgesWeak, Guarantee, Vertices, VerticesBase, VerticesBaseWeak, VerticesMut,
+    VerticesWeak,
+};
 
-#[derive(Debug, Vertices, VerticesMut, Guarantee, VerticesWeak, EdgesWeak)]
+#[derive(
+    Debug,
+    VerticesBase,
+    Vertices,
+    VerticesMut,
+    VerticesBaseWeak,
+    VerticesWeak,
+    EdgesBaseWeak,
+    EdgesWeak,
+    Guarantee,
+)]
 pub struct Transpose<V, E, G> {
     #[graph]
     graph: G,
@@ -51,21 +64,14 @@ where
     }
 }
 
-impl<V, E, G> Edges<E, Directed> for Transpose<V, E, G>
+impl<V, E, G> EdgesBase<Directed> for Transpose<V, E, G>
 where
-    G: Edges<E, Directed>,
+    G: EdgesBase<Directed>,
 {
-    type EdgeRef<'a, T: 'a> = TransposeRef<G::EdgeRef<'a, T>>;
-
     type EdgeIndicesIter<'a>
     where
         Self: 'a,
     = G::EdgeIndicesIter<'a>;
-
-    type EdgesIter<'a, T: 'a>
-    where
-        Self: 'a,
-    = Iter<G::EdgesIter<'a, T>>;
 
     fn edge_count(&self) -> usize {
         self.graph.edge_count()
@@ -73,10 +79,6 @@ where
 
     fn edge_bound(&self) -> usize {
         self.graph.edge_bound()
-    }
-
-    fn edge(&self, index: EdgeIndex) -> Option<&E> {
-        self.graph.edge(index)
     }
 
     fn endpoints(&self, index: EdgeIndex) -> Option<(VertexIndex, VertexIndex)> {
@@ -91,16 +93,32 @@ where
         self.graph.edge_indices()
     }
 
-    fn edges(&self) -> Self::EdgesIter<'_, E> {
-        Iter(self.graph.edges())
-    }
-
     fn contains_edge(&self, index: EdgeIndex) -> bool {
         self.graph.contains_edge(index)
     }
 
     fn edge_index_map(&self) -> CompactIndexMap<EdgeIndex> {
         self.graph.edge_index_map()
+    }
+}
+
+impl<V, E, G> Edges<E, Directed> for Transpose<V, E, G>
+where
+    G: Edges<E, Directed>,
+{
+    type EdgeRef<'a, T: 'a> = TransposeRef<G::EdgeRef<'a, T>>;
+
+    type EdgesIter<'a, T: 'a>
+    where
+        Self: 'a,
+    = Iter<G::EdgesIter<'a, T>>;
+
+    fn edge(&self, index: EdgeIndex) -> Option<&E> {
+        self.graph.edge(index)
+    }
+
+    fn edges(&self) -> Self::EdgesIter<'_, E> {
+        Iter(self.graph.edges())
     }
 }
 

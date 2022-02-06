@@ -104,7 +104,10 @@ mod random {
     use crate::marker::{Direction, EdgeType};
     use crate::traits::*;
     use crate::IndexType;
-    use crate::{Edges, EdgesWeak, Guarantee, Neighbors, Vertices, VerticesWeak};
+    use crate::{
+        Edges, EdgesBase, EdgesBaseWeak, EdgesWeak, Guarantee, Neighbors, Vertices, VerticesBase,
+        VerticesBaseWeak, VerticesWeak,
+    };
 
     #[cfg(feature = "proptest")]
     use proptest_derive::Arbitrary;
@@ -269,7 +272,18 @@ mod random {
         }
     }
 
-    #[derive(Vertices, VerticesWeak, Edges, EdgesWeak, Neighbors, Guarantee)]
+    #[derive(
+        VerticesBase,
+        Vertices,
+        EdgesBase,
+        Edges,
+        Neighbors,
+        VerticesBaseWeak,
+        VerticesWeak,
+        EdgesBaseWeak,
+        EdgesWeak,
+        Guarantee,
+    )]
     pub struct DebugGraph<V, E, Ty: EdgeType, G> {
         #[graph]
         graph: G,

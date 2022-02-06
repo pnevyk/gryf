@@ -60,7 +60,7 @@ impl Neighbors for Collatz {
     }
 }
 
-impl VerticesWeak<u64> for Collatz {
+impl VerticesBaseWeak for Collatz {
     fn vertex_count_hint(&self) -> Option<usize> {
         None
     }
@@ -68,7 +68,9 @@ impl VerticesWeak<u64> for Collatz {
     fn vertex_bound_hint(&self) -> Option<usize> {
         None
     }
+}
 
+impl VerticesWeak<u64> for Collatz {
     fn vertex_weak(&self, index: VertexIndex) -> Option<WeakRef<'_, u64>> {
         Some(WeakRef::owned(index.to_bits()))
     }

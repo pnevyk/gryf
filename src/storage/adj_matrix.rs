@@ -4,9 +4,9 @@ use crate::index::{EdgeIndex, IndexType, VertexIndex};
 use crate::infra::CompactIndexMap;
 use crate::marker::{Direction, EdgeType};
 use crate::traits::*;
-use crate::{EdgesWeak, VerticesWeak};
+use crate::{EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak};
 
-#[derive(Debug, VerticesWeak, EdgesWeak)]
+#[derive(Debug, VerticesBaseWeak, VerticesWeak, EdgesBaseWeak, EdgesWeak)]
 pub struct AdjMatrix<V, E, Ty> {
     matrix: Matrix<E, Ty>,
     vertices: Vec<V>,
@@ -29,20 +29,12 @@ impl<V, E, Ty: EdgeType> Default for AdjMatrix<V, E, Ty> {
     }
 }
 
-impl<V, E, Ty: EdgeType> Vertices<V> for AdjMatrix<V, E, Ty> {
-    type VertexRef<'a, T: 'a> = (VertexIndex, &'a T);
-
+impl<V, E, Ty: EdgeType> VerticesBase for AdjMatrix<V, E, Ty> {
     type VertexIndicesIter<'a>
     where
         V: 'a,
         E: 'a,
     = RangeIndices<VertexIndex>;
-
-    type VerticesIter<'a, T: 'a>
-    where
-        V: 'a,
-        E: 'a,
-    = VerticesIter<'a, T>;
 
     fn vertex_count(&self) -> usize {
         self.vertices.len()
@@ -52,20 +44,30 @@ impl<V, E, Ty: EdgeType> Vertices<V> for AdjMatrix<V, E, Ty> {
         self.vertex_count()
     }
 
-    fn vertex(&self, index: VertexIndex) -> Option<&V> {
-        self.vertices.get(index.to_usize())
-    }
-
     fn vertex_indices(&self) -> Self::VertexIndicesIter<'_> {
         (0..self.vertex_bound()).into()
     }
 
-    fn vertices(&self) -> Self::VerticesIter<'_, V> {
-        VerticesIter::new(self.vertices.iter())
-    }
-
     fn vertex_index_map(&self) -> CompactIndexMap<VertexIndex> {
         CompactIndexMap::isomorphic(self.vertex_count())
+    }
+}
+
+impl<V, E, Ty: EdgeType> Vertices<V> for AdjMatrix<V, E, Ty> {
+    type VertexRef<'a, T: 'a> = (VertexIndex, &'a T);
+
+    type VerticesIter<'a, T: 'a>
+    where
+        V: 'a,
+        E: 'a,
+    = VerticesIter<'a, T>;
+
+    fn vertex(&self, index: VertexIndex) -> Option<&V> {
+        self.vertices.get(index.to_usize())
+    }
+
+    fn vertices(&self) -> Self::VerticesIter<'_, V> {
+        VerticesIter::new(self.vertices.iter())
     }
 }
 
@@ -137,20 +139,12 @@ impl<V, E, Ty: EdgeType> VerticesMut<V> for AdjMatrix<V, E, Ty> {
     }
 }
 
-impl<V, E, Ty: EdgeType> Edges<E, Ty> for AdjMatrix<V, E, Ty> {
-    type EdgeRef<'a, T: 'a> = (EdgeIndex, &'a T, VertexIndex, VertexIndex);
-
+impl<V, E, Ty: EdgeType> EdgesBase<Ty> for AdjMatrix<V, E, Ty> {
     type EdgeIndicesIter<'a>
     where
         V: 'a,
         E: 'a,
     = EdgeIndicesIter<'a, Ty>;
-
-    type EdgesIter<'a, T: 'a>
-    where
-        V: 'a,
-        E: 'a,
-    = EdgesIter<'a, T, Ty>;
 
     fn edge_count(&self) -> usize {
         self.n_edges
@@ -158,10 +152,6 @@ impl<V, E, Ty: EdgeType> Edges<E, Ty> for AdjMatrix<V, E, Ty> {
 
     fn edge_bound(&self) -> usize {
         self.matrix.index(self.vertex_count(), 0).to_usize()
-    }
-
-    fn edge(&self, index: EdgeIndex) -> Option<&E> {
-        self.matrix.get(index)
     }
 
     fn endpoints(&self, index: EdgeIndex) -> Option<(VertexIndex, VertexIndex)> {
@@ -184,6 +174,20 @@ impl<V, E, Ty: EdgeType> Edges<E, Ty> for AdjMatrix<V, E, Ty> {
             index: 0,
             edge_bound: self.edge_bound(),
         }
+    }
+}
+
+impl<V, E, Ty: EdgeType> Edges<E, Ty> for AdjMatrix<V, E, Ty> {
+    type EdgeRef<'a, T: 'a> = (EdgeIndex, &'a T, VertexIndex, VertexIndex);
+
+    type EdgesIter<'a, T: 'a>
+    where
+        V: 'a,
+        E: 'a,
+    = EdgesIter<'a, T, Ty>;
+
+    fn edge(&self, index: EdgeIndex) -> Option<&E> {
+        self.matrix.get(index)
     }
 
     fn edges(&self) -> Self::EdgesIter<'_, E> {

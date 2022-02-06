@@ -54,7 +54,7 @@ fn main() {
   * Most suitable algorithm is automatically selected based on graph instance properties
   * Result structures provide high-level interface (e.g., path reconstruction)
 * Focus on flexible and expressive, yet not overly complex trait system
-  * The core is `Vertices`, `VerticesMut`, `Edges`, `EdgesMut`, `Neighbors`
+  * The core is `VerticesBase`, `Vertices`, `VerticesMut`, `EdgesBase`, `Edges`, `EdgesMut`, `Neighbors`
 * Support for graph generalizations (e.g., hypergraph)
 * Accessible codebase without sacrificing performance and efficiency
 

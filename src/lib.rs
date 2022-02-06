@@ -21,8 +21,8 @@ pub mod visit;
 pub mod weight;
 
 pub use macros::{
-    Edges, EdgesMut, EdgesWeak, Guarantee, MultiEdges, Neighbors, Vertices, VerticesMut,
-    VerticesWeak,
+    Edges, EdgesBase, EdgesBaseWeak, EdgesMut, EdgesWeak, Guarantee, MultiEdges, Neighbors,
+    Vertices, VerticesBase, VerticesBaseWeak, VerticesMut, VerticesWeak,
 };
 
 #[cfg(feature = "arbitrary")]

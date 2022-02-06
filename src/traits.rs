@@ -67,31 +67,34 @@ impl<T> AsRef<T> for WeakRef<'_, T> {
     }
 }
 
-pub trait Vertices<V> {
-    type VertexRef<'a, T: 'a>: VertexRef<T>;
-
+pub trait VerticesBase {
     type VertexIndicesIter<'a>: Iterator<Item = VertexIndex>
-    where
-        Self: 'a;
-
-    type VerticesIter<'a, T: 'a>: Iterator<Item = Self::VertexRef<'a, T>>
     where
         Self: 'a;
 
     fn vertex_count(&self) -> usize;
     fn vertex_bound(&self) -> usize;
-    fn vertex(&self, index: VertexIndex) -> Option<&V>;
     fn vertex_indices(&self) -> Self::VertexIndicesIter<'_>;
-    fn vertices(&self) -> Self::VerticesIter<'_, V>;
 
     fn contains_vertex(&self, index: VertexIndex) -> bool {
-        self.vertex(index).is_some()
+        self.vertex_indices().any(|vertex| vertex == index)
     }
 
     fn vertex_index_map(&self) -> CompactIndexMap<VertexIndex> {
         // Should be overridden to use `isomorphic` whenever possible.
         CompactIndexMap::new(self.vertex_indices())
     }
+}
+
+pub trait Vertices<V>: VerticesBase {
+    type VertexRef<'a, T: 'a>: VertexRef<T>;
+
+    type VerticesIter<'a, T: 'a>: Iterator<Item = Self::VertexRef<'a, T>>
+    where
+        Self: 'a;
+
+    fn vertex(&self, index: VertexIndex) -> Option<&V>;
+    fn vertices(&self) -> Self::VerticesIter<'_, V>;
 }
 
 pub trait VerticesMut<V>: Vertices<V> {
@@ -116,35 +119,30 @@ pub trait VerticesMut<V>: Vertices<V> {
     }
 }
 
-pub trait VerticesWeak<V> {
+pub trait VerticesBaseWeak {
     type VertexIndex = VertexIndex;
 
     fn vertex_count_hint(&self) -> Option<usize>;
     fn vertex_bound_hint(&self) -> Option<usize>;
+}
+
+pub trait VerticesWeak<V>: VerticesBaseWeak {
     fn vertex_weak(&self, index: Self::VertexIndex) -> Option<WeakRef<'_, V>>;
 }
 
-pub trait Edges<E, Ty: EdgeType> {
-    type EdgeRef<'a, T: 'a>: EdgeRef<T>;
-
+pub trait EdgesBase<Ty: EdgeType> {
     type EdgeIndicesIter<'a>: Iterator<Item = EdgeIndex>
-    where
-        Self: 'a;
-
-    type EdgesIter<'a, T: 'a>: Iterator<Item = Self::EdgeRef<'a, T>>
     where
         Self: 'a;
 
     fn edge_count(&self) -> usize;
     fn edge_bound(&self) -> usize;
-    fn edge(&self, index: EdgeIndex) -> Option<&E>;
     fn endpoints(&self, index: EdgeIndex) -> Option<(VertexIndex, VertexIndex)>;
     fn edge_index(&self, src: VertexIndex, dst: VertexIndex) -> Option<EdgeIndex>;
     fn edge_indices(&self) -> Self::EdgeIndicesIter<'_>;
-    fn edges(&self) -> Self::EdgesIter<'_, E>;
 
     fn contains_edge(&self, index: EdgeIndex) -> bool {
-        self.edge(index).is_some()
+        self.endpoints(index).is_some()
     }
 
     fn edge_index_map(&self) -> CompactIndexMap<EdgeIndex> {
@@ -155,6 +153,17 @@ pub trait Edges<E, Ty: EdgeType> {
     fn is_directed(&self) -> bool {
         Ty::is_directed()
     }
+}
+
+pub trait Edges<E, Ty: EdgeType>: EdgesBase<Ty> {
+    type EdgeRef<'a, T: 'a>: EdgeRef<T>;
+
+    type EdgesIter<'a, T: 'a>: Iterator<Item = Self::EdgeRef<'a, T>>
+    where
+        Self: 'a;
+
+    fn edge(&self, index: EdgeIndex) -> Option<&E>;
+    fn edges(&self) -> Self::EdgesIter<'_, E>;
 }
 
 pub trait EdgesMut<E, Ty: EdgeType>: Edges<E, Ty> {
@@ -179,13 +188,12 @@ pub trait EdgesMut<E, Ty: EdgeType>: Edges<E, Ty> {
     }
 }
 
-pub trait EdgesWeak<E, Ty: EdgeType> {
+pub trait EdgesBaseWeak<Ty: EdgeType> {
     type VertexIndex = VertexIndex;
     type EdgeIndex = EdgeIndex;
 
     fn edge_count_hint(&self) -> Option<usize>;
     fn edge_bound_hint(&self) -> Option<usize>;
-    fn edge_weak(&self, index: Self::EdgeIndex) -> Option<WeakRef<'_, E>>;
     fn endpoints_weak(
         &self,
         index: Self::EdgeIndex,
@@ -196,13 +204,13 @@ pub trait EdgesWeak<E, Ty: EdgeType> {
         dst: Self::VertexIndex,
     ) -> Option<Self::EdgeIndex>;
 
-    fn contains_edge_weak(&self, index: Self::EdgeIndex) -> bool {
-        self.edge_weak(index).is_some()
-    }
-
     fn is_directed_weak(&self) -> bool {
         Ty::is_directed()
     }
+}
+
+pub trait EdgesWeak<E, Ty: EdgeType>: EdgesBaseWeak<Ty> {
+    fn edge_weak(&self, index: Self::EdgeIndex) -> Option<WeakRef<'_, E>>;
 }
 
 pub trait MultiEdges<E, Ty: EdgeType>: Edges<E, Ty> {
@@ -486,23 +494,16 @@ mod imp {
     impl_num_weight!(isize, false);
     impl_num_weight!(usize, true);
 
-    macro_rules! deref_vertices {
+    macro_rules! deref_vertices_base {
         ($($ref_kind:tt)*) => {
-            impl<V, G> Vertices<V> for $($ref_kind)* G
+            impl<G> VerticesBase for $($ref_kind)* G
             where
-                G: Vertices<V>,
+                G: VerticesBase,
             {
-                type VertexRef<'a, T: 'a> = G::VertexRef<'a, T>;
-
                 type VertexIndicesIter<'a>
                 where
                     Self: 'a,
                 = G::VertexIndicesIter<'a>;
-
-                type VerticesIter<'a, T: 'a>
-                where
-                    Self: 'a,
-                = G::VerticesIter<'a, T>;
 
                 fn vertex_count(&self) -> usize {
                     (**self).vertex_count()
@@ -512,16 +513,8 @@ mod imp {
                     (**self).vertex_bound()
                 }
 
-                fn vertex(&self, index: VertexIndex) -> Option<&V> {
-                    (**self).vertex(index)
-                }
-
                 fn vertex_indices(&self) -> Self::VertexIndicesIter<'_> {
                     (**self).vertex_indices()
-                }
-
-                fn vertices(&self) -> Self::VerticesIter<'_, V> {
-                    (**self).vertices()
                 }
 
                 fn contains_vertex(&self, index: VertexIndex) -> bool {
@@ -530,6 +523,33 @@ mod imp {
 
                 fn vertex_index_map(&self) -> CompactIndexMap<VertexIndex> {
                     (**self).vertex_index_map()
+                }
+            }
+        };
+    }
+
+    deref_vertices_base!(&);
+    deref_vertices_base!(&mut);
+
+    macro_rules! deref_vertices {
+        ($($ref_kind:tt)*) => {
+            impl<V, G> Vertices<V> for $($ref_kind)* G
+            where
+                G: Vertices<V>,
+            {
+                type VertexRef<'a, T: 'a> = G::VertexRef<'a, T>;
+
+                type VerticesIter<'a, T: 'a>
+                where
+                    Self: 'a,
+                = G::VerticesIter<'a, T>;
+
+                fn vertex(&self, index: VertexIndex) -> Option<&V> {
+                    (**self).vertex(index)
+                }
+
+                fn vertices(&self) -> Self::VerticesIter<'_, V> {
+                    (**self).vertices()
                 }
             }
         };
@@ -563,11 +583,11 @@ mod imp {
         }
     }
 
-    macro_rules! deref_vertices_weak {
+    macro_rules! deref_vertices_base_weak {
         ($($ref_kind:tt)*) => {
-            impl<V, G> VerticesWeak<V> for $($ref_kind)* G
+            impl<G> VerticesBaseWeak for $($ref_kind)* G
             where
-                G: VerticesWeak<V>,
+                G: VerticesBaseWeak,
             {
                 type VertexIndex = G::VertexIndex;
 
@@ -578,7 +598,19 @@ mod imp {
                 fn vertex_bound_hint(&self) -> Option<usize> {
                     (**self).vertex_bound_hint()
                 }
+            }
+        }
+    }
 
+    deref_vertices_base_weak!(&);
+    deref_vertices_base_weak!(&mut);
+
+    macro_rules! deref_vertices_weak {
+        ($($ref_kind:tt)*) => {
+            impl<V, G> VerticesWeak<V> for $($ref_kind)* G
+            where
+                G: VerticesWeak<V>,
+            {
                 fn vertex_weak(&self, index: Self::VertexIndex) -> Option<WeakRef<'_, V>> {
                     (**self).vertex_weak(index)
                 }
@@ -589,23 +621,16 @@ mod imp {
     deref_vertices_weak!(&);
     deref_vertices_weak!(&mut);
 
-    macro_rules! deref_edges {
+    macro_rules! deref_edges_base {
         ($($ref_kind:tt)*) => {
-            impl<E, Ty: EdgeType, G> Edges<E, Ty> for $($ref_kind)* G
+            impl<Ty: EdgeType, G> EdgesBase<Ty> for $($ref_kind)* G
             where
-                G: Edges<E, Ty>,
+                G: EdgesBase<Ty>,
             {
-                type EdgeRef<'a, T: 'a> = G::EdgeRef<'a, T>;
-
                 type EdgeIndicesIter<'a>
                 where
                     Self: 'a,
                 = G::EdgeIndicesIter<'a>;
-
-                type EdgesIter<'a, T: 'a>
-                where
-                    Self: 'a,
-                = G::EdgesIter<'a, T>;
 
                 fn edge_count(&self) -> usize {
                     (**self).edge_count()
@@ -613,10 +638,6 @@ mod imp {
 
                 fn edge_bound(&self) -> usize {
                     (**self).edge_bound()
-                }
-
-                fn edge(&self, index: EdgeIndex) -> Option<&E> {
-                    (**self).edge(index)
                 }
 
                 fn endpoints(&self, index: EdgeIndex) -> Option<(VertexIndex, VertexIndex)> {
@@ -631,10 +652,6 @@ mod imp {
                     (**self).edge_indices()
                 }
 
-                fn edges(&self) -> Self::EdgesIter<'_, E> {
-                    (**self).edges()
-                }
-
                 fn contains_edge(&self, index: EdgeIndex) -> bool {
                     (**self).contains_edge(index)
                 }
@@ -645,6 +662,33 @@ mod imp {
 
                 fn is_directed(&self) -> bool {
                     (**self).is_directed()
+                }
+            }
+        }
+    }
+
+    deref_edges_base!(&);
+    deref_edges_base!(&mut);
+
+    macro_rules! deref_edges {
+        ($($ref_kind:tt)*) => {
+            impl<E, Ty: EdgeType, G> Edges<E, Ty> for $($ref_kind)* G
+            where
+                G: Edges<E, Ty>,
+            {
+                type EdgeRef<'a, T: 'a> = G::EdgeRef<'a, T>;
+
+                type EdgesIter<'a, T: 'a>
+                where
+                    Self: 'a,
+                = G::EdgesIter<'a, T>;
+
+                fn edge(&self, index: EdgeIndex) -> Option<&E> {
+                    (**self).edge(index)
+                }
+
+                fn edges(&self) -> Self::EdgesIter<'_, E> {
+                    (**self).edges()
                 }
             }
         }
@@ -678,11 +722,11 @@ mod imp {
         }
     }
 
-    macro_rules! deref_edges_weak {
+    macro_rules! deref_edges_base_weak {
         ($($ref_kind:tt)*) => {
-            impl<E, Ty: EdgeType, G> EdgesWeak<E, Ty> for $($ref_kind)* G
+            impl<Ty: EdgeType, G> EdgesBaseWeak<Ty> for $($ref_kind)* G
             where
-                G: EdgesWeak<E, Ty>,
+                G: EdgesBaseWeak<Ty>,
             {
                 type VertexIndex = G::VertexIndex;
                 type EdgeIndex = G::EdgeIndex;
@@ -693,10 +737,6 @@ mod imp {
 
                 fn edge_bound_hint(&self) -> Option<usize> {
                     (**self).edge_bound_hint()
-                }
-
-                fn edge_weak(&self, index: Self::EdgeIndex) -> Option<WeakRef<'_, E>> {
-                    (**self).edge_weak(index)
                 }
 
                 fn endpoints_weak(
@@ -714,12 +754,24 @@ mod imp {
                     (**self).edge_index_weak(src, dst)
                 }
 
-                fn contains_edge_weak(&self, index: Self::EdgeIndex) -> bool {
-                    (**self).contains_edge_weak(index)
-                }
-
                 fn is_directed_weak(&self) -> bool {
                     (**self).is_directed_weak()
+                }
+            }
+        }
+    }
+
+    deref_edges_base_weak!(&);
+    deref_edges_base_weak!(&mut);
+
+    macro_rules! deref_edges_weak {
+        ($($ref_kind:tt)*) => {
+            impl<E, Ty: EdgeType, G> EdgesWeak<E, Ty> for $($ref_kind)* G
+            where
+                G: EdgesWeak<E, Ty>,
+            {
+                fn edge_weak(&self, index: Self::EdgeIndex) -> Option<WeakRef<'_, E>> {
+                    (**self).edge_weak(index)
                 }
             }
         }

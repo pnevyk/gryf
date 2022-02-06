@@ -28,7 +28,7 @@ petgraph) or a few coarse-grained traits for which it often happens that one
 cannot implement a trait due to not being able to provide an implementation for
 one functionality out of many.
 
-Currently, the core traits are `Vertices`, `Vertices<V>`, `VerticesMut<V>`,
+Currently, the core traits are `VerticesBase`, `Vertices<V>`, `VerticesMut<V>`,
 `EdgesBase<Ty>`, `Edges<E, Ty>`, `EdgesMut<E, Ty>` and `Neighbors`. There are
 also "weak" variants `VerticesBaseWeak`, `VerticesWeak<V>`, `EdgesBaseWeak<Ty>`
 and `EdgesWeak<E, Ty>`, which relax on some requirements of their non-weak

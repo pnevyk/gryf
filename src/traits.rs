@@ -107,7 +107,9 @@ pub trait VerticesMut<V>: Vertices<V> {
     fn clear(&mut self) {
         // Should be overridden by an efficient implementation whenever
         // possible.
-        let vertices = self.vertex_indices().collect::<Vec<_>>();
+        let mut vertices = self.vertex_indices().collect::<Vec<_>>();
+        vertices.reverse();
+
         for vertex in vertices {
             self.remove_vertex(vertex);
         }
@@ -168,7 +170,9 @@ pub trait EdgesMut<E, Ty: EdgeType>: Edges<E, Ty> {
     fn clear_edges(&mut self) {
         // Should be overridden by an efficient implementation whenever
         // possible.
-        let edges = self.edge_indices().collect::<Vec<_>>();
+        let mut edges = self.edge_indices().collect::<Vec<_>>();
+        edges.reverse();
+
         for edge in edges {
             self.remove_edge(edge);
         }

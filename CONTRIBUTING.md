@@ -1,5 +1,10 @@
 # Contributing guide
 
+**Thanks for thinking about contributing!** If you are eager to write some code,
+try to look at [good first
+issues](https://github.com/pnevyk/gryf/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22).
+Opinions and ideas on API for a graph library are greatly welcome!
+
 As the codebase in this repository is not documented, this short text tries to
 summarize main design concepts and should help to understand the code and start
 contributing.

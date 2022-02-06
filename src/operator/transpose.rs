@@ -37,9 +37,9 @@ where
     }
 }
 
-impl<E, G> OpOwned<G, E> for Transpose<G>
+impl<E, G, S: Stability> OpOwned<G, (E, S)> for Transpose<G>
 where
-    G: EdgesMut<E, Directed> + StableIndices,
+    G: EdgesMut<E, Directed> + StableIndices<EdgeIndex, S>,
 {
     fn apply(self) -> G {
         let mut graph = self.graph;

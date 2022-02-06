@@ -9,17 +9,15 @@ use crate::traits::*;
 use crate::{EdgesBaseWeak, EdgesWeak, Guarantee, VerticesBaseWeak, VerticesWeak};
 
 #[derive(Debug, VerticesBaseWeak, VerticesWeak, EdgesBaseWeak, EdgesWeak, Guarantee)]
-pub struct Stable<S> {
+pub struct Stable<G> {
     #[graph]
-    inner: S,
-    // TODO: Allow to choose whether removed items can be replaced by new ones
-    // or not.
+    inner: G,
     removed_vertices: BTreeSet<VertexIndex>,
     removed_edges: BTreeSet<EdgeIndex>,
 }
 
-impl<S> Stable<S> {
-    pub fn new(inner: S) -> Self {
+impl<G> Stable<G> {
+    pub fn new(inner: G) -> Self {
         Self {
             inner,
             removed_vertices: BTreeSet::default(),
@@ -27,9 +25,9 @@ impl<S> Stable<S> {
         }
     }
 
-    pub fn apply<V, E, Ty: EdgeType>(self) -> S
+    pub fn apply<V, E, Ty: EdgeType>(self) -> G
     where
-        S: VerticesMut<V> + EdgesMut<E, Ty>,
+        G: VerticesMut<V> + EdgesMut<E, Ty>,
     {
         let mut inner = self.inner;
 
@@ -50,29 +48,29 @@ impl<S> Stable<S> {
     }
 }
 
-impl<S> Default for Stable<S>
+impl<G> Default for Stable<G>
 where
-    S: Default,
+    G: Default,
 {
     fn default() -> Self {
-        Self::new(S::default())
+        Self::new(G::default())
     }
 }
 
-impl<S> From<S> for Stable<S> {
-    fn from(inner: S) -> Self {
+impl<G> From<G> for Stable<G> {
+    fn from(inner: G) -> Self {
         Self::new(inner)
     }
 }
 
-impl<S> VerticesBase for Stable<S>
+impl<G> VerticesBase for Stable<G>
 where
-    S: VerticesBase,
+    G: VerticesBase,
 {
     type VertexIndicesIter<'a>
     where
-        S: 'a,
-    = VertexIndices<'a, S::VertexIndicesIter<'a>>;
+        G: 'a,
+    = VertexIndices<'a, G::VertexIndicesIter<'a>>;
 
     fn vertex_count(&self) -> usize {
         self.inner.vertex_count() - self.removed_vertices.len()
@@ -106,16 +104,16 @@ where
     }
 }
 
-impl<V, S> Vertices<V> for Stable<S>
+impl<V, G> Vertices<V> for Stable<G>
 where
-    S: Vertices<V>,
+    G: Vertices<V>,
 {
-    type VertexRef<'a, T: 'a> = S::VertexRef<'a, T>;
+    type VertexRef<'a, T: 'a> = G::VertexRef<'a, T>;
 
     type VerticesIter<'a, T: 'a>
     where
-        S: 'a,
-    = VerticesIter<'a, T, Self::VertexRef<'a, T>, S::VerticesIter<'a, T>>;
+        G: 'a,
+    = VerticesIter<'a, T, Self::VertexRef<'a, T>, G::VerticesIter<'a, T>>;
 
     fn vertex(&self, index: VertexIndex) -> Option<&V> {
         if self.removed_vertices.contains(&index) {
@@ -134,9 +132,9 @@ where
     }
 }
 
-impl<V, S> VerticesMut<V> for Stable<S>
+impl<V, G> VerticesMut<V> for Stable<G>
 where
-    S: VerticesMut<V> + Neighbors,
+    G: VerticesMut<V> + Neighbors,
     V: Clone,
 {
     fn vertex_mut(&mut self, index: VertexIndex) -> Option<&mut V> {
@@ -187,14 +185,14 @@ where
     }
 }
 
-impl<Ty: EdgeType, S> EdgesBase<Ty> for Stable<S>
+impl<Ty: EdgeType, G> EdgesBase<Ty> for Stable<G>
 where
-    S: EdgesBase<Ty>,
+    G: EdgesBase<Ty>,
 {
     type EdgeIndicesIter<'a>
     where
-        S: 'a,
-    = EdgeIndices<'a, S::EdgeIndicesIter<'a>>;
+        G: 'a,
+    = EdgeIndices<'a, G::EdgeIndicesIter<'a>>;
 
     fn edge_count(&self) -> usize {
         self.inner.edge_count() - self.removed_edges.len()
@@ -252,16 +250,16 @@ where
     }
 }
 
-impl<E, Ty: EdgeType, S> Edges<E, Ty> for Stable<S>
+impl<E, Ty: EdgeType, G> Edges<E, Ty> for Stable<G>
 where
-    S: Edges<E, Ty>,
+    G: Edges<E, Ty>,
 {
-    type EdgeRef<'a, T: 'a> = S::EdgeRef<'a, T>;
+    type EdgeRef<'a, T: 'a> = G::EdgeRef<'a, T>;
 
     type EdgesIter<'a, T: 'a>
     where
-        S: 'a,
-    = EdgesIter<'a, T, Self::EdgeRef<'a, T>, S::EdgesIter<'a, T>>;
+        G: 'a,
+    = EdgesIter<'a, T, Self::EdgeRef<'a, T>, G::EdgesIter<'a, T>>;
 
     fn edge(&self, index: EdgeIndex) -> Option<&E> {
         if self.removed_edges.contains(&index) {
@@ -280,9 +278,9 @@ where
     }
 }
 
-impl<E, Ty: EdgeType, S> EdgesMut<E, Ty> for Stable<S>
+impl<E, Ty: EdgeType, G> EdgesMut<E, Ty> for Stable<G>
 where
-    S: EdgesMut<E, Ty>,
+    G: EdgesMut<E, Ty>,
     E: Clone,
 {
     fn edge_mut(&mut self, index: EdgeIndex) -> Option<&mut E> {
@@ -314,16 +312,16 @@ where
     }
 }
 
-impl<S> Neighbors for Stable<S>
+impl<G> Neighbors for Stable<G>
 where
-    S: Neighbors,
+    G: Neighbors,
 {
-    type NeighborRef<'a> = S::NeighborRef<'a>;
+    type NeighborRef<'a> = G::NeighborRef<'a>;
 
     type NeighborsIter<'a>
     where
-        S: 'a,
-    = NeighborsIter<'a, S>;
+        G: 'a,
+    = NeighborsIter<'a, G>;
 
     fn neighbors(&self, src: VertexIndex) -> Self::NeighborsIter<'_> {
         NeighborsIter {
@@ -342,19 +340,20 @@ where
     }
 }
 
-impl<V: Clone, E: Clone, Ty: EdgeType, S> Create<V, E, Ty> for Stable<S>
+impl<V: Clone, E: Clone, Ty: EdgeType, G> Create<V, E, Ty> for Stable<G>
 where
-    S: Create<V, E, Ty> + Neighbors,
+    G: Create<V, E, Ty> + Neighbors,
 {
     fn with_capacity(vertex_count: usize, edge_count: usize) -> Self {
-        Self::new(S::with_capacity(vertex_count, edge_count))
+        Self::new(G::with_capacity(vertex_count, edge_count))
     }
 }
 
-impl<S> StableIndices for Stable<S> {}
+impl<G> StableIndices<VertexIndex, NoReplace> for Stable<G> {}
+impl<G> StableIndices<EdgeIndex, NoReplace> for Stable<G> {}
 
-impl<S> Deref for Stable<S> {
-    type Target = S;
+impl<G> Deref for Stable<G> {
+    type Target = G;
 
     fn deref(&self) -> &Self::Target {
         &self.inner
@@ -363,10 +362,6 @@ impl<S> Deref for Stable<S> {
 
 pub trait Stabilize {
     fn stabilize(self) -> Stable<Self>
-    where
-        Self: Sized;
-
-    fn stabilize_with_replacement(self) -> Stable<Self>
     where
         Self: Sized;
 }

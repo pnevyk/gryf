@@ -351,7 +351,29 @@ where
     }
 }
 
-pub trait StableIndices {}
+pub trait Stability: private::Sealed + 'static {
+    fn can_replace_removed() -> bool;
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum NoReplace {}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ReplaceRemoved {}
+
+impl Stability for NoReplace {
+    fn can_replace_removed() -> bool {
+        false
+    }
+}
+
+impl Stability for ReplaceRemoved {
+    fn can_replace_removed() -> bool {
+        true
+    }
+}
+
+pub trait StableIndices<T: IndexType, S: Stability> {}
 
 pub trait Guarantee {
     fn is_loop_free() -> bool {
@@ -814,4 +836,13 @@ mod imp {
 
     deref_neighbors!(&);
     deref_neighbors!(&mut);
+}
+
+mod private {
+    use super::*;
+
+    pub trait Sealed {}
+
+    impl Sealed for NoReplace {}
+    impl Sealed for ReplaceRemoved {}
 }

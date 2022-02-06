@@ -22,31 +22,32 @@ use crate::{
     EdgesWeak,
     Guarantee,
 )]
-pub struct Frozen<S> {
+pub struct Frozen<G> {
     #[graph]
-    inner: S,
+    inner: G,
 }
 
-impl<S> Frozen<S> {
-    fn new(inner: S) -> Self {
+impl<G> Frozen<G> {
+    fn new(inner: G) -> Self {
         Self { inner }
     }
 
-    pub fn into_inner(self) -> S {
+    pub fn into_inner(self) -> G {
         self.inner
     }
 }
 
-impl<S> From<S> for Frozen<S> {
-    fn from(inner: S) -> Self {
+impl<G> From<G> for Frozen<G> {
+    fn from(inner: G) -> Self {
         Self::new(inner)
     }
 }
 
-impl<S> StableIndices for Frozen<S> {}
+impl<G, S: Stability> StableIndices<VertexIndex, S> for Frozen<G> {}
+impl<G, S: Stability> StableIndices<EdgeIndex, S> for Frozen<G> {}
 
-impl<S> Deref for Frozen<S> {
-    type Target = S;
+impl<G> Deref for Frozen<G> {
+    type Target = G;
 
     fn deref(&self) -> &Self::Target {
         &self.inner

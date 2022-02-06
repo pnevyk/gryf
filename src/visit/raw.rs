@@ -131,41 +131,87 @@ impl<A: RawAlgo> RawVisit<A> {
     }
 }
 
-pub struct RawVisitAll<A, I> {
-    pub starts: I,
+pub trait VisitStarts<T: IndexType = VertexIndex> {
+    fn get_next(&mut self) -> Option<T>;
+
+    #[allow(clippy::wrong_self_convention)]
+    fn is_done(&mut self, _visited: &impl VisitSet<T>) -> bool {
+        // By default, delegate the indication of being done for `Self::next` by
+        // returning `None`.
+        false
+    }
+}
+
+struct VisitStartsIter<'a, T: IndexType, S: VisitStarts<T>> {
+    starts: &'a mut S,
+    ty: PhantomData<&'a T>,
+}
+
+impl<'a, T: IndexType, S: VisitStarts<T>> VisitStartsIter<'a, T, S> {
+    fn new(starts: &'a mut S) -> Self {
+        Self {
+            starts,
+            ty: PhantomData,
+        }
+    }
+}
+
+impl<T: IndexType, S: VisitStarts<T>> Iterator for VisitStartsIter<'_, T, S> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.starts.get_next()
+    }
+}
+
+impl<T: IndexType, I> VisitStarts<T> for I
+where
+    I: Iterator<Item = T>,
+{
+    fn get_next(&mut self) -> Option<T> {
+        self.next()
+    }
+}
+
+pub struct RawVisitMulti<A, S> {
+    pub starts: S,
     ty: PhantomData<A>,
 }
 
-impl<A: RawAlgo, I: Iterator<Item = A::Index>> RawVisitAll<A, I> {
-    pub fn new(starts: I) -> Self {
+impl<A: RawAlgo, S: VisitStarts<A::Index>> RawVisitMulti<A, S> {
+    pub fn new(starts: S) -> Self {
         Self {
             starts,
             ty: PhantomData,
         }
     }
 
-    pub fn next_all<F, R>(
+    pub fn next_multi<F, R, G>(
         &mut self,
         raw: &mut RawVisit<A>,
-        count: usize,
         mut get_next: F,
+        is_still_valid: G,
     ) -> Option<R>
     where
         F: FnMut(&mut RawVisit<A>) -> Option<R>,
+        G: Fn(&A::Index) -> bool,
     {
         match get_next(raw) {
             Some(next) => Some(next),
             None => {
-                if raw.visited.visited_count() == count {
-                    // Entire graph visited.
-                    None
-                } else {
-                    // There are still some unexplored components.
-                    let root = self.starts.by_ref().find(|v| !raw.visited.is_visited(*v))?;
-
-                    raw.start(A::start(root));
-                    get_next(raw)
+                if self.starts.is_done(&raw.visited) {
+                    return None;
                 }
+
+                // Get the next vertex that has not been visited yet if there is
+                // any. Make sure that the index is still valid -- at the very
+                // minimum if it is still in the graph (it could have been
+                // removed during visiting).
+                let root = VisitStartsIter::new(&mut self.starts)
+                    .find(|v| !raw.visited.is_visited(*v) && is_still_valid(v))?;
+
+                raw.start(A::start(root));
+                get_next(raw)
             }
         }
     }

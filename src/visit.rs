@@ -3,6 +3,7 @@ pub mod raw;
 use std::{
     collections::{HashSet, VecDeque},
     hash::BuildHasherDefault,
+    marker::PhantomData,
 };
 
 use rustc_hash::FxHashSet;
@@ -74,6 +75,44 @@ where
     }
 }
 
+pub struct VisitAll<'a, V, G>
+where
+    G: Vertices<V>,
+{
+    graph: &'a G,
+    indices: G::VertexIndicesIter<'a>,
+    ty: PhantomData<&'a V>,
+}
+
+impl<'a, V, G> VisitAll<'a, V, G>
+where
+    G: Vertices<V>,
+{
+    pub fn new(graph: &'a G) -> Self {
+        Self {
+            graph,
+            indices: graph.vertex_indices(),
+            ty: PhantomData,
+        }
+    }
+}
+
+impl<V, G> VisitStarts for VisitAll<'_, V, G>
+where
+    G: Vertices<V>,
+{
+    fn get_next(&mut self) -> Option<VertexIndex> {
+        self.indices.next()
+    }
+
+    fn is_done(&mut self, visited: &impl VisitSet<VertexIndex>) -> bool {
+        // Since we are holding a shared reference to the graph, it could not
+        // have been mutated during traversal. In particular, the number of
+        // vertices didn't change.
+        visited.visited_count() == self.graph.vertex_count()
+    }
+}
+
 pub struct Bfs {
     raw: RawVisit<RawBfs>,
 }
@@ -82,12 +121,13 @@ pub struct BfsRooted<'a> {
     raw: &'a mut RawVisit<RawBfs>,
 }
 
-pub struct BfsAll<'a, V, G>
+pub struct BfsMulti<'a, V, S>
 where
-    G: Vertices<V> + 'a,
+    S: VisitStarts,
 {
     raw: &'a mut RawVisit<RawBfs>,
-    all: RawVisitAll<RawBfs, G::VertexIndicesIter<'a>>,
+    multi: RawVisitMulti<RawBfs, S>,
+    ty: PhantomData<&'a V>,
 }
 
 impl Bfs {
@@ -105,13 +145,25 @@ impl Bfs {
         BfsRooted { raw: &mut self.raw }
     }
 
-    pub fn start_all<'a, V, G>(&'a mut self, graph: &'a G) -> BfsAll<'a, V, G>
+    pub fn start_all<'a, V, G>(&'a mut self, graph: &'a G) -> BfsMulti<'a, V, VisitAll<V, G>>
     where
         G: Vertices<V>,
     {
-        BfsAll {
+        BfsMulti {
             raw: &mut self.raw,
-            all: RawVisitAll::new(graph.vertex_indices()),
+            multi: RawVisitMulti::new(VisitAll::new(graph)),
+            ty: PhantomData,
+        }
+    }
+
+    pub fn start_multi<V, S>(&mut self, starts: S) -> BfsMulti<'_, V, S>
+    where
+        S: VisitStarts,
+    {
+        BfsMulti {
+            raw: &mut self.raw,
+            multi: RawVisitMulti::new(starts),
+            ty: PhantomData,
         }
     }
 
@@ -135,16 +187,19 @@ where
     }
 }
 
-impl<'a, V, G> Visitor<G> for BfsAll<'a, V, G>
+impl<'a, S, V, G> Visitor<G> for BfsMulti<'a, V, S>
 where
+    S: VisitStarts,
     G: Neighbors + Vertices<V>,
 {
     type Item = VertexIndex;
 
     fn next(&mut self, graph: &G) -> Option<Self::Item> {
-        self.all.next_all(self.raw, graph.vertex_count(), |raw| {
-            raw.next(graph, |_, _| true)
-        })
+        self.multi.next_multi(
+            self.raw,
+            |raw| raw.next(graph, |_, _| true),
+            |vertex| graph.contains_vertex(*vertex),
+        )
     }
 }
 
@@ -156,12 +211,13 @@ pub struct DfsRooted<'a> {
     raw: &'a mut RawVisit<RawDfs>,
 }
 
-pub struct DfsAll<'a, V, G>
+pub struct DfsMulti<'a, V, S>
 where
-    G: Vertices<V> + 'a,
+    S: VisitStarts,
 {
     raw: &'a mut RawVisit<RawDfs>,
-    all: RawVisitAll<RawDfs, G::VertexIndicesIter<'a>>,
+    multi: RawVisitMulti<RawDfs, S>,
+    ty: PhantomData<&'a V>,
 }
 
 impl Dfs {
@@ -179,13 +235,25 @@ impl Dfs {
         DfsRooted { raw: &mut self.raw }
     }
 
-    pub fn start_all<'a, V, G>(&'a mut self, graph: &'a G) -> DfsAll<'a, V, G>
+    pub fn start_all<'a, V, G>(&'a mut self, graph: &'a G) -> DfsMulti<'a, V, VisitAll<V, G>>
     where
         G: Vertices<V>,
     {
-        DfsAll {
+        DfsMulti {
             raw: &mut self.raw,
-            all: RawVisitAll::new(graph.vertex_indices()),
+            multi: RawVisitMulti::new(VisitAll::new(graph)),
+            ty: PhantomData,
+        }
+    }
+
+    pub fn start_multi<V, S>(&mut self, starts: S) -> DfsMulti<'_, V, S>
+    where
+        S: VisitStarts,
+    {
+        DfsMulti {
+            raw: &mut self.raw,
+            multi: RawVisitMulti::new(starts),
+            ty: PhantomData,
         }
     }
 
@@ -209,16 +277,19 @@ where
     }
 }
 
-impl<'a, V, G> Visitor<G> for DfsAll<'a, V, G>
+impl<'a, S, V, G> Visitor<G> for DfsMulti<'a, V, S>
 where
+    S: VisitStarts,
     G: Neighbors + Vertices<V>,
 {
     type Item = VertexIndex;
 
     fn next(&mut self, graph: &G) -> Option<Self::Item> {
-        self.all.next_all(self.raw, graph.vertex_count(), |raw| {
-            raw.next(graph, |_, _| true)
-        })
+        self.multi.next_multi(
+            self.raw,
+            |raw| raw.next(graph, |_, _| true),
+            |vertex| graph.contains_vertex(*vertex),
+        )
     }
 }
 
@@ -266,16 +337,17 @@ pub struct DfsEventsRooted<'a> {
     is_directed: bool,
 }
 
-pub struct DfsEventsAll<'a, V, G>
+pub struct DfsEventsMulti<'a, V, S>
 where
-    G: Vertices<V> + 'a,
+    S: VisitStarts,
 {
     raw: &'a mut RawVisit<RawDfsExtra>,
-    all: RawVisitAll<RawDfsExtra, G::VertexIndicesIter<'a>>,
+    multi: RawVisitMulti<RawDfsExtra, S>,
     closed: &'a mut FxHashSet<VertexIndex>,
     queue: VecDeque<DfsEvent>,
     time: usize,
     is_directed: bool,
+    ty: PhantomData<&'a V>,
 }
 
 impl DfsEvents {
@@ -314,17 +386,33 @@ impl DfsEvents {
         }
     }
 
-    pub fn start_all<'a, V, G>(&'a mut self, graph: &'a G) -> DfsEventsAll<'a, V, G>
+    pub fn start_all<'a, V, G>(&'a mut self, graph: &'a G) -> DfsEventsMulti<'a, V, VisitAll<V, G>>
     where
         G: Vertices<V>,
     {
-        DfsEventsAll {
+        DfsEventsMulti {
             raw: &mut self.raw,
-            all: RawVisitAll::new(graph.vertex_indices()),
+            multi: RawVisitMulti::new(VisitAll::new(graph)),
             closed: &mut self.closed,
             queue: VecDeque::new(),
             time: 0,
             is_directed: self.is_directed,
+            ty: PhantomData,
+        }
+    }
+
+    pub fn start_multi<V, S>(&mut self, starts: S) -> DfsEventsMulti<'_, V, S>
+    where
+        S: VisitStarts,
+    {
+        DfsEventsMulti {
+            raw: &mut self.raw,
+            multi: RawVisitMulti::new(starts),
+            closed: &mut self.closed,
+            queue: VecDeque::new(),
+            time: 0,
+            is_directed: self.is_directed,
+            ty: PhantomData,
         }
     }
 
@@ -457,8 +545,9 @@ where
     }
 }
 
-impl<'a, V, G> Visitor<G> for DfsEventsAll<'a, V, G>
+impl<'a, S, V, G> Visitor<G> for DfsEventsMulti<'a, V, S>
 where
+    S: VisitStarts,
     G: Neighbors + Vertices<V>,
 {
     type Item = DfsEvent;
@@ -468,17 +557,21 @@ where
             return Some(event);
         }
 
-        if let Some(raw_extra_event) = self.all.next_all(self.raw, graph.vertex_count(), |raw| {
-            raw.next(graph, |raw, raw_event| {
-                DfsEvents::process_next_callback(
-                    raw,
-                    raw_event,
-                    self.closed,
-                    &mut self.queue,
-                    self.is_directed,
-                )
-            })
-        }) {
+        if let Some(raw_extra_event) = self.multi.next_multi(
+            self.raw,
+            |raw| {
+                raw.next(graph, |raw, raw_event| {
+                    DfsEvents::process_next_callback(
+                        raw,
+                        raw_event,
+                        self.closed,
+                        &mut self.queue,
+                        self.is_directed,
+                    )
+                })
+            },
+            |vertex| graph.contains_vertex(*vertex),
+        ) {
             DfsEvents::process_next_event(
                 raw_extra_event,
                 self.closed,
@@ -499,12 +592,13 @@ pub struct DfsPostOrderRooted<'a> {
     raw: &'a mut RawVisit<RawDfsExtra>,
 }
 
-pub struct DfsPostOrderAll<'a, V, G>
+pub struct DfsPostOrderMulti<'a, V, S>
 where
-    G: Vertices<V> + 'a,
+    S: VisitStarts,
 {
     raw: &'a mut RawVisit<RawDfsExtra>,
-    all: RawVisitAll<RawDfsExtra, G::VertexIndicesIter<'a>>,
+    multi: RawVisitMulti<RawDfsExtra, S>,
+    ty: PhantomData<&'a V>,
 }
 
 impl DfsPostOrder {
@@ -522,13 +616,28 @@ impl DfsPostOrder {
         DfsPostOrderRooted { raw: &mut self.raw }
     }
 
-    pub fn start_all<'a, V, G>(&'a mut self, graph: &'a G) -> DfsPostOrderAll<'a, V, G>
+    pub fn start_all<'a, V, G>(
+        &'a mut self,
+        graph: &'a G,
+    ) -> DfsPostOrderMulti<'a, V, VisitAll<V, G>>
     where
         G: Vertices<V>,
     {
-        DfsPostOrderAll {
+        DfsPostOrderMulti {
             raw: &mut self.raw,
-            all: RawVisitAll::new(graph.vertex_indices()),
+            multi: RawVisitMulti::new(VisitAll::new(graph)),
+            ty: PhantomData,
+        }
+    }
+
+    pub fn start_multi<V, S>(&mut self, starts: S) -> DfsPostOrderMulti<'_, V, S>
+    where
+        S: VisitStarts,
+    {
+        DfsPostOrderMulti {
+            raw: &mut self.raw,
+            multi: RawVisitMulti::new(starts),
+            ty: PhantomData,
         }
     }
 
@@ -556,19 +665,24 @@ where
     }
 }
 
-impl<'a, V, G> Visitor<G> for DfsPostOrderAll<'a, V, G>
+impl<'a, S, V, G> Visitor<G> for DfsPostOrderMulti<'a, V, S>
 where
+    S: VisitStarts,
     G: Neighbors + Vertices<V>,
 {
     type Item = VertexIndex;
 
     fn next(&mut self, graph: &G) -> Option<Self::Item> {
-        self.all
-            .next_all(self.raw, graph.vertex_count(), |raw| loop {
-                if let RawDfsExtraEvent::Close(vertex) = raw.next(graph, |_, _| true)? {
-                    return Some(RawDfsExtraItem::closed(vertex));
-                }
-            })
+        self.multi
+            .next_multi(
+                self.raw,
+                |raw| loop {
+                    if let RawDfsExtraEvent::Close(vertex) = raw.next(graph, |_, _| true)? {
+                        return Some(RawDfsExtraItem::closed(vertex));
+                    }
+                },
+                |vertex| graph.contains_vertex(*vertex),
+            )
             .as_ref()
             .map(RawDfsExtra::index)
     }
@@ -582,12 +696,13 @@ pub struct DfsNoBacktrackRooted<'a> {
     raw: &'a mut RawVisit<RawDfsNoBacktrack>,
 }
 
-pub struct DfsNoBacktrackAll<'a, V, G>
+pub struct DfsNoBacktrackMulti<'a, V, S>
 where
-    G: Vertices<V> + 'a,
+    S: VisitStarts,
 {
     raw: &'a mut RawVisit<RawDfsNoBacktrack>,
-    all: RawVisitAll<RawDfsNoBacktrack, G::VertexIndicesIter<'a>>,
+    multi: RawVisitMulti<RawDfsNoBacktrack, S>,
+    ty: PhantomData<&'a V>,
 }
 
 impl DfsNoBacktrack {
@@ -605,13 +720,28 @@ impl DfsNoBacktrack {
         DfsNoBacktrackRooted { raw: &mut self.raw }
     }
 
-    pub fn start_all<'a, V, G>(&'a mut self, graph: &'a G) -> DfsNoBacktrackAll<'a, V, G>
+    pub fn start_all<'a, V, G>(
+        &'a mut self,
+        graph: &'a G,
+    ) -> DfsNoBacktrackMulti<'a, V, VisitAll<V, G>>
     where
         G: Vertices<V>,
     {
-        DfsNoBacktrackAll {
+        DfsNoBacktrackMulti {
             raw: &mut self.raw,
-            all: RawVisitAll::new(graph.vertex_indices()),
+            multi: RawVisitMulti::new(VisitAll::new(graph)),
+            ty: PhantomData,
+        }
+    }
+
+    pub fn start_multi<V, S>(&mut self, starts: S) -> DfsNoBacktrackMulti<'_, V, S>
+    where
+        S: VisitStarts,
+    {
+        DfsNoBacktrackMulti {
+            raw: &mut self.raw,
+            multi: RawVisitMulti::new(starts),
+            ty: PhantomData,
         }
     }
 
@@ -635,16 +765,19 @@ where
     }
 }
 
-impl<'a, V, G> Visitor<G> for DfsNoBacktrackAll<'a, V, G>
+impl<'a, S, V, G> Visitor<G> for DfsNoBacktrackMulti<'a, V, S>
 where
+    S: VisitStarts,
     G: Neighbors + Vertices<V>,
 {
     type Item = VertexIndex;
 
     fn next(&mut self, graph: &G) -> Option<Self::Item> {
-        self.all.next_all(self.raw, graph.vertex_count(), |raw| {
-            raw.next(graph, |_, _| true)
-        })
+        self.multi.next_multi(
+            self.raw,
+            |raw| raw.next(graph, |_, _| true),
+            |vertex| graph.contains_vertex(*vertex),
+        )
     }
 }
 
@@ -843,6 +976,66 @@ mod tests {
             .collect::<Vec<_>>();
 
         assert_eq!(vertices, vec![v0, v2, v5, v4, v3]);
+    }
+
+    #[test]
+    fn bfs_disconnected_multi() {
+        let mut graph = Stable::new(AdjList::<_, _, Undirected>::new());
+
+        let v0 = graph.add_vertex(());
+        let v1 = graph.add_vertex(());
+        let v2 = graph.add_vertex(());
+        let v3 = graph.add_vertex(());
+        let v4 = graph.add_vertex(());
+        let v5 = graph.add_vertex(());
+
+        graph.add_edge(v0, v1, ());
+        graph.add_edge(v1, v2, ());
+        graph.add_edge(v1, v3, ());
+        graph.add_edge(v1, v4, ());
+        graph.add_edge(v2, v5, ());
+        graph.add_edge(v5, v4, ());
+
+        graph.remove_vertex(v1);
+
+        let vertices = Bfs::new(&graph)
+            .start_multi([v0, v2].into_iter())
+            .iter(&graph)
+            .collect::<Vec<_>>();
+
+        assert_eq!(vertices, vec![v0, v2, v5, v4]);
+    }
+
+    #[test]
+    fn bfs_disconnected_multi_mutation() {
+        let mut graph = Stable::new(AdjList::<_, _, Undirected>::new());
+
+        let v0 = graph.add_vertex(());
+        let v1 = graph.add_vertex(());
+        let v2 = graph.add_vertex(());
+        let v3 = graph.add_vertex(());
+        let v4 = graph.add_vertex(());
+        let v5 = graph.add_vertex(());
+
+        graph.add_edge(v0, v1, ());
+        graph.add_edge(v1, v2, ());
+        graph.add_edge(v1, v3, ());
+        graph.add_edge(v1, v4, ());
+        graph.add_edge(v2, v5, ());
+        graph.add_edge(v5, v4, ());
+
+        graph.remove_vertex(v1);
+
+        let mut visit = Bfs::new(&graph);
+        let mut visit = visit.start_multi([v0, v2].into_iter());
+
+        // Remove one of the starts.
+        graph.remove_vertex(v0);
+
+        let vertices = visit.iter(&graph).collect::<Vec<_>>();
+
+        // Removing one of the start causes incomplete visit, but not a crash.
+        assert_eq!(vertices, vec![v2, v5, v4]);
     }
 
     #[test]

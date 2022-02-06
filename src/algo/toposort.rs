@@ -6,7 +6,7 @@ use crate::{
     marker::{Directed, Direction},
     operator::Transpose,
     traits::*,
-    visit::{self, raw::*, Visitor},
+    visit::{self, raw::*, VisitAll, Visitor},
     IndexType,
 };
 
@@ -95,7 +95,7 @@ where
     G: Vertices<V> + 'a,
 {
     raw: RawVisit<RawDfsExtra>,
-    all: RawVisitAll<RawDfsExtra, G::VertexIndicesIter<'a>>,
+    multi: RawVisitMulti<RawDfsExtra, VisitAll<'a, V, G>>,
     closed: TypedBitSet<VertexIndex>,
     ty: PhantomData<(V, E)>,
 }
@@ -107,7 +107,7 @@ where
     fn new(graph: &'a G) -> Self {
         Self {
             raw: RawVisit::new(Some(graph.vertex_count())),
-            all: RawVisitAll::new(graph.vertex_indices()),
+            multi: RawVisitMulti::new(VisitAll::new(graph)),
             closed: TypedBitSet::with_capacity(graph.vertex_count()),
             ty: PhantomData,
         }
@@ -135,22 +135,24 @@ where
         loop {
             let mut cycle = false;
 
-            let raw_extra_event =
-                self.all
-                    .next_all(&mut self.raw, graph.vertex_count(), |raw| {
-                        raw.next(graph, |_, raw_event| match raw_event {
-                            RawEvent::Skip { vertex, .. } if !self.closed.is_visited(vertex) => {
-                                // Vertex not added to the stack, but also
-                                // has not been closed. That means that we
-                                // encountered a back edge.
-                                cycle = true;
+            let raw_extra_event = self.multi.next_multi(
+                &mut self.raw,
+                |raw| {
+                    raw.next(graph, |_, raw_event| match raw_event {
+                        RawEvent::Skip { vertex, .. } if !self.closed.is_visited(vertex) => {
+                            // Vertex not added to the stack, but also
+                            // has not been closed. That means that we
+                            // encountered a back edge.
+                            cycle = true;
 
-                                // Prune to avoid unnecessary work.
-                                false
-                            }
-                            _ => true,
-                        })
-                    })?;
+                            // Prune to avoid unnecessary work.
+                            false
+                        }
+                        _ => true,
+                    })
+                },
+                |vertex| graph.contains_vertex(*vertex),
+            )?;
 
             if cycle {
                 return Some(Err(Error::Cycle));

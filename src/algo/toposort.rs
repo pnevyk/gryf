@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 use crate::{
     index::VertexIndex,
     infra::{CompactIndexMap, TypedBitSet, VisitSet},
@@ -22,16 +20,16 @@ pub enum Error {
     Cycle,
 }
 
-pub struct TopoSort<'a, V, E, G>
+pub struct TopoSort<'a, G>
 where
-    G: Vertices<V> + Edges<E, Directed>,
+    G: VerticesBase + EdgesBase<Directed>,
 {
-    inner: TopoSortInner<'a, V, E, G>,
+    inner: TopoSortInner<'a, G>,
 }
 
-impl<'a, V, E, G> TopoSort<'a, V, E, G>
+impl<'a, G> TopoSort<'a, G>
 where
-    G: Neighbors + Vertices<V> + Edges<E, Directed>,
+    G: Neighbors + VerticesBase + EdgesBase<Directed>,
 {
     pub fn run_algo(graph: &'a G, algo: Option<Algo>) -> Self {
         match algo {
@@ -48,18 +46,18 @@ where
         Self::run_algo(graph, None)
     }
 
-    pub fn run_dfs(graph: &'a G) -> DfsVisit<'a, V, E, G> {
+    pub fn run_dfs(graph: &'a G) -> DfsVisit<'a, G> {
         DfsVisit::new(graph)
     }
 
-    pub fn run_kahn(graph: &'a G) -> KahnIter<'a, V, E, G> {
+    pub fn run_kahn(graph: &'a G) -> KahnIter<'a, G> {
         KahnIter::new(graph)
     }
 }
 
-impl<'a, V, E, G> Iterator for TopoSort<'a, V, E, G>
+impl<'a, G> Iterator for TopoSort<'a, G>
 where
-    G: Neighbors + Vertices<V> + Edges<E, Directed>,
+    G: Neighbors + VerticesBase + EdgesBase<Directed>,
 {
     type Item = Result<VertexIndex, Error>;
 
@@ -68,17 +66,17 @@ where
     }
 }
 
-enum TopoSortInner<'a, V, E, G>
+enum TopoSortInner<'a, G>
 where
-    G: Vertices<V>,
+    G: VerticesBase,
 {
-    Dfs(visit::IntoIter<'a, DfsVisit<'a, V, E, G>, G>),
-    Kahn(KahnIter<'a, V, E, G>),
+    Dfs(visit::IntoIter<'a, DfsVisit<'a, G>, G>),
+    Kahn(KahnIter<'a, G>),
 }
 
-impl<'a, V, E, G> Iterator for TopoSortInner<'a, V, E, G>
+impl<'a, G> Iterator for TopoSortInner<'a, G>
 where
-    G: Neighbors + Vertices<V> + Edges<E, Directed>,
+    G: Neighbors + VerticesBase + EdgesBase<Directed>,
 {
     type Item = Result<VertexIndex, Error>;
 
@@ -90,33 +88,31 @@ where
     }
 }
 
-pub struct DfsVisit<'a, V, E, G>
+pub struct DfsVisit<'a, G>
 where
-    G: Vertices<V> + 'a,
+    G: VerticesBase + 'a,
 {
     raw: RawVisit<RawDfsExtra>,
-    multi: RawVisitMulti<RawDfsExtra, VisitAll<'a, V, G>>,
+    multi: RawVisitMulti<RawDfsExtra, VisitAll<'a, G>>,
     closed: TypedBitSet<VertexIndex>,
-    ty: PhantomData<(V, E)>,
 }
 
-impl<'a, V, E, G> DfsVisit<'a, V, E, G>
+impl<'a, G> DfsVisit<'a, G>
 where
-    G: Vertices<V> + 'a,
+    G: VerticesBase + 'a,
 {
     fn new(graph: &'a G) -> Self {
         Self {
             raw: RawVisit::new(Some(graph.vertex_count())),
             multi: RawVisitMulti::new(VisitAll::new(graph)),
             closed: TypedBitSet::with_capacity(graph.vertex_count()),
-            ty: PhantomData,
         }
     }
 }
 
-impl<'a, V, E, G> Visitor<G> for DfsVisit<'a, V, E, G>
+impl<'a, G> Visitor<G> for DfsVisit<'a, G>
 where
-    G: Neighbors + Vertices<V> + Edges<E, Directed>,
+    G: Neighbors + VerticesBase + EdgesBase<Directed>,
 {
     type Item = Result<VertexIndex, Error>;
 
@@ -130,7 +126,7 @@ where
 
         // Reverse the directions of the edges so the traversal actually works
         // in reverse direction.
-        let graph = &Transpose::new(graph);
+        let graph = &Transpose::<(), _>::new(graph);
 
         loop {
             let mut cycle = false;
@@ -166,7 +162,7 @@ where
     }
 }
 
-pub struct KahnIter<'a, V, E, G> {
+pub struct KahnIter<'a, G> {
     graph: &'a G,
     map: CompactIndexMap<VertexIndex>,
     in_deg: Vec<usize>,
@@ -174,12 +170,11 @@ pub struct KahnIter<'a, V, E, G> {
     // 0 does not matter.
     queue: Vec<VertexIndex>,
     visited: usize,
-    ty: PhantomData<(V, E)>,
 }
 
-impl<'a, V, E, G> KahnIter<'a, V, E, G>
+impl<'a, G> KahnIter<'a, G>
 where
-    G: Neighbors + Vertices<V> + 'a,
+    G: Neighbors + VerticesBase + 'a,
 {
     fn new(graph: &'a G) -> Self {
         let map = graph.vertex_index_map();
@@ -201,12 +196,11 @@ where
             in_deg,
             queue,
             visited: 0,
-            ty: PhantomData,
         }
     }
 }
 
-impl<'a, V, E, G> Iterator for KahnIter<'a, V, E, G>
+impl<'a, G> Iterator for KahnIter<'a, G>
 where
     G: Neighbors,
 {
@@ -245,9 +239,13 @@ mod tests {
         visit::{DfsEvent, DfsEvents},
     };
 
-    fn assert_valid<'a, V, E, G>(toposort: TopoSort<'a, V, E, G>, graph: &'a G)
+    fn assert_valid<'a, G>(toposort: TopoSort<'a, G>, graph: &'a G)
     where
-        G: Neighbors + Vertices<V> + Edges<E, Directed> + VerticesWeak<V> + EdgesWeak<E, Directed>,
+        G: Neighbors
+            + VerticesBase
+            + EdgesBase<Directed>
+            + VerticesBaseWeak
+            + EdgesBaseWeak<Directed>,
     {
         let sorted = toposort.collect::<Result<Vec<_>, _>>();
 
@@ -262,26 +260,26 @@ mod tests {
 
         match (sorted, cycle) {
             (Ok(sorted), None) => {
-                for edge in graph.edges() {
+                for (src, dst) in graph.edge_indices().map(|e| graph.endpoints(e).unwrap()) {
                     let i = sorted
                         .iter()
                         .copied()
                         .enumerate()
-                        .find_map(|(k, v)| (v == edge.src()).then(|| Some(k)))
-                        .unwrap_or_else(|| panic!("algorithm omitted vertex {:?}", edge.src()));
+                        .find_map(|(k, v)| (v == src).then(|| Some(k)))
+                        .unwrap_or_else(|| panic!("algorithm omitted vertex {:?}", src));
 
                     let j = sorted
                         .iter()
                         .copied()
                         .enumerate()
-                        .find_map(|(k, v)| (v == edge.dst()).then(|| Some(k)))
-                        .unwrap_or_else(|| panic!("algorithm omitted vertex {:?}", edge.dst()));
+                        .find_map(|(k, v)| (v == dst).then(|| Some(k)))
+                        .unwrap_or_else(|| panic!("algorithm omitted vertex {:?}", dst));
 
                     assert!(
                         i < j,
                         "invalid topological order for {:?} -> {:?}",
-                        edge.src(),
-                        edge.dst()
+                        src,
+                        dst
                     );
                 }
             }

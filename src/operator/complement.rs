@@ -20,7 +20,7 @@ pub struct Complement<V, E, G> {
 
 impl<V, E, G> Complement<V, E, G>
 where
-    G: Vertices<V> + EdgesBase<Undirected>,
+    G: VerticesBase + EdgesBase<Undirected>,
 {
     pub fn new(graph: G, edge: E) -> Self {
         Self {
@@ -176,7 +176,7 @@ mod tests {
         graph.add_edge(v2, v3, ());
         graph.add_edge(v3, v1, ());
 
-        let complement = Complement::new(graph, ());
+        let complement = Complement::<(), _, _>::new(graph, ());
         assert_eq!(complement.edge_count(), 2);
     }
 

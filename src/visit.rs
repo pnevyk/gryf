@@ -3,7 +3,6 @@ pub mod raw;
 use std::{
     collections::{HashSet, VecDeque},
     hash::BuildHasherDefault,
-    marker::PhantomData,
 };
 
 use rustc_hash::FxHashSet;
@@ -75,31 +74,29 @@ where
     }
 }
 
-pub struct VisitAll<'a, V, G>
+pub struct VisitAll<'a, G>
 where
-    G: Vertices<V>,
+    G: VerticesBase,
 {
     graph: &'a G,
     indices: G::VertexIndicesIter<'a>,
-    ty: PhantomData<&'a V>,
 }
 
-impl<'a, V, G> VisitAll<'a, V, G>
+impl<'a, G> VisitAll<'a, G>
 where
-    G: Vertices<V>,
+    G: VerticesBase,
 {
     pub fn new(graph: &'a G) -> Self {
         Self {
             graph,
             indices: graph.vertex_indices(),
-            ty: PhantomData,
         }
     }
 }
 
-impl<V, G> VisitStarts for VisitAll<'_, V, G>
+impl<G> VisitStarts for VisitAll<'_, G>
 where
-    G: Vertices<V>,
+    G: VerticesBase,
 {
     fn get_next(&mut self) -> Option<VertexIndex> {
         self.indices.next()
@@ -121,19 +118,18 @@ pub struct BfsRooted<'a> {
     raw: &'a mut RawVisit<RawBfs>,
 }
 
-pub struct BfsMulti<'a, V, S>
+pub struct BfsMulti<'a, S>
 where
     S: VisitStarts,
 {
     raw: &'a mut RawVisit<RawBfs>,
     multi: RawVisitMulti<RawBfs, S>,
-    ty: PhantomData<&'a V>,
 }
 
 impl Bfs {
-    pub fn new<V, G>(graph: &G) -> Self
+    pub fn new<G>(graph: &G) -> Self
     where
-        G: VerticesWeak<V>,
+        G: VerticesBaseWeak,
     {
         Self {
             raw: RawVisit::new(graph.vertex_count_hint()),
@@ -145,25 +141,23 @@ impl Bfs {
         BfsRooted { raw: &mut self.raw }
     }
 
-    pub fn start_all<'a, V, G>(&'a mut self, graph: &'a G) -> BfsMulti<'a, V, VisitAll<V, G>>
+    pub fn start_all<'a, G>(&'a mut self, graph: &'a G) -> BfsMulti<'a, VisitAll<G>>
     where
-        G: Vertices<V>,
+        G: VerticesBase,
     {
         BfsMulti {
             raw: &mut self.raw,
             multi: RawVisitMulti::new(VisitAll::new(graph)),
-            ty: PhantomData,
         }
     }
 
-    pub fn start_multi<V, S>(&mut self, starts: S) -> BfsMulti<'_, V, S>
+    pub fn start_multi<S>(&mut self, starts: S) -> BfsMulti<'_, S>
     where
         S: VisitStarts,
     {
         BfsMulti {
             raw: &mut self.raw,
             multi: RawVisitMulti::new(starts),
-            ty: PhantomData,
         }
     }
 
@@ -187,10 +181,10 @@ where
     }
 }
 
-impl<'a, S, V, G> Visitor<G> for BfsMulti<'a, V, S>
+impl<'a, S, G> Visitor<G> for BfsMulti<'a, S>
 where
     S: VisitStarts,
-    G: Neighbors + Vertices<V>,
+    G: Neighbors + VerticesBase,
 {
     type Item = VertexIndex;
 
@@ -211,19 +205,18 @@ pub struct DfsRooted<'a> {
     raw: &'a mut RawVisit<RawDfs>,
 }
 
-pub struct DfsMulti<'a, V, S>
+pub struct DfsMulti<'a, S>
 where
     S: VisitStarts,
 {
     raw: &'a mut RawVisit<RawDfs>,
     multi: RawVisitMulti<RawDfs, S>,
-    ty: PhantomData<&'a V>,
 }
 
 impl Dfs {
-    pub fn new<V, G>(graph: &G) -> Self
+    pub fn new<G>(graph: &G) -> Self
     where
-        G: VerticesWeak<V>,
+        G: VerticesBaseWeak,
     {
         Self {
             raw: RawVisit::new(graph.vertex_count_hint()),
@@ -235,25 +228,23 @@ impl Dfs {
         DfsRooted { raw: &mut self.raw }
     }
 
-    pub fn start_all<'a, V, G>(&'a mut self, graph: &'a G) -> DfsMulti<'a, V, VisitAll<V, G>>
+    pub fn start_all<'a, G>(&'a mut self, graph: &'a G) -> DfsMulti<'a, VisitAll<G>>
     where
-        G: Vertices<V>,
+        G: VerticesBase,
     {
         DfsMulti {
             raw: &mut self.raw,
             multi: RawVisitMulti::new(VisitAll::new(graph)),
-            ty: PhantomData,
         }
     }
 
-    pub fn start_multi<V, S>(&mut self, starts: S) -> DfsMulti<'_, V, S>
+    pub fn start_multi<S>(&mut self, starts: S) -> DfsMulti<'_, S>
     where
         S: VisitStarts,
     {
         DfsMulti {
             raw: &mut self.raw,
             multi: RawVisitMulti::new(starts),
-            ty: PhantomData,
         }
     }
 
@@ -277,10 +268,10 @@ where
     }
 }
 
-impl<'a, S, V, G> Visitor<G> for DfsMulti<'a, V, S>
+impl<'a, S, G> Visitor<G> for DfsMulti<'a, S>
 where
     S: VisitStarts,
-    G: Neighbors + Vertices<V>,
+    G: Neighbors + VerticesBase,
 {
     type Item = VertexIndex;
 
@@ -337,7 +328,7 @@ pub struct DfsEventsRooted<'a> {
     is_directed: bool,
 }
 
-pub struct DfsEventsMulti<'a, V, S>
+pub struct DfsEventsMulti<'a, S>
 where
     S: VisitStarts,
 {
@@ -347,13 +338,12 @@ where
     queue: VecDeque<DfsEvent>,
     time: usize,
     is_directed: bool,
-    ty: PhantomData<&'a V>,
 }
 
 impl DfsEvents {
-    pub fn new<V, E, Ty: EdgeType, G>(graph: &G) -> Self
+    pub fn new<Ty: EdgeType, G>(graph: &G) -> Self
     where
-        G: VerticesWeak<V> + EdgesWeak<E, Ty>,
+        G: VerticesBaseWeak + EdgesBaseWeak<Ty>,
     {
         let is_directed = graph.is_directed_weak();
 
@@ -386,9 +376,9 @@ impl DfsEvents {
         }
     }
 
-    pub fn start_all<'a, V, G>(&'a mut self, graph: &'a G) -> DfsEventsMulti<'a, V, VisitAll<V, G>>
+    pub fn start_all<'a, G>(&'a mut self, graph: &'a G) -> DfsEventsMulti<'a, VisitAll<G>>
     where
-        G: Vertices<V>,
+        G: VerticesBase,
     {
         DfsEventsMulti {
             raw: &mut self.raw,
@@ -397,11 +387,10 @@ impl DfsEvents {
             queue: VecDeque::new(),
             time: 0,
             is_directed: self.is_directed,
-            ty: PhantomData,
         }
     }
 
-    pub fn start_multi<V, S>(&mut self, starts: S) -> DfsEventsMulti<'_, V, S>
+    pub fn start_multi<S>(&mut self, starts: S) -> DfsEventsMulti<'_, S>
     where
         S: VisitStarts,
     {
@@ -412,7 +401,6 @@ impl DfsEvents {
             queue: VecDeque::new(),
             time: 0,
             is_directed: self.is_directed,
-            ty: PhantomData,
         }
     }
 
@@ -545,10 +533,10 @@ where
     }
 }
 
-impl<'a, S, V, G> Visitor<G> for DfsEventsMulti<'a, V, S>
+impl<'a, S, G> Visitor<G> for DfsEventsMulti<'a, S>
 where
     S: VisitStarts,
-    G: Neighbors + Vertices<V>,
+    G: Neighbors + VerticesBase,
 {
     type Item = DfsEvent;
 
@@ -592,19 +580,18 @@ pub struct DfsPostOrderRooted<'a> {
     raw: &'a mut RawVisit<RawDfsExtra>,
 }
 
-pub struct DfsPostOrderMulti<'a, V, S>
+pub struct DfsPostOrderMulti<'a, S>
 where
     S: VisitStarts,
 {
     raw: &'a mut RawVisit<RawDfsExtra>,
     multi: RawVisitMulti<RawDfsExtra, S>,
-    ty: PhantomData<&'a V>,
 }
 
 impl DfsPostOrder {
-    pub fn new<V, G>(graph: &G) -> Self
+    pub fn new<G>(graph: &G) -> Self
     where
-        G: VerticesWeak<V>,
+        G: VerticesBaseWeak,
     {
         Self {
             raw: RawVisit::new(graph.vertex_count_hint()),
@@ -616,28 +603,23 @@ impl DfsPostOrder {
         DfsPostOrderRooted { raw: &mut self.raw }
     }
 
-    pub fn start_all<'a, V, G>(
-        &'a mut self,
-        graph: &'a G,
-    ) -> DfsPostOrderMulti<'a, V, VisitAll<V, G>>
+    pub fn start_all<'a, G>(&'a mut self, graph: &'a G) -> DfsPostOrderMulti<'a, VisitAll<G>>
     where
-        G: Vertices<V>,
+        G: VerticesBase,
     {
         DfsPostOrderMulti {
             raw: &mut self.raw,
             multi: RawVisitMulti::new(VisitAll::new(graph)),
-            ty: PhantomData,
         }
     }
 
-    pub fn start_multi<V, S>(&mut self, starts: S) -> DfsPostOrderMulti<'_, V, S>
+    pub fn start_multi<S>(&mut self, starts: S) -> DfsPostOrderMulti<'_, S>
     where
         S: VisitStarts,
     {
         DfsPostOrderMulti {
             raw: &mut self.raw,
             multi: RawVisitMulti::new(starts),
-            ty: PhantomData,
         }
     }
 
@@ -665,10 +647,10 @@ where
     }
 }
 
-impl<'a, S, V, G> Visitor<G> for DfsPostOrderMulti<'a, V, S>
+impl<'a, S, G> Visitor<G> for DfsPostOrderMulti<'a, S>
 where
     S: VisitStarts,
-    G: Neighbors + Vertices<V>,
+    G: Neighbors + VerticesBase,
 {
     type Item = VertexIndex;
 
@@ -696,19 +678,18 @@ pub struct DfsNoBacktrackRooted<'a> {
     raw: &'a mut RawVisit<RawDfsNoBacktrack>,
 }
 
-pub struct DfsNoBacktrackMulti<'a, V, S>
+pub struct DfsNoBacktrackMulti<'a, S>
 where
     S: VisitStarts,
 {
     raw: &'a mut RawVisit<RawDfsNoBacktrack>,
     multi: RawVisitMulti<RawDfsNoBacktrack, S>,
-    ty: PhantomData<&'a V>,
 }
 
 impl DfsNoBacktrack {
-    pub fn new<V, G>(graph: &G) -> Self
+    pub fn new<G>(graph: &G) -> Self
     where
-        G: VerticesWeak<V>,
+        G: VerticesBaseWeak,
     {
         Self {
             raw: RawVisit::new(graph.vertex_count_hint()),
@@ -720,28 +701,23 @@ impl DfsNoBacktrack {
         DfsNoBacktrackRooted { raw: &mut self.raw }
     }
 
-    pub fn start_all<'a, V, G>(
-        &'a mut self,
-        graph: &'a G,
-    ) -> DfsNoBacktrackMulti<'a, V, VisitAll<V, G>>
+    pub fn start_all<'a, G>(&'a mut self, graph: &'a G) -> DfsNoBacktrackMulti<'a, VisitAll<G>>
     where
-        G: Vertices<V>,
+        G: VerticesBase,
     {
         DfsNoBacktrackMulti {
             raw: &mut self.raw,
             multi: RawVisitMulti::new(VisitAll::new(graph)),
-            ty: PhantomData,
         }
     }
 
-    pub fn start_multi<V, S>(&mut self, starts: S) -> DfsNoBacktrackMulti<'_, V, S>
+    pub fn start_multi<S>(&mut self, starts: S) -> DfsNoBacktrackMulti<'_, S>
     where
         S: VisitStarts,
     {
         DfsNoBacktrackMulti {
             raw: &mut self.raw,
             multi: RawVisitMulti::new(starts),
-            ty: PhantomData,
         }
     }
 
@@ -765,10 +741,10 @@ where
     }
 }
 
-impl<'a, S, V, G> Visitor<G> for DfsNoBacktrackMulti<'a, V, S>
+impl<'a, S, G> Visitor<G> for DfsNoBacktrackMulti<'a, S>
 where
     S: VisitStarts,
-    G: Neighbors + Vertices<V>,
+    G: Neighbors + VerticesBase,
 {
     type Item = VertexIndex;
 

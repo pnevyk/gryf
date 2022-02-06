@@ -37,7 +37,7 @@ impl<W> ShortestPaths<W>
 where
     W: Weight,
 {
-    pub fn run_algo<V, E, Ty: EdgeType, G, F>(
+    pub fn run_algo<E, Ty: EdgeType, G, F>(
         graph: &G,
         start: VertexIndex,
         goal: Option<VertexIndex>,
@@ -45,9 +45,9 @@ where
         algo: Option<Algo>,
     ) -> Result<Self, Error>
     where
-        G: Vertices<V>
+        G: VerticesBase
             + Edges<E, Ty>
-            + VerticesWeak<V>
+            + VerticesBaseWeak
             + EdgesWeak<E, Ty, EdgeIndex = EdgeIndex>
             + Neighbors,
         F: Fn(&E) -> W,
@@ -81,16 +81,16 @@ where
         }
     }
 
-    pub fn run<V, E, Ty: EdgeType, G, F>(
+    pub fn run<E, Ty: EdgeType, G, F>(
         graph: &G,
         start: VertexIndex,
         goal: Option<VertexIndex>,
         edge_weight: F,
     ) -> Result<Self, Error>
     where
-        G: Vertices<V>
+        G: VerticesBase
             + Edges<E, Ty>
-            + VerticesWeak<V>
+            + VerticesBaseWeak
             + EdgesWeak<E, Ty, EdgeIndex = EdgeIndex>
             + Neighbors,
         F: Fn(&E) -> W,
@@ -98,26 +98,26 @@ where
         Self::run_algo(graph, start, goal, edge_weight, None)
     }
 
-    pub fn run_dijkstra<V, E, Ty: EdgeType, G, F>(
+    pub fn run_dijkstra<E, Ty: EdgeType, G, F>(
         graph: &G,
         start: VertexIndex,
         goal: Option<VertexIndex>,
         edge_weight: F,
     ) -> Result<Self, Error>
     where
-        G: VerticesWeak<V> + EdgesWeak<E, Ty, EdgeIndex = EdgeIndex> + Neighbors,
+        G: VerticesBaseWeak + EdgesWeak<E, Ty, EdgeIndex = EdgeIndex> + Neighbors,
         F: Fn(&E) -> W,
     {
         dijkstra(graph, start, goal, edge_weight)
     }
 
-    pub fn run_bellman_ford<V, E, Ty: EdgeType, G, F>(
+    pub fn run_bellman_ford<E, Ty: EdgeType, G, F>(
         graph: &G,
         start: VertexIndex,
         edge_weight: F,
     ) -> Result<Self, Error>
     where
-        G: Vertices<V> + Edges<E, Ty>,
+        G: VerticesBase + Edges<E, Ty>,
         F: Fn(&E) -> W,
     {
         bellman_ford(graph, start, edge_weight)
@@ -161,14 +161,14 @@ pub fn unit<E>(_edge: &E) -> usize {
     1
 }
 
-fn dijkstra<V, E, Ty: EdgeType, G, W, F>(
+fn dijkstra<E, Ty: EdgeType, G, W, F>(
     graph: &G,
     start: VertexIndex,
     goal: Option<VertexIndex>,
     edge_weight: F,
 ) -> Result<ShortestPaths<W>, Error>
 where
-    G: VerticesWeak<V> + EdgesWeak<E, Ty, EdgeIndex = EdgeIndex> + Neighbors,
+    G: VerticesBaseWeak + EdgesWeak<E, Ty, EdgeIndex = EdgeIndex> + Neighbors,
     W: Weight,
     F: Fn(&E) -> W,
 {
@@ -247,13 +247,13 @@ where
     Ok(ShortestPaths { start, dist, pred })
 }
 
-fn bellman_ford<V, E, Ty: EdgeType, G, W, F>(
+fn bellman_ford<E, Ty: EdgeType, G, W, F>(
     graph: &G,
     start: VertexIndex,
     edge_weight: F,
 ) -> Result<ShortestPaths<W>, Error>
 where
-    G: Vertices<V> + Edges<E, Ty>,
+    G: VerticesBase + Edges<E, Ty>,
     W: Weight,
     F: Fn(&E) -> W,
 {

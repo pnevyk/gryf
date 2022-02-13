@@ -211,7 +211,7 @@ where
             self.visited += 1;
 
             for n in self.graph.neighbors_directed(vertex, Direction::Outgoing) {
-                let i = self.map.virt(n.index()).to_usize();
+                let i = self.map.virt(n.index()).unwrap().to_usize();
                 let deg = &mut self.in_deg[i];
                 *deg -= 1;
 

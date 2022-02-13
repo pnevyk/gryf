@@ -57,8 +57,8 @@ where
         for u in self.graph.vertex_indices() {
             for v in self.graph.vertex_indices() {
                 if u.to_usize() < v.to_usize() && self.graph.edge_index(u, v).is_none() {
-                    let u = vertex_map.virt(u).to_usize().into();
-                    let v = vertex_map.virt(v).to_usize().into();
+                    let u = vertex_map.virt(u).unwrap().to_usize().into();
+                    let v = vertex_map.virt(v).unwrap().to_usize().into();
                     result.add_edge(u, v, self.edge.clone());
                 }
             }

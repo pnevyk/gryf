@@ -262,7 +262,7 @@ where
     let mut dist = vec![W::inf(); vertex_map.len()];
     let mut pred = vec![Virtual::null(); vertex_map.len()];
 
-    dist[vertex_map.virt(start).to_usize()] = W::zero();
+    dist[vertex_map.virt(start).unwrap().to_usize()] = W::zero();
 
     let mut terminated_early = false;
 
@@ -271,8 +271,8 @@ where
         let mut relaxed = false;
 
         for edge in graph.edges() {
-            let u = vertex_map.virt(edge.src());
-            let v = vertex_map.virt(edge.dst());
+            let u = vertex_map.virt(edge.src()).unwrap();
+            let v = vertex_map.virt(edge.dst()).unwrap();
 
             let edge_dist = edge_weight(edge.data());
             let next_dist = dist[u.to_usize()].clone() + edge_dist;
@@ -297,8 +297,8 @@ where
     // the absence of cycle if guaranteed.
     if !terminated_early {
         for edge in graph.edges() {
-            let u = vertex_map.virt(edge.src());
-            let v = vertex_map.virt(edge.dst());
+            let u = vertex_map.virt(edge.src()).unwrap();
+            let v = vertex_map.virt(edge.dst()).unwrap();
 
             let edge_dist = edge_weight(edge.data());
 
@@ -313,7 +313,7 @@ where
         .enumerate()
         .filter_map(|(i, d)| {
             if d != W::inf() {
-                Some((vertex_map.real(Virtual::new(i)), d))
+                vertex_map.real(Virtual::new(i)).map(|u| (u, d))
             } else {
                 None
             }
@@ -325,7 +325,10 @@ where
         .enumerate()
         .filter_map(|(i, p)| {
             if !p.is_null() {
-                Some((vertex_map.real(Virtual::new(i)), vertex_map.real(p)))
+                Some((
+                    vertex_map.real(Virtual::new(i)).unwrap(),
+                    vertex_map.real(p).unwrap(),
+                ))
             } else {
                 None
             }

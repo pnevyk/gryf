@@ -233,15 +233,15 @@ mod random {
 
                     if self.graph.vertex_count() > 0 {
                         let map = self.graph.vertex_index_map();
-                        let index = map.real(index % self.graph.vertex_count());
+                        let index = map.real(index % self.graph.vertex_count()).unwrap();
                         self.graph.remove_vertex(index);
                     }
                 }
                 MutOp::AddEdge(src, dst, edge, _) => {
                     if self.graph.vertex_count() > 0 {
                         let map = self.graph.vertex_index_map();
-                        let src = map.real(src % self.graph.vertex_count());
-                        let dst = map.real(dst % self.graph.vertex_count());
+                        let src = map.real(src % self.graph.vertex_count()).unwrap();
+                        let dst = map.real(dst % self.graph.vertex_count()).unwrap();
 
                         if !self.options.loops && src == dst {
                             return;
@@ -261,8 +261,8 @@ mod random {
 
                     if self.graph.vertex_count() > 0 {
                         let map = self.graph.vertex_index_map();
-                        let src = map.real(src % self.graph.vertex_count());
-                        let dst = map.real(dst % self.graph.vertex_count());
+                        let src = map.real(src % self.graph.vertex_count()).unwrap();
+                        let dst = map.real(dst % self.graph.vertex_count()).unwrap();
                         if let Some(index) = self.graph.edge_index(src, dst) {
                             self.graph.remove_edge(index);
                         }

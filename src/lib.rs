@@ -1,7 +1,5 @@
-#![allow(incomplete_features)]
 #![feature(generic_associated_types)]
 #![feature(associated_type_defaults)]
-#![feature(maybe_uninit_extra)]
 #![feature(assert_matches)]
 #![feature(int_log)]
 #![feature(try_blocks)]

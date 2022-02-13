@@ -33,7 +33,7 @@ pub mod proptest;
 
 pub mod testing;
 
-pub use index::{EdgeIndex, IndexType, VertexIndex};
+pub use index::{EdgeIndex, IndexType, VertexIndex, Virtual};
 
 pub mod prelude {
     pub use crate::marker::{Directed, EdgeType, Incoming, Outgoing, Undirected};

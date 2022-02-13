@@ -3,13 +3,15 @@ use std::ops::Deref;
 
 use crate::index::{EdgeIndex, IndexType, VertexIndex};
 use crate::infra::{CompactIndexMap, TypedBitSet, VisitSet};
-use crate::marker::{Direction, EdgeType, Undirected};
-use crate::storage::AdjList;
+use crate::marker::{Directed, Direction, EdgeType, Undirected};
+use crate::storage::{AdjList, Frozen, Stable};
 use crate::traits::*;
 use crate::{
     Edges, EdgesBase, EdgesBaseWeak, EdgesWeak, Neighbors, Vertices, VerticesBase,
     VerticesBaseWeak, VerticesWeak,
 };
+
+use super::Graph;
 
 #[derive(
     Debug,
@@ -23,11 +25,11 @@ use crate::{
     EdgesBaseWeak,
     EdgesWeak,
 )]
-pub struct Path<V, E, S = AdjList<V, E, Undirected>> {
+pub struct Path<V, E, Ty: EdgeType, G> {
     #[graph]
-    graph: S,
+    graph: G,
     ends: Option<[VertexIndex; 2]>,
-    ty: PhantomData<(V, E)>,
+    ty: PhantomData<(V, E, Ty)>,
 }
 
 #[derive(Debug)]
@@ -35,10 +37,42 @@ pub enum PathError {
     HigherDegree,
     Cycle,
     Disconnected,
+    Direction,
 }
 
-impl<V, E, S> Path<V, E, S> {
-    fn new_unchecked(graph: S, ends: Option<[VertexIndex; 2]>) -> Self {
+impl<V, E, Ty: EdgeType> Path<V, E, Ty, AdjList<V, E, Ty>> {
+    pub fn new() -> Self {
+        Self::new_unchecked(AdjList::new(), None)
+    }
+
+    pub fn with_capacity(vertex_count: usize, edge_count: usize) -> Self {
+        Self::new_unchecked(AdjList::with_capacity(vertex_count, edge_count), None)
+    }
+}
+
+impl<V, E> Path<V, E, Undirected, AdjList<V, E, Undirected>> {
+    pub fn new_undirected() -> Self {
+        Self::new_unchecked(AdjList::new(), None)
+    }
+}
+
+impl<V, E> Path<V, E, Directed, AdjList<V, E, Directed>> {
+    pub fn new_directed() -> Self {
+        Self::new_unchecked(AdjList::new(), None)
+    }
+}
+
+impl<V, E, Ty: EdgeType, G> Default for Path<V, E, Ty, G>
+where
+    G: Default,
+{
+    fn default() -> Self {
+        Self::new_unchecked(G::default(), None)
+    }
+}
+
+impl<V, E, Ty: EdgeType, G> Path<V, E, Ty, G> {
+    fn new_unchecked(graph: G, ends: Option<[VertexIndex; 2]>) -> Self {
         Self {
             graph,
             ends,
@@ -46,35 +80,10 @@ impl<V, E, S> Path<V, E, S> {
         }
     }
 
-    pub fn ends(&self) -> Option<[VertexIndex; 2]> {
-        self.ends
-    }
-}
-
-impl<V, E> Path<V, E> {
-    pub fn new() -> Self {
-        Self::new_unchecked(AdjList::new(), None)
-    }
-}
-
-impl<V, E, S> Default for Path<V, E, S>
-where
-    S: Default,
-{
-    fn default() -> Self {
-        Self {
-            graph: S::default(),
-            ends: None,
-            ty: PhantomData,
-        }
-    }
-}
-
-impl<V, E, S> Path<V, E, S>
-where
-    S: Vertices<V> + Neighbors,
-{
-    fn check_runtime(graph: &S) -> Result<Option<[VertexIndex; 2]>, PathError> {
+    fn check_runtime(graph: &G) -> Result<Option<[VertexIndex; 2]>, PathError>
+    where
+        G: Vertices<V> + Neighbors,
+    {
         let v = match graph.vertex_indices().next() {
             Some(v) => v,
             // Empty graph.
@@ -114,7 +123,7 @@ where
 
         // Based on what vertex we picked, check the rest of the path from an
         // end or both segments from the middle.
-        let ends = match graph.degree(v) {
+        let mut ends = match graph.degree(v) {
             0 => {
                 // Isolated vertex.
                 [v, v]
@@ -133,19 +142,80 @@ where
             _ => return Err(PathError::HigherDegree),
         };
 
-        if visited.visited_count() == graph.vertex_count() {
-            Ok(Some(ends))
-        } else {
-            Err(PathError::Disconnected)
+        if visited.visited_count() != graph.vertex_count() {
+            return Err(PathError::Disconnected);
         }
-    }
-}
 
-impl<V, E, S> Path<V, E, S>
-where
-    S: VerticesMut<V> + EdgesMut<E, Undirected> + Neighbors,
-{
-    pub fn vertex_mut(&mut self, index: VertexIndex) -> Option<&mut V> {
+        if Ty::is_directed() {
+            let start = if graph.degree_directed(ends[0], Direction::Outgoing) == 1 {
+                ends[0]
+            } else if graph.degree_directed(ends[1], Direction::Outgoing) == 1 {
+                // In directed paths, the first end is always with in-degree 0
+                // and the second end is with out-degree 0.
+                ends.swap(0, 1);
+                ends[0]
+            } else {
+                return Err(PathError::Direction);
+            };
+
+            visited.clear();
+
+            let mut vertex = Some(start);
+            while let Some(v) = vertex {
+                visited.visit(v);
+                vertex = graph
+                    .neighbors_directed(v, Direction::Outgoing)
+                    .next()
+                    .map(|n| n.index());
+            }
+
+            if visited.visited_count() != graph.vertex_count() {
+                return Err(PathError::Direction);
+            }
+        }
+
+        Ok(Some(ends))
+    }
+
+    pub fn vertex_count(&self) -> usize
+    where
+        G: VerticesBase,
+    {
+        self.graph.vertex_count()
+    }
+
+    pub fn vertex_bound(&self) -> usize
+    where
+        G: VerticesBase,
+    {
+        self.graph.vertex_bound()
+    }
+
+    pub fn vertex_indices(&self) -> G::VertexIndicesIter<'_>
+    where
+        G: VerticesBase,
+    {
+        self.graph.vertex_indices()
+    }
+
+    pub fn vertex(&self, index: VertexIndex) -> Option<&V>
+    where
+        G: Vertices<V>,
+    {
+        self.graph.vertex(index)
+    }
+
+    pub fn vertices(&self) -> G::VerticesIter<'_, V>
+    where
+        G: Vertices<V>,
+    {
+        self.graph.vertices()
+    }
+
+    pub fn vertex_mut(&mut self, index: VertexIndex) -> Option<&mut V>
+    where
+        G: VerticesMut<V>,
+    {
         self.graph.vertex_mut(index)
     }
 
@@ -154,7 +224,10 @@ where
         vertex: V,
         edge: Option<E>,
         end: VertexIndex,
-    ) -> Result<VertexIndex, PathError> {
+    ) -> Result<VertexIndex, PathError>
+    where
+        G: VerticesMut<V> + EdgesMut<E, Ty> + Neighbors,
+    {
         match self.ends.as_mut() {
             Some(ends) => {
                 let end = match ends {
@@ -175,9 +248,23 @@ where
 
                 let edge = edge.ok_or(PathError::Disconnected)?;
 
+                let u = *end;
                 let v = self.graph.add_vertex(vertex);
-                self.graph.add_edge(*end, v, edge);
                 *end = v;
+
+                let (u, v) = if Ty::is_directed() {
+                    // For directed graph, the edge must have the correct
+                    // direction.
+                    if u == ends[0] {
+                        (v, u)
+                    } else {
+                        (u, v)
+                    }
+                } else {
+                    (u, v)
+                };
+
+                self.graph.add_edge(u, v, edge);
 
                 Ok(v)
             }
@@ -189,7 +276,32 @@ where
         }
     }
 
-    pub fn remove_vertex(&mut self, index: VertexIndex, edge: Option<E>) -> Option<V> {
+    pub fn add_vertex(&mut self, vertex: V, end: VertexIndex) -> VertexIndex
+    where
+        E: Default,
+        G: VerticesMut<V> + EdgesMut<E, Ty> + Neighbors,
+    {
+        // Check if end is valid. If not, ignore the passed value and pick an
+        // arbitrary real end.
+        let end = match self.ends {
+            // Provided end is valid.
+            Some([u, _]) | Some([_, u]) if u == end => end,
+            // Provided end is invalid, pick an arbitrary end.
+            Some([u, _]) => u,
+            // The graph is empty.
+            None => VertexIndex::null(),
+        };
+
+        // We made sure that we provide all necessary, correct inputs so that
+        // `try_add_vertex` cannot fail.
+        self.try_add_vertex(vertex, Some(E::default()), end)
+            .unwrap()
+    }
+
+    pub fn remove_vertex(&mut self, index: VertexIndex, edge: Option<E>) -> Option<V>
+    where
+        G: VerticesMut<V> + EdgesMut<E, Ty> + Neighbors,
+    {
         match self.ends.as_mut() {
             Some(ends) if ends[0] == ends[1] => {
                 if ends[0] == index {
@@ -207,7 +319,21 @@ where
                 }
                 _ => {
                     // The removed vertex is an inner vertex.
-                    let (u, v) = {
+                    let (u, v) = if Ty::is_directed() {
+                        let u = self
+                            .graph
+                            .neighbors_directed(index, Direction::Incoming)
+                            .next()
+                            .unwrap()
+                            .index();
+                        let v = self
+                            .graph
+                            .neighbors_directed(index, Direction::Outgoing)
+                            .next()
+                            .unwrap()
+                            .index();
+                        (u, v)
+                    } else {
                         let mut neighbors = self.graph.neighbors(index);
                         let u = neighbors.next().unwrap().index();
                         let v = neighbors.next().unwrap().index();
@@ -232,49 +358,177 @@ where
         }
     }
 
-    pub fn replace_vertex(&mut self, index: VertexIndex, vertex: V) -> V {
+    pub fn replace_vertex(&mut self, index: VertexIndex, vertex: V) -> V
+    where
+        G: VerticesMut<V>,
+    {
         self.graph.replace_vertex(index, vertex)
     }
 
-    pub fn clear(&mut self) {
+    pub fn clear(&mut self)
+    where
+        G: VerticesMut<V>,
+    {
         self.graph.clear();
         self.ends = None;
     }
 
-    pub fn edge_mut(&mut self, index: EdgeIndex) -> Option<&mut E> {
+    pub fn edge_count(&self) -> usize
+    where
+        G: EdgesBase<Ty>,
+    {
+        self.graph.edge_count()
+    }
+
+    pub fn edge_bound(&self) -> usize
+    where
+        G: EdgesBase<Ty>,
+    {
+        self.graph.edge_bound()
+    }
+
+    pub fn endpoints(&self, index: EdgeIndex) -> Option<(VertexIndex, VertexIndex)>
+    where
+        G: EdgesBase<Ty>,
+    {
+        self.graph.endpoints(index)
+    }
+
+    pub fn edge_index(&self, src: VertexIndex, dst: VertexIndex) -> Option<EdgeIndex>
+    where
+        G: EdgesBase<Ty>,
+    {
+        self.graph.edge_index(src, dst)
+    }
+
+    pub fn edge_indices(&self) -> G::EdgeIndicesIter<'_>
+    where
+        G: EdgesBase<Ty>,
+    {
+        self.graph.edge_indices()
+    }
+
+    pub fn contains_edge(&self, index: EdgeIndex) -> bool
+    where
+        G: EdgesBase<Ty>,
+    {
+        self.graph.contains_edge(index)
+    }
+
+    pub fn is_directed(&self) -> bool
+    where
+        G: EdgesBase<Ty>,
+    {
+        self.graph.is_directed()
+    }
+
+    pub fn edge(&self, index: EdgeIndex) -> Option<&E>
+    where
+        G: Edges<E, Ty>,
+    {
+        self.graph.edge(index)
+    }
+
+    pub fn edges(&self) -> G::EdgesIter<'_, E>
+    where
+        G: Edges<E, Ty>,
+    {
+        self.graph.edges()
+    }
+
+    pub fn edge_mut(&mut self, index: EdgeIndex) -> Option<&mut E>
+    where
+        G: EdgesMut<E, Ty>,
+    {
         self.graph.edge_mut(index)
     }
 
-    pub fn replace_edge(&mut self, index: EdgeIndex, edge: E) -> E {
+    pub fn replace_edge(&mut self, index: EdgeIndex, edge: E) -> E
+    where
+        G: EdgesMut<E, Ty>,
+    {
         self.graph.replace_edge(index, edge)
     }
-}
 
-impl<V, E, S> Path<V, E, S>
-where
-    E: Default,
-    S: VerticesMut<V> + EdgesMut<E, Undirected> + Neighbors,
-{
-    pub fn add_vertex(&mut self, vertex: V, end: VertexIndex) -> VertexIndex {
-        // Check if end is valid. If not, ignore the passed value and pick an
-        // arbitrary real end.
-        let end = match self.ends {
-            // Provided end is valid.
-            Some([u, _]) | Some([_, u]) if u == end => end,
-            // Provided end is invalid, pick an arbitrary end.
-            Some([u, _]) => u,
-            // The graph is empty.
-            None => VertexIndex::null(),
-        };
+    pub fn neighbors(&self, src: VertexIndex) -> G::NeighborsIter<'_>
+    where
+        G: Neighbors,
+    {
+        self.graph.neighbors(src)
+    }
 
-        // We made sure that we provide all necessary, correct inputs so that
-        // `try_add_vertex` cannot fail.
-        self.try_add_vertex(vertex, Some(E::default()), end)
-            .unwrap()
+    pub fn neighbors_directed(&self, src: VertexIndex, dir: Direction) -> G::NeighborsIter<'_>
+    where
+        G: Neighbors,
+    {
+        self.graph.neighbors_directed(src, dir)
+    }
+
+    pub fn degree(&self, src: VertexIndex) -> usize
+    where
+        G: Neighbors,
+    {
+        self.graph.degree(src)
+    }
+
+    pub fn degree_directed(&self, src: VertexIndex, dir: Direction) -> usize
+    where
+        G: Neighbors,
+    {
+        self.graph.degree_directed(src, dir)
+    }
+
+    pub fn ends(&self) -> Option<[VertexIndex; 2]> {
+        self.ends
+    }
+
+    pub fn stabilize(self) -> Path<V, E, Ty, Stable<G>> {
+        Path::new_unchecked(Stable::new(self.graph), self.ends)
+    }
+
+    pub fn freeze(self) -> Path<V, E, Ty, Frozen<G>> {
+        Path::new_unchecked(Frozen::new(self.graph), self.ends)
     }
 }
 
-impl<V, E, S> Guarantee for Path<V, E, S> {
+impl<V, E, Ty: EdgeType, G> From<Path<V, E, Ty, G>> for Graph<V, E, Ty, G> {
+    fn from(path: Path<V, E, Ty, G>) -> Self {
+        Graph::with_storage(path.graph)
+    }
+}
+
+impl<V, E, Ty: EdgeType, G> Constrained<G> for Path<V, E, Ty, G>
+where
+    G: Vertices<V> + Neighbors + Guarantee,
+{
+    type Error = PathError;
+
+    fn check(graph: &G) -> Result<(), Self::Error> {
+        // Statically guaranteed.
+        if G::has_paths_only() && G::is_connected() {
+            return Ok(());
+        }
+
+        Self::check_runtime(graph).map(|_| ())
+    }
+
+    fn constrain(graph: G) -> Result<Self, Self::Error>
+    where
+        Self: Sized,
+    {
+        Self::check_runtime(&graph).map(|ends| Self::new_unchecked(graph, ends))
+    }
+}
+
+impl<V, E, Ty: EdgeType, G> Deref for Path<V, E, Ty, G> {
+    type Target = G;
+
+    fn deref(&self) -> &Self::Target {
+        &self.graph
+    }
+}
+
+impl<V, E, Ty: EdgeType, G> Guarantee for Path<V, E, Ty, G> {
     fn is_loop_free() -> bool {
         true
     }
@@ -285,37 +539,6 @@ impl<V, E, S> Guarantee for Path<V, E, S> {
 
     fn is_connected() -> bool {
         true
-    }
-}
-
-impl<V, E, S> Constrained<S> for Path<V, E, S>
-where
-    S: Vertices<V> + Neighbors + Guarantee,
-{
-    type Error = PathError;
-
-    fn check(graph: &S) -> Result<(), Self::Error> {
-        // Statically guaranteed.
-        if S::has_paths_only() && S::is_connected() {
-            return Ok(());
-        }
-
-        Self::check_runtime(graph).map(|_| ())
-    }
-
-    fn constrain(graph: S) -> Result<Self, Self::Error>
-    where
-        Self: Sized,
-    {
-        Self::check_runtime(&graph).map(|ends| Self::new_unchecked(graph, ends))
-    }
-}
-
-impl<V, E, S> Deref for Path<V, E, S> {
-    type Target = S;
-
-    fn deref(&self) -> &Self::Target {
-        &self.graph
     }
 }
 
@@ -330,7 +553,7 @@ mod tests {
     #[test]
     fn check_empty() {
         let graph: AdjList<(), (), Undirected> = AdjList::new();
-        assert!(Path::<(), ()>::check(&graph).is_ok());
+        assert!(Path::<(), (), Undirected, _>::check(&graph).is_ok());
     }
 
     #[test]
@@ -339,7 +562,7 @@ mod tests {
 
         graph.add_vertex(());
 
-        assert!(Path::<(), ()>::check(&graph).is_ok());
+        assert!(Path::<(), (), Undirected, _>::check(&graph).is_ok());
     }
 
     #[test]
@@ -353,7 +576,7 @@ mod tests {
         graph.add_edge(v0, v1, ());
         graph.add_edge(v1, v2, ());
 
-        assert!(Path::<(), ()>::check(&graph).is_ok());
+        assert!(Path::<(), (), Undirected, _>::check(&graph).is_ok());
     }
 
     #[test]
@@ -367,7 +590,23 @@ mod tests {
         graph.add_edge(v0, v1, ());
         graph.add_edge(v0, v2, ());
 
-        assert!(Path::<(), ()>::check(&graph).is_ok());
+        assert!(Path::<(), (), Undirected, _>::check(&graph).is_ok());
+    }
+
+    #[test]
+    fn check_directed() {
+        let mut graph: AdjList<(), (), Directed> = AdjList::new();
+
+        let v0 = graph.add_vertex(());
+        let v1 = graph.add_vertex(());
+        let v2 = graph.add_vertex(());
+
+        graph.add_edge(v2, v1, ());
+        graph.add_edge(v1, v0, ());
+
+        let path = Path::<(), (), Directed, _>::constrain(graph);
+        assert!(path.is_ok());
+        assert_eq!(path.unwrap().ends(), Some([v2, v0]));
     }
 
     #[test]
@@ -383,7 +622,10 @@ mod tests {
         graph.add_edge(v1, v2, ());
         graph.add_edge(v1, v3, ());
 
-        assert_matches!(Path::<(), ()>::check(&graph), Err(PathError::HigherDegree));
+        assert_matches!(
+            Path::<(), (), Undirected, _>::check(&graph),
+            Err(PathError::HigherDegree)
+        );
     }
 
     #[test]
@@ -399,7 +641,10 @@ mod tests {
         graph.add_edge(v0, v2, ());
         graph.add_edge(v0, v3, ());
 
-        assert_matches!(Path::<(), ()>::check(&graph), Err(PathError::HigherDegree));
+        assert_matches!(
+            Path::<(), (), Undirected, _>::check(&graph),
+            Err(PathError::HigherDegree)
+        );
     }
 
     #[test]
@@ -417,7 +662,10 @@ mod tests {
         graph.add_edge(v1, v3, ());
         graph.add_edge(v1, v4, ());
 
-        assert_matches!(Path::<(), ()>::check(&graph), Err(PathError::HigherDegree));
+        assert_matches!(
+            Path::<(), (), Undirected, _>::check(&graph),
+            Err(PathError::HigherDegree)
+        );
     }
 
     #[test]
@@ -434,7 +682,10 @@ mod tests {
         graph.add_edge(v2, v3, ());
         graph.add_edge(v3, v0, ());
 
-        assert_matches!(Path::<(), ()>::check(&graph), Err(PathError::Cycle));
+        assert_matches!(
+            Path::<(), (), Undirected, _>::check(&graph),
+            Err(PathError::Cycle)
+        );
     }
 
     #[test]
@@ -451,7 +702,10 @@ mod tests {
         graph.add_edge(v2, v1, ());
         graph.add_edge(v2, v3, ());
 
-        assert_matches!(Path::<(), ()>::check(&graph), Err(PathError::HigherDegree));
+        assert_matches!(
+            Path::<(), (), Undirected, _>::check(&graph),
+            Err(PathError::HigherDegree)
+        );
     }
 
     #[test]
@@ -466,7 +720,10 @@ mod tests {
         graph.add_edge(v0, v1, ());
         graph.add_edge(v2, v3, ());
 
-        assert_matches!(Path::<(), ()>::check(&graph), Err(PathError::Disconnected));
+        assert_matches!(
+            Path::<(), (), Undirected, _>::check(&graph),
+            Err(PathError::Disconnected)
+        );
     }
 
     #[test]
@@ -479,7 +736,10 @@ mod tests {
         graph.add_edge(v0, v1, ());
         graph.add_edge(v1, v1, ());
 
-        assert_matches!(Path::<(), ()>::check(&graph), Err(PathError::HigherDegree));
+        assert_matches!(
+            Path::<(), (), Undirected, _>::check(&graph),
+            Err(PathError::HigherDegree)
+        );
     }
 
     #[test]
@@ -490,7 +750,46 @@ mod tests {
 
         graph.add_edge(v0, v0, ());
 
-        assert_matches!(Path::<(), ()>::check(&graph), Err(PathError::Cycle));
+        assert_matches!(
+            Path::<(), (), Undirected, _>::check(&graph),
+            Err(PathError::Cycle)
+        );
+    }
+
+    #[test]
+    fn check_direction() {
+        let mut graph: AdjList<(), (), Directed> = AdjList::new();
+
+        let v0 = graph.add_vertex(());
+        let v1 = graph.add_vertex(());
+        let v2 = graph.add_vertex(());
+        let v3 = graph.add_vertex(());
+
+        graph.add_edge(v0, v1, ());
+        graph.add_edge(v2, v1, ());
+        graph.add_edge(v2, v3, ());
+
+        assert_matches!(
+            Path::<(), (), Directed, _>::check(&graph),
+            Err(PathError::Direction)
+        );
+    }
+
+    #[test]
+    fn check_direction_ends() {
+        let mut graph: AdjList<(), (), Directed> = AdjList::new();
+
+        let v0 = graph.add_vertex(());
+        let v1 = graph.add_vertex(());
+        let v2 = graph.add_vertex(());
+
+        graph.add_edge(v1, v0, ());
+        graph.add_edge(v1, v2, ());
+
+        assert_matches!(
+            Path::<(), (), Directed, _>::check(&graph),
+            Err(PathError::Direction)
+        );
     }
 
     #[test]
@@ -504,7 +803,7 @@ mod tests {
         graph.add_edge(v0, v1, ());
         graph.add_edge(v1, v2, ());
 
-        let mut path = Path::<(), ()>::constrain(graph).unwrap();
+        let mut path = Path::<(), (), Undirected, _>::constrain(graph).unwrap();
 
         assert_matches!(
             path.try_add_vertex((), None, v1),
@@ -523,7 +822,7 @@ mod tests {
         graph.add_edge(v0, v1, ());
         graph.add_edge(v1, v2, ());
 
-        let mut path = Path::<(), ()>::constrain(graph).unwrap();
+        let mut path = Path::<(), (), Undirected, _>::constrain(graph).unwrap();
 
         let u = VertexIndex::from(42);
 
@@ -539,7 +838,7 @@ mod tests {
 
         let v0 = graph.add_vertex(());
 
-        let mut path = Path::<(), ()>::constrain(graph).unwrap();
+        let mut path = Path::<(), (), Undirected, _>::constrain(graph).unwrap();
 
         assert_matches!(
             path.try_add_vertex((), None, v0),
@@ -549,7 +848,7 @@ mod tests {
 
     #[test]
     fn try_add_vertex_empty() {
-        let mut path = Path::<(), ()>::new();
+        let mut path = Path::<(), (), Undirected, _>::new();
 
         let result = path.try_add_vertex((), None, VertexIndex::null());
         assert!(result.is_ok());
@@ -566,7 +865,7 @@ mod tests {
 
         let v0 = graph.add_vertex(());
 
-        let mut path = Path::<(), ()>::constrain(graph).unwrap();
+        let mut path = Path::<(), (), Undirected, _>::constrain(graph).unwrap();
 
         let result = path.try_add_vertex((), Some(()), v0);
         assert!(result.is_ok());
@@ -588,7 +887,7 @@ mod tests {
 
         graph.add_edge(v0, v1, ());
 
-        let mut path = Path::<(), ()>::constrain(graph).unwrap();
+        let mut path = Path::<(), (), Undirected, _>::constrain(graph).unwrap();
 
         let [v0, v1] = path.ends().unwrap();
 

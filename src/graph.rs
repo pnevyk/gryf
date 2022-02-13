@@ -1,8 +1,10 @@
-pub mod disjoint_union;
+mod disjoint_union;
+mod generic;
 mod hyper;
 mod mixed;
 mod multi;
-pub mod path;
+mod path;
 mod simple;
 
-pub use path::Path;
+pub use generic::Graph;
+pub use path::{Path, PathError};

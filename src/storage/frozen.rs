@@ -28,7 +28,7 @@ pub struct Frozen<G> {
 }
 
 impl<G> Frozen<G> {
-    fn new(inner: G) -> Self {
+    pub fn new(inner: G) -> Self {
         Self { inner }
     }
 

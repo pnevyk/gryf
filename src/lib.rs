@@ -36,6 +36,7 @@ pub mod testing;
 pub use index::{EdgeIndex, IndexType, VertexIndex, Virtual};
 
 pub mod prelude {
+    pub use crate::graph::Graph;
     pub use crate::marker::{Directed, EdgeType, Incoming, Outgoing, Undirected};
     pub use crate::storage::AdjList;
     pub use crate::traits::*;

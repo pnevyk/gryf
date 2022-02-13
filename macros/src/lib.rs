@@ -28,23 +28,23 @@ pub fn vertices_base(tokens: TokenStream) -> TokenStream {
             = <#field_type as VerticesBase>::VertexIndicesIter<'a>;
 
             fn vertex_count(&self) -> usize {
-                self.#field_name.vertex_count()
+                <#field_type as VerticesBase>::vertex_count(&self.#field_name)
             }
 
             fn vertex_bound(&self) -> usize {
-                self.#field_name.vertex_bound()
+                <#field_type as VerticesBase>::vertex_bound(&self.#field_name)
             }
 
             fn vertex_indices(&self) -> Self::VertexIndicesIter<'_> {
-                self.#field_name.vertex_indices()
+                <#field_type as VerticesBase>::vertex_indices(&self.#field_name)
             }
 
             fn contains_vertex(&self, index: VertexIndex) -> bool {
-                self.#field_name.contains_vertex(index)
+                <#field_type as VerticesBase>::contains_vertex(&self.#field_name, index)
             }
 
             fn vertex_index_map(&self) -> CompactIndexMap<VertexIndex> {
-                self.#field_name.vertex_index_map()
+                <#field_type as VerticesBase>::vertex_index_map(&self.#field_name)
             }
         }
     };
@@ -79,11 +79,11 @@ pub fn vertices(tokens: TokenStream) -> TokenStream {
             = <#field_type as Vertices<V>>::VerticesIter<'a, T>;
 
             fn vertex(&self, index: VertexIndex) -> Option<&V> {
-                self.#field_name.vertex(index)
+                <#field_type as Vertices<V>>::vertex(&self.#field_name, index)
             }
 
             fn vertices(&self) -> Self::VerticesIter<'_, V> {
-                self.#field_name.vertices()
+                <#field_type as Vertices<V>>::vertices(&self.#field_name)
             }
         }
     };
@@ -111,23 +111,23 @@ pub fn vertices_mut(tokens: TokenStream) -> TokenStream {
     let implemented = quote! {
         impl #impl_generics VerticesMut<V> for #name #ty_generics #where_clause {
             fn vertex_mut(&mut self, index: VertexIndex) -> Option<&mut V> {
-                self.#field_name.vertex_mut(index)
+                <#field_type as VerticesMut<V>>::vertex_mut(&mut self.#field_name, index)
             }
 
             fn add_vertex(&mut self, vertex: V) -> VertexIndex {
-                self.#field_name.add_vertex(vertex)
+                <#field_type as VerticesMut<V>>::add_vertex(&mut self.#field_name, vertex)
             }
 
             fn remove_vertex(&mut self, index: VertexIndex) -> Option<V> {
-                self.#field_name.remove_vertex(index)
+                <#field_type as VerticesMut<V>>::remove_vertex(&mut self.#field_name, index)
             }
 
             fn replace_vertex(&mut self, index: VertexIndex, vertex: V) -> V {
-                self.#field_name.replace_vertex(index, vertex)
+                <#field_type as VerticesMut<V>>::replace_vertex(&mut self.#field_name, index, vertex)
             }
 
             fn clear(&mut self) {
-                self.#field_name.clear();
+                <#field_type as VerticesMut<V>>::clear(&mut self.#field_name)
             }
         }
     };
@@ -156,11 +156,11 @@ pub fn vertices_base_weak(tokens: TokenStream) -> TokenStream {
     let implemented = quote! {
         impl #impl_generics VerticesBaseWeak for #name #ty_generics #where_clause {
             fn vertex_count_hint(&self) -> Option<usize> {
-                Some(self.vertex_count())
+                Some(<Self as VerticesBase>::vertex_count(self))
             }
 
             fn vertex_bound_hint(&self) -> Option<usize> {
-                Some(self.vertex_bound())
+                Some(<Self as VerticesBase>::vertex_bound(self))
             }
         }
     };
@@ -190,7 +190,7 @@ pub fn vertices_weak(tokens: TokenStream) -> TokenStream {
     let implemented = quote! {
         impl #impl_generics VerticesWeak<V> for #name #ty_generics #where_clause {
             fn vertex_weak(&self, index: VertexIndex) -> Option<WeakRef<'_, V>> {
-                self.vertex(index).map(|vertex| WeakRef::borrowed(vertex))
+                <Self as Vertices<V>>::vertex(self, index).map(|vertex| WeakRef::borrowed(vertex))
             }
         }
     };
@@ -226,31 +226,31 @@ pub fn edges_base(tokens: TokenStream) -> TokenStream {
             = <#field_type as EdgesBase<Ty>>::EdgeIndicesIter<'a>;
 
             fn edge_count(&self) -> usize {
-                self.#field_name.edge_count()
+                <#field_type as EdgesBase<Ty>>::edge_count(&self.#field_name)
             }
 
             fn edge_bound(&self) -> usize {
-                self.#field_name.edge_bound()
+                <#field_type as EdgesBase<Ty>>::edge_bound(&self.#field_name)
             }
 
             fn endpoints(&self, index: EdgeIndex) -> Option<(VertexIndex, VertexIndex)> {
-                self.#field_name.endpoints(index)
+                <#field_type as EdgesBase<Ty>>::endpoints(&self.#field_name, index)
             }
 
             fn edge_index(&self, src: VertexIndex, dst: VertexIndex) -> Option<EdgeIndex> {
-                self.#field_name.edge_index(src, dst)
+                <#field_type as EdgesBase<Ty>>::edge_index(&self.#field_name, src, dst)
             }
 
             fn edge_indices(&self) -> Self::EdgeIndicesIter<'_> {
-                self.#field_name.edge_indices()
+                <#field_type as EdgesBase<Ty>>::edge_indices(&self.#field_name)
             }
 
             fn contains_edge(&self, index: EdgeIndex) -> bool {
-                self.#field_name.contains_edge(index)
+                <#field_type as EdgesBase<Ty>>::contains_edge(&self.#field_name, index)
             }
 
             fn edge_index_map(&self) -> CompactIndexMap<EdgeIndex> {
-                self.#field_name.edge_index_map()
+                <#field_type as EdgesBase<Ty>>::edge_index_map(&self.#field_name)
             }
         }
     };
@@ -288,11 +288,11 @@ pub fn edges(tokens: TokenStream) -> TokenStream {
             = <#field_type as Edges<E, Ty>>::EdgesIter<'a, T>;
 
             fn edge(&self, index: EdgeIndex) -> Option<&E> {
-                self.#field_name.edge(index)
+                <#field_type as Edges<E, Ty>>::edge(&self.#field_name, index)
             }
 
             fn edges(&self) -> Self::EdgesIter<'_, E> {
-                self.#field_name.edges()
+                <#field_type as Edges<E, Ty>>::edges(&self.#field_name)
             }
         }
     };
@@ -323,23 +323,23 @@ pub fn edges_mut(tokens: TokenStream) -> TokenStream {
     let implemented = quote! {
         impl #impl_generics EdgesMut<E, Ty> for #name #ty_generics #where_clause {
             fn edge_mut(&mut self, index: EdgeIndex) -> Option<&mut E> {
-                self.#field_name.edge_mut(index)
+                <#field_type as EdgesMut<E, Ty>>::edge_mut(&mut self.#field_name, index)
             }
 
             fn add_edge(&mut self, src: VertexIndex, dst: VertexIndex, edge: E) -> EdgeIndex {
-                self.#field_name.add_edge(src, dst, edge)
+                <#field_type as EdgesMut<E, Ty>>::add_edge(&mut self.#field_name, src, dst, edge)
             }
 
             fn remove_edge(&mut self, index: EdgeIndex) -> Option<E> {
-                self.#field_name.remove_edge(index)
+                <#field_type as EdgesMut<E, Ty>>::remove_edge(&mut self.#field_name, index)
             }
 
             fn replace_edge(&mut self, index: EdgeIndex, edge: E) -> E {
-                self.#field_name.replace_edge(index, edge)
+                <#field_type as EdgesMut<E, Ty>>::replace_edge(&mut self.#field_name, index, edge)
             }
 
             fn clear_edges(&mut self) {
-                self.#field_name.clear_edges();
+                <#field_type as EdgesMut<E, Ty>>::clear_edges(&mut self.#field_name)
             }
         }
     };
@@ -370,19 +370,19 @@ pub fn edges_base_weak(tokens: TokenStream) -> TokenStream {
     let implemented = quote! {
         impl #impl_generics EdgesBaseWeak<Ty> for #name #ty_generics #where_clause {
             fn edge_count_hint(&self) -> Option<usize> {
-                Some(self.edge_count())
+                Some(<Self as EdgesBase<Ty>>::edge_count(self))
             }
 
             fn edge_bound_hint(&self) -> Option<usize> {
-                Some(self.edge_bound())
+                Some(<Self as EdgesBase<Ty>>::edge_bound(self))
             }
 
             fn endpoints_weak(&self, index: EdgeIndex) -> Option<(VertexIndex, VertexIndex)> {
-                self.endpoints(index)
+                <Self as EdgesBase<Ty>>::endpoints(self, index)
             }
 
             fn edge_index_weak(&self, src: VertexIndex, dst: VertexIndex) -> Option<EdgeIndex> {
-                self.edge_index(src, dst)
+                <Self as EdgesBase<Ty>>::edge_index(self, src, dst)
             }
         }
     };
@@ -413,7 +413,7 @@ pub fn edges_weak(tokens: TokenStream) -> TokenStream {
     let implemented = quote! {
         impl #impl_generics EdgesWeak<E, Ty> for #name #ty_generics #where_clause {
             fn edge_weak(&self, index: EdgeIndex) -> Option<WeakRef<'_, E>> {
-                self.edge(index).map(|edge| WeakRef::borrowed(edge))
+                <Self as Edges<E, Ty>>::edge(self, index).map(|edge| WeakRef::borrowed(edge))
             }
         }
     };
@@ -453,7 +453,7 @@ pub fn multi_edges(tokens: TokenStream) -> TokenStream {
                 src: VertexIndex,
                 dst: VertexIndex,
             ) -> Self::MultiEdgeIndicesIter<'_> {
-                self.#field_name.multi_edge_index(src, dst)
+                <#field_type as MultiEdges<E, Ty>>::multi_edge_index(&self.#field_name, src, dst)
             }
         }
     };
@@ -488,19 +488,19 @@ pub fn neighbors(tokens: TokenStream) -> TokenStream {
             = <#field_type as Neighbors>::NeighborsIter<'a>;
 
             fn neighbors(&self, src: VertexIndex) -> Self::NeighborsIter<'_> {
-                self.#field_name.neighbors(src)
+                <#field_type as Neighbors>::neighbors(&self.#field_name, src)
             }
 
             fn neighbors_directed(&self, src: VertexIndex, dir: Direction) -> Self::NeighborsIter<'_> {
-                self.#field_name.neighbors_directed(src, dir)
+                <#field_type as Neighbors>::neighbors_directed(&self.#field_name, src, dir)
             }
 
             fn degree(&self, index: VertexIndex) -> usize {
-                self.#field_name.degree(index)
+                <#field_type as Neighbors>::degree(&self.#field_name, index)
             }
 
             fn degree_directed(&self, index: VertexIndex, dir: Direction) -> usize {
-                self.#field_name.degree_directed(index, dir)
+                <#field_type as Neighbors>::degree_directed(&self.#field_name, index, dir)
             }
         }
     };

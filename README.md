@@ -1,9 +1,15 @@
 # gryf
 
-A playground for experimenting with graph library APIs. It may or may not become
-a real library.
+An *experimental* graph library written in Rust. Requires unstable nightly-only
+features and is not released to crates.io yet. **It is incomplete, lacks
+documentation and contains bugs. Breaking changes are inevitable.** Design ideas
+contributions are very welcome!
 
-**The code is expected to have bugs. Changes in API are inevitable.**
+## Usage
+
+```toml
+gryf = { git = "https://github.com/pnevyk/gryf.git" }
+```
 
 ## Example
 
@@ -12,7 +18,9 @@ use gryf::algo::{shortest_paths::identity, ShortestPaths};
 use gryf::prelude::*;
 
 fn main() {
-    let mut graph: AdjList<&str, u32, Undirected> = AdjList::new();
+    // Default storage is adjacency list, but that can be simply changed by
+    // using `Graph::with_storage`.
+    let mut graph = Graph::new_undirected();
 
     let prague = graph.add_vertex("Prague");
     let bratislava = graph.add_vertex("Bratislava");
@@ -22,7 +30,7 @@ fn main() {
     let florence = graph.add_vertex("Florence");
     let rome = graph.add_vertex("Rome");
 
-    graph.add_edge(prague, bratislava, 328);
+    graph.add_edge(prague, bratislava, 328u32);
     graph.add_edge(prague, nuremberg, 293);
     graph.add_edge(bratislava, vienna, 79);
     graph.add_edge(nuremberg, munich, 170);
@@ -49,19 +57,23 @@ fn main() {
 
 *Not everything from the list is implemented*
 
-* Separation of graph data storage (adjacency list, adjacency matrix, ...) from graph semantics (simple graph, multigraph, bipartite, ...)
+* Separation of graph data storage (adjacency list, adjacency matrix, ...) from graph semantics (generic graph, simple graph, path, ...)
 * Organized into problems, not algorithms (e.g., `ShortestPaths` instead of `dijkstra` and `bellman_ford`)
   * Most suitable algorithm is automatically selected based on graph instance properties
   * Result structures provide high-level interface (e.g., path reconstruction)
 * Focus on flexible and expressive, yet not overly complex trait system
   * The core is `VerticesBase`, `Vertices`, `VerticesMut`, `EdgesBase`, `Edges`, `EdgesMut`, `Neighbors`
+  * Not important for the user (that much), only for algorithms implementors
 * Support for graph generalizations (e.g., hypergraph)
-* Accessible codebase without sacrificing performance and efficiency
+* Accessible codebase without sacrificing performance (too much)
 
-## Inspiration
+## Alternatives (and inspiration)
 
 * [petgraph](https://github.com/petgraph/petgraph)
 * [prepona](https://github.com/maminrayej/prepona)
+* [graphlib](https://crates.io/crates/graphlib)
+* [graphific](https://crates.io/crates/graphific)
+* [pathfinding](https://crates.io/crates/pathfinding)
 
 ## Name
 

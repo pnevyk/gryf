@@ -2,7 +2,9 @@ use gryf::algo::{shortest_paths::identity, ShortestPaths};
 use gryf::prelude::*;
 
 fn main() {
-    let mut graph: AdjList<&str, u32, Undirected> = AdjList::new();
+    // Default storage is adjacency list, but that can be simply changed by
+    // using `Graph::with_storage`.
+    let mut graph = Graph::new_undirected();
 
     let prague = graph.add_vertex("Prague");
     let bratislava = graph.add_vertex("Bratislava");
@@ -12,7 +14,7 @@ fn main() {
     let florence = graph.add_vertex("Florence");
     let rome = graph.add_vertex("Rome");
 
-    graph.add_edge(prague, bratislava, 328);
+    graph.add_edge(prague, bratislava, 328u32);
     graph.add_edge(prague, nuremberg, 293);
     graph.add_edge(bratislava, vienna, 79);
     graph.add_edge(nuremberg, munich, 170);

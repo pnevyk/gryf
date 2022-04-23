@@ -66,10 +66,9 @@ impl<G> VerticesBase for Stable<G>
 where
     G: VerticesBase,
 {
-    type VertexIndicesIter<'a>
+    type VertexIndicesIter<'a> = VertexIndices<'a, G::VertexIndicesIter<'a>>
     where
-        G: 'a,
-    = VertexIndices<'a, G::VertexIndicesIter<'a>>;
+        Self: 'a;
 
     fn vertex_count(&self) -> usize {
         self.inner.vertex_count() - self.removed_vertices.len()
@@ -107,12 +106,13 @@ impl<V, G> Vertices<V> for Stable<G>
 where
     G: Vertices<V>,
 {
-    type VertexRef<'a, T: 'a> = G::VertexRef<'a, T>;
-
-    type VerticesIter<'a, T: 'a>
+    type VertexRef<'a, T: 'a> = G::VertexRef<'a, T>
     where
-        G: 'a,
-    = VerticesIter<'a, T, Self::VertexRef<'a, T>, G::VerticesIter<'a, T>>;
+        Self: 'a;
+
+    type VerticesIter<'a, T: 'a> = VerticesIter<'a, T, Self::VertexRef<'a, T>, G::VerticesIter<'a, T>>
+    where
+        Self: 'a;
 
     fn vertex(&self, index: VertexIndex) -> Option<&V> {
         if self.removed_vertices.contains(&index) {
@@ -188,10 +188,9 @@ impl<Ty: EdgeType, G> EdgesBase<Ty> for Stable<G>
 where
     G: EdgesBase<Ty>,
 {
-    type EdgeIndicesIter<'a>
+    type EdgeIndicesIter<'a> = EdgeIndices<'a, G::EdgeIndicesIter<'a>>
     where
-        G: 'a,
-    = EdgeIndices<'a, G::EdgeIndicesIter<'a>>;
+        Self: 'a;
 
     fn edge_count(&self) -> usize {
         self.inner.edge_count() - self.removed_edges.len()
@@ -253,12 +252,13 @@ impl<E, Ty: EdgeType, G> Edges<E, Ty> for Stable<G>
 where
     G: Edges<E, Ty>,
 {
-    type EdgeRef<'a, T: 'a> = G::EdgeRef<'a, T>;
-
-    type EdgesIter<'a, T: 'a>
+    type EdgeRef<'a, T: 'a> = G::EdgeRef<'a, T>
     where
-        G: 'a,
-    = EdgesIter<'a, T, Self::EdgeRef<'a, T>, G::EdgesIter<'a, T>>;
+        Self: 'a;
+
+    type EdgesIter<'a, T: 'a> = EdgesIter<'a, T, Self::EdgeRef<'a, T>, G::EdgesIter<'a, T>>
+    where
+        Self: 'a;
 
     fn edge(&self, index: EdgeIndex) -> Option<&E> {
         if self.removed_edges.contains(&index) {
@@ -315,12 +315,13 @@ impl<G> Neighbors for Stable<G>
 where
     G: Neighbors,
 {
-    type NeighborRef<'a> = G::NeighborRef<'a>;
-
-    type NeighborsIter<'a>
+    type NeighborRef<'a> = G::NeighborRef<'a>
     where
-        G: 'a,
-    = NeighborsIter<'a, G>;
+        Self: 'a;
+
+    type NeighborsIter<'a> = NeighborsIter<'a, G>
+    where
+        Self: 'a;
 
     fn neighbors(&self, src: VertexIndex) -> Self::NeighborsIter<'_> {
         NeighborsIter {

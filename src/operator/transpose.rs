@@ -62,10 +62,9 @@ impl<G> EdgesBase<Directed> for Transpose<G>
 where
     G: EdgesBase<Directed>,
 {
-    type EdgeIndicesIter<'a>
+    type EdgeIndicesIter<'a> = G::EdgeIndicesIter<'a>
     where
-        Self: 'a,
-    = G::EdgeIndicesIter<'a>;
+        Self: 'a;
 
     fn edge_count(&self) -> usize {
         self.graph.edge_count()
@@ -100,12 +99,13 @@ impl<E, G> Edges<E, Directed> for Transpose<G>
 where
     G: Edges<E, Directed>,
 {
-    type EdgeRef<'a, T: 'a> = TransposeRef<G::EdgeRef<'a, T>>;
-
-    type EdgesIter<'a, T: 'a>
+    type EdgeRef<'a, T: 'a> = TransposeRef<G::EdgeRef<'a, T>>
     where
-        Self: 'a,
-    = Iter<G::EdgesIter<'a, T>>;
+        Self: 'a;
+
+    type EdgesIter<'a, T: 'a> = Iter<G::EdgesIter<'a, T>>
+    where
+        Self: 'a;
 
     fn edge(&self, index: EdgeIndex) -> Option<&E> {
         self.graph.edge(index)
@@ -120,12 +120,13 @@ impl<G> Neighbors for Transpose<G>
 where
     G: Neighbors,
 {
-    type NeighborRef<'a> = TransposeRef<G::NeighborRef<'a>>;
-
-    type NeighborsIter<'a>
+    type NeighborRef<'a> = TransposeRef<G::NeighborRef<'a>>
     where
-        Self: 'a,
-    = Iter<G::NeighborsIter<'a>>;
+        Self: 'a;
+
+    type NeighborsIter<'a> = Iter<G::NeighborsIter<'a>>
+    where
+        Self: 'a;
 
     fn neighbors(&self, src: VertexIndex) -> Self::NeighborsIter<'_> {
         Iter(self.graph.neighbors(src))

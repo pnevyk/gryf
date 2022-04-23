@@ -120,11 +120,9 @@ impl<V, E, Ty: EdgeType> Default for AdjList<V, E, Ty> {
 }
 
 impl<V, E, Ty: EdgeType> VerticesBase for AdjList<V, E, Ty> {
-    type VertexIndicesIter<'a>
+    type VertexIndicesIter<'a> = RangeIndices<VertexIndex>
     where
-        V: 'a,
-        E: 'a,
-    = RangeIndices<VertexIndex>;
+        Self: 'a;
 
     fn vertex_count(&self) -> usize {
         self.vertices.len()
@@ -144,13 +142,13 @@ impl<V, E, Ty: EdgeType> VerticesBase for AdjList<V, E, Ty> {
 }
 
 impl<V, E, Ty: EdgeType> Vertices<V> for AdjList<V, E, Ty> {
-    type VertexRef<'a, T: 'a> = (VertexIndex, &'a T);
-
-    type VerticesIter<'a, T: 'a>
+    type VertexRef<'a, T: 'a> = (VertexIndex, &'a T)
     where
-        V: 'a,
-        E: 'a,
-    = VerticesIter<'a, T>;
+        Self: 'a;
+
+    type VerticesIter<'a, T: 'a> = VerticesIter<'a, T>
+    where
+        Self: 'a;
 
     fn vertex(&self, index: VertexIndex) -> Option<&V> {
         self.vertices
@@ -212,11 +210,9 @@ impl<V, E, Ty: EdgeType> VerticesMut<V> for AdjList<V, E, Ty> {
 }
 
 impl<V, E, Ty: EdgeType> EdgesBase<Ty> for AdjList<V, E, Ty> {
-    type EdgeIndicesIter<'a>
+    type EdgeIndicesIter<'a> = RangeIndices<EdgeIndex>
     where
-        V: 'a,
-        E: 'a,
-    = RangeIndices<EdgeIndex>;
+        Self: 'a;
 
     fn edge_count(&self) -> usize {
         self.edges.len()
@@ -256,13 +252,13 @@ impl<V, E, Ty: EdgeType> EdgesBase<Ty> for AdjList<V, E, Ty> {
 }
 
 impl<V, E, Ty: EdgeType> Edges<E, Ty> for AdjList<V, E, Ty> {
-    type EdgeRef<'a, T: 'a> = (EdgeIndex, &'a T, VertexIndex, VertexIndex);
-
-    type EdgesIter<'a, T: 'a>
+    type EdgeRef<'a, T: 'a> = (EdgeIndex, &'a T, VertexIndex, VertexIndex)
     where
-        V: 'a,
-        E: 'a,
-    = EdgesIter<'a, T>;
+        Self: 'a;
+
+    type EdgesIter<'a, T: 'a> = EdgesIter<'a, T>
+    where
+        Self: 'a;
 
     fn edge(&self, index: EdgeIndex) -> Option<&E> {
         self.edges.get(index.to_usize())
@@ -310,11 +306,9 @@ impl<V, E, Ty: EdgeType> EdgesMut<E, Ty> for AdjList<V, E, Ty> {
 }
 
 impl<V, E, Ty: EdgeType> MultiEdges<E, Ty> for AdjList<V, E, Ty> {
-    type MultiEdgeIndicesIter<'a>
+    type MultiEdgeIndicesIter<'a> = MultiEdgeIndicesIter<'a>
     where
-        V: 'a,
-        E: 'a,
-    = MultiEdgeIndicesIter<'a>;
+        Self: 'a;
 
     fn multi_edge_index(
         &self,
@@ -336,13 +330,13 @@ impl<V, E, Ty: EdgeType> MultiEdges<E, Ty> for AdjList<V, E, Ty> {
 }
 
 impl<V, E, Ty: EdgeType> Neighbors for AdjList<V, E, Ty> {
-    type NeighborRef<'a> = (VertexIndex, EdgeIndex, VertexIndex, Direction);
-
-    type NeighborsIter<'a>
+    type NeighborRef<'a> = (VertexIndex, EdgeIndex, VertexIndex, Direction)
     where
-        V: 'a,
-        E: 'a,
-    = NeighborsIter<'a>;
+        Self: 'a;
+
+    type NeighborsIter<'a> = NeighborsIter<'a>
+    where
+        Self: 'a;
 
     fn neighbors(&self, src: VertexIndex) -> Self::NeighborsIter<'_> {
         let vertex = self

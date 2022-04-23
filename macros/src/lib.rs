@@ -22,10 +22,9 @@ pub fn vertices_base(tokens: TokenStream) -> TokenStream {
 
     let implemented = quote! {
         impl #impl_generics VerticesBase for #name #ty_generics #where_clause {
-            type VertexIndicesIter<'a>
+            type VertexIndicesIter<'a> = <#field_type as VerticesBase>::VertexIndicesIter<'a>
             where
-                Self: 'a,
-            = <#field_type as VerticesBase>::VertexIndicesIter<'a>;
+                Self: 'a;
 
             fn vertex_count(&self) -> usize {
                 <#field_type as VerticesBase>::vertex_count(&self.#field_name)
@@ -71,12 +70,13 @@ pub fn vertices(tokens: TokenStream) -> TokenStream {
 
     let implemented = quote! {
         impl #impl_generics Vertices<V> for #name #ty_generics #where_clause {
-            type VertexRef<'a, T: 'a> = <#field_type as Vertices<V>>::VertexRef<'a, T>;
-
-            type VerticesIter<'a, T: 'a>
+            type VertexRef<'a, T: 'a> = <#field_type as Vertices<V>>::VertexRef<'a, T>
             where
-                Self: 'a,
-            = <#field_type as Vertices<V>>::VerticesIter<'a, T>;
+                Self: 'a;
+
+            type VerticesIter<'a, T: 'a> = <#field_type as Vertices<V>>::VerticesIter<'a, T>
+            where
+                Self: 'a;
 
             fn vertex(&self, index: VertexIndex) -> Option<&V> {
                 <#field_type as Vertices<V>>::vertex(&self.#field_name, index)
@@ -220,10 +220,9 @@ pub fn edges_base(tokens: TokenStream) -> TokenStream {
 
     let implemented = quote! {
         impl #impl_generics EdgesBase<Ty> for #name #ty_generics #where_clause {
-            type EdgeIndicesIter<'a>
+            type EdgeIndicesIter<'a> = <#field_type as EdgesBase<Ty>>::EdgeIndicesIter<'a>
             where
-                Self: 'a,
-            = <#field_type as EdgesBase<Ty>>::EdgeIndicesIter<'a>;
+                Self: 'a;
 
             fn edge_count(&self) -> usize {
                 <#field_type as EdgesBase<Ty>>::edge_count(&self.#field_name)
@@ -280,12 +279,13 @@ pub fn edges(tokens: TokenStream) -> TokenStream {
 
     let implemented = quote! {
         impl #impl_generics Edges<E, Ty> for #name #ty_generics #where_clause {
-            type EdgeRef<'a, T: 'a> = <#field_type as Edges<E, Ty>>::EdgeRef<'a, T>;
-
-            type EdgesIter<'a, T: 'a>
+            type EdgeRef<'a, T: 'a> = <#field_type as Edges<E, Ty>>::EdgeRef<'a, T>
             where
-                Self: 'a,
-            = <#field_type as Edges<E, Ty>>::EdgesIter<'a, T>;
+                Self: 'a;
+
+            type EdgesIter<'a, T: 'a> = <#field_type as Edges<E, Ty>>::EdgesIter<'a, T>
+            where
+                Self: 'a;
 
             fn edge(&self, index: EdgeIndex) -> Option<&E> {
                 <#field_type as Edges<E, Ty>>::edge(&self.#field_name, index)
@@ -443,10 +443,9 @@ pub fn multi_edges(tokens: TokenStream) -> TokenStream {
 
     let implemented = quote! {
         impl #impl_generics MultiEdges<E, Ty> for #name #ty_generics #where_clause {
-            type MultiEdgeIndicesIter<'a>
+            type MultiEdgeIndicesIter<'a> = <#field_type as MultiEdges<E, Ty>>::MultiEdgeIndicesIter<'a>
             where
-                Self: 'a,
-            = <#field_type as MultiEdges<E, Ty>>::MultiEdgeIndicesIter<'a>;
+                Self: 'a;
 
             fn multi_edge_index(
                 &self,
@@ -480,12 +479,13 @@ pub fn neighbors(tokens: TokenStream) -> TokenStream {
 
     let implemented = quote! {
         impl #impl_generics Neighbors for #name #ty_generics #where_clause {
-            type NeighborRef<'a> = <#field_type as Neighbors>::NeighborRef<'a>;
-
-            type NeighborsIter<'a>
+            type NeighborRef<'a> = <#field_type as Neighbors>::NeighborRef<'a>
             where
-                Self: 'a,
-            = <#field_type as Neighbors>::NeighborsIter<'a>;
+                Self: 'a;
+
+            type NeighborsIter<'a> = <#field_type as Neighbors>::NeighborsIter<'a>
+            where
+                Self: 'a;
 
             fn neighbors(&self, src: VertexIndex) -> Self::NeighborsIter<'_> {
                 <#field_type as Neighbors>::neighbors(&self.#field_name, src)

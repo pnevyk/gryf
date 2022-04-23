@@ -45,10 +45,9 @@ impl NeighborRef for Neighbor {
 impl Neighbors for Collatz {
     type NeighborRef<'a> = Neighbor;
 
-    type NeighborsIter<'a>
+    type NeighborsIter<'a> = iter::Once<Self::NeighborRef<'a>>
     where
-        Self: 'a,
-    = iter::Once<Self::NeighborRef<'a>>;
+        Self: 'a;
 
     fn neighbors(&self, src: VertexIndex) -> Self::NeighborsIter<'_> {
         iter::once(Neighbor { src })

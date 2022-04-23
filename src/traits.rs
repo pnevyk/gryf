@@ -87,7 +87,9 @@ pub trait VerticesBase {
 }
 
 pub trait Vertices<V>: VerticesBase {
-    type VertexRef<'a, T: 'a>: VertexRef<T>;
+    type VertexRef<'a, T: 'a>: VertexRef<T>
+    where
+        Self: 'a;
 
     type VerticesIter<'a, T: 'a>: Iterator<Item = Self::VertexRef<'a, T>>
     where
@@ -156,7 +158,9 @@ pub trait EdgesBase<Ty: EdgeType> {
 }
 
 pub trait Edges<E, Ty: EdgeType>: EdgesBase<Ty> {
-    type EdgeRef<'a, T: 'a>: EdgeRef<T>;
+    type EdgeRef<'a, T: 'a>: EdgeRef<T>
+    where
+        Self: 'a;
 
     type EdgesIter<'a, T: 'a>: Iterator<Item = Self::EdgeRef<'a, T>>
     where
@@ -243,7 +247,9 @@ pub trait NeighborRef {
 }
 
 pub trait Neighbors {
-    type NeighborRef<'a>: NeighborRef;
+    type NeighborRef<'a>: NeighborRef
+    where
+        Self: 'a;
 
     type NeighborsIter<'a>: Iterator<Item = Self::NeighborRef<'a>>
     where
@@ -522,10 +528,9 @@ mod imp {
             where
                 G: VerticesBase,
             {
-                type VertexIndicesIter<'a>
+                type VertexIndicesIter<'a> = G::VertexIndicesIter<'a>
                 where
-                    Self: 'a,
-                = G::VertexIndicesIter<'a>;
+                    Self: 'a;
 
                 fn vertex_count(&self) -> usize {
                     (**self).vertex_count()
@@ -559,12 +564,13 @@ mod imp {
             where
                 G: Vertices<V>,
             {
-                type VertexRef<'a, T: 'a> = G::VertexRef<'a, T>;
-
-                type VerticesIter<'a, T: 'a>
+                type VertexRef<'a, T: 'a> = G::VertexRef<'a, T>
                 where
-                    Self: 'a,
-                = G::VerticesIter<'a, T>;
+                    Self: 'a;
+
+                type VerticesIter<'a, T: 'a> = G::VerticesIter<'a, T>
+                where
+                    Self: 'a;
 
                 fn vertex(&self, index: VertexIndex) -> Option<&V> {
                     (**self).vertex(index)
@@ -649,10 +655,9 @@ mod imp {
             where
                 G: EdgesBase<Ty>,
             {
-                type EdgeIndicesIter<'a>
+                type EdgeIndicesIter<'a> = G::EdgeIndicesIter<'a>
                 where
-                    Self: 'a,
-                = G::EdgeIndicesIter<'a>;
+                    Self: 'a;
 
                 fn edge_count(&self) -> usize {
                     (**self).edge_count()
@@ -698,12 +703,13 @@ mod imp {
             where
                 G: Edges<E, Ty>,
             {
-                type EdgeRef<'a, T: 'a> = G::EdgeRef<'a, T>;
-
-                type EdgesIter<'a, T: 'a>
+                type EdgeRef<'a, T: 'a> = G::EdgeRef<'a, T>
                 where
-                    Self: 'a,
-                = G::EdgesIter<'a, T>;
+                    Self:'a;
+
+                type EdgesIter<'a, T: 'a> = G::EdgesIter<'a, T>
+                where
+                    Self: 'a;
 
                 fn edge(&self, index: EdgeIndex) -> Option<&E> {
                     (**self).edge(index)
@@ -808,12 +814,13 @@ mod imp {
             where
                 G: Neighbors,
             {
-                type NeighborRef<'a> = G::NeighborRef<'a>;
-
-                type NeighborsIter<'a>
+                type NeighborRef<'a> = G::NeighborRef<'a>
                 where
-                    Self: 'a,
-                = G::NeighborsIter<'a>;
+                    Self: 'a;
+
+                type NeighborsIter<'a> = G::NeighborsIter<'a>
+                where
+                    Self: 'a;
 
                 fn neighbors(&self, src: VertexIndex) -> Self::NeighborsIter<'_> {
                     (**self).neighbors(src)

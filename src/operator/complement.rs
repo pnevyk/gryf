@@ -87,12 +87,13 @@ impl<E, G> Neighbors for Complement<E, G>
 where
     G: Neighbors + VerticesBase,
 {
-    type NeighborRef<'a> = (VertexIndex, EdgeIndex, VertexIndex, Direction);
-
-    type NeighborsIter<'a>
+    type NeighborRef<'a> = (VertexIndex, EdgeIndex, VertexIndex, Direction)
     where
-        Self: 'a,
-    = NeighborsIter<'a, G>;
+        Self: 'a;
+
+    type NeighborsIter<'a> = NeighborsIter<'a, G>
+    where
+        Self: 'a;
 
     fn neighbors(&self, src: VertexIndex) -> Self::NeighborsIter<'_> {
         NeighborsIter {

@@ -1,5 +1,6 @@
-use crate::index::IndexType;
-use crate::marker::EdgeType;
+#![allow(dead_code)]
+
+use crate::index::NumIndexType;
 use crate::traits::*;
 
 // A set of graphs of the same family that form disconnected components.
@@ -156,18 +157,18 @@ impl<const MAX: usize> ComponentIndex<MAX> {
         Self { component }
     }
 
-    pub fn extract<I: IndexType>(index: I) -> Self {
+    pub fn extract<I: NumIndexType>(index: I) -> Self {
         let bits = index.to_bits();
         let component = (bits >> Self::n_index_bits()) as usize;
         Self { component }
     }
 
-    pub fn augment<I: IndexType>(&self, index: I) -> I {
+    pub fn augment<I: NumIndexType>(&self, index: I) -> I {
         let mask = (self.component as u64) << Self::n_index_bits();
         I::from_bits(index.to_bits() | mask)
     }
 
-    pub fn clean<I: IndexType>(&self, index: I) -> I {
+    pub fn clean<I: NumIndexType>(&self, index: I) -> I {
         let mask = u64::MAX >> Self::n_mask_bits();
         I::from_bits(index.to_bits() & mask)
     }
@@ -177,7 +178,7 @@ impl<const MAX: usize> ComponentIndex<MAX> {
     }
 
     const fn n_mask_bits() -> u32 {
-        let n_mask_bits = (MAX as u64).log2();
+        let n_mask_bits = (MAX as u64).ilog2();
         if MAX.is_power_of_two() {
             n_mask_bits
         } else {
@@ -195,27 +196,27 @@ impl<const MAX: usize> ComponentIndex<MAX> {
 
 #[cfg(test)]
 mod tests {
-    use crate::VertexIndex;
+    use crate::index::VertexIndex;
 
     use super::*;
 
     #[test]
     fn component_index_extract_power_of_two() {
-        let index = VertexIndex::from_bits(0x0080_0000_0000_002a);
+        let index = VertexIndex::<u64>::from_bits(0x0080_0000_0000_002a);
         let component = ComponentIndex::<1024>::extract(index);
         assert_eq!(component.to_usize(), 2);
     }
 
     #[test]
     fn component_index_extract_not_power_of_two() {
-        let index = VertexIndex::from_bits(0x0080_0000_0000_002a);
+        let index = VertexIndex::<u64>::from_bits(0x0080_0000_0000_002a);
         let component = ComponentIndex::<1023>::extract(index);
         assert_eq!(component.to_usize(), 2);
     }
 
     #[test]
     fn component_index_augment_power_of_two() {
-        let index = VertexIndex::new(42);
+        let index = VertexIndex::<u64>::from_usize(42);
         let component = ComponentIndex::<1024>::new(2);
 
         let actual = component.augment(index);
@@ -226,7 +227,7 @@ mod tests {
 
     #[test]
     fn component_index_augment_not_power_of_two() {
-        let index = VertexIndex::new(42);
+        let index = VertexIndex::<u64>::from_usize(42);
         let component = ComponentIndex::<1023>::new(2);
 
         let actual = component.augment(index);
@@ -237,22 +238,22 @@ mod tests {
 
     #[test]
     fn component_index_clean_power_of_two() {
-        let index = VertexIndex::from_bits(0x0080_0000_0000_002a);
+        let index = VertexIndex::<u64>::from_bits(0x0080_0000_0000_002a);
         let component = ComponentIndex::<1024>::new(2);
 
         let actual = component.clean(index);
-        let expected = VertexIndex::new(42);
+        let expected = VertexIndex::from_usize(42);
 
         assert_eq!(actual, expected);
     }
 
     #[test]
     fn component_index_clean_not_power_of_two() {
-        let index = VertexIndex::from_bits(0x0080_0000_0000_002a);
+        let index = VertexIndex::<u64>::from_bits(0x0080_0000_0000_002a);
         let component = ComponentIndex::<1023>::new(2);
 
         let actual = component.clean(index);
-        let expected = VertexIndex::new(42);
+        let expected = VertexIndex::from_usize(42);
 
         assert_eq!(actual, expected);
     }

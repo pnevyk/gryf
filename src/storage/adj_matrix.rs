@@ -1,36 +1,56 @@
+use std::marker::PhantomData;
+
 use self::matrix::{BitMatrix, Matrix};
 pub use super::shared::{RangeIndices, VerticesIter};
-use crate::index::{EdgeIndex, IndexType, VertexIndex};
+use crate::index::{Indexing, NumIndexType};
 use crate::infra::CompactIndexMap;
 use crate::marker::{Direction, EdgeType};
 use crate::traits::*;
 use crate::{EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak};
 
 #[derive(Debug, VerticesBaseWeak, VerticesWeak, EdgesBaseWeak, EdgesWeak)]
-pub struct AdjMatrix<V, E, Ty> {
-    matrix: Matrix<E, Ty>,
+pub struct AdjMatrix<V, E, Ty, Ix> {
+    matrix: Matrix<E, Ty, Ix>,
     vertices: Vec<V>,
     n_edges: usize,
+    ty: PhantomData<fn() -> Ix>,
 }
 
-impl<V, E, Ty: EdgeType> AdjMatrix<V, E, Ty> {
+impl<V, E, Ty: EdgeType, Ix: Indexing> AdjMatrix<V, E, Ty, Ix>
+where
+    Ix::VertexIndex: NumIndexType,
+    Ix::EdgeIndex: NumIndexType,
+{
     pub fn new() -> Self {
         Self {
             matrix: Matrix::with_capacity(8),
             vertices: Vec::new(),
             n_edges: 0,
+            ty: PhantomData,
         }
     }
 }
 
-impl<V, E, Ty: EdgeType> Default for AdjMatrix<V, E, Ty> {
+impl<V, E, Ty: EdgeType, Ix: Indexing> Default for AdjMatrix<V, E, Ty, Ix>
+where
+    Ix::VertexIndex: NumIndexType,
+    Ix::EdgeIndex: NumIndexType,
+{
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<V, E, Ty: EdgeType> VerticesBase for AdjMatrix<V, E, Ty> {
-    type VertexIndicesIter<'a> = RangeIndices<VertexIndex>
+impl<V, E, Ty: EdgeType, Ix: Indexing> GraphBase for AdjMatrix<V, E, Ty, Ix> {
+    type VertexIndex = Ix::VertexIndex;
+    type EdgeIndex = Ix::EdgeIndex;
+}
+
+impl<V, E, Ty: EdgeType, Ix: Indexing> VerticesBase for AdjMatrix<V, E, Ty, Ix>
+where
+    Ix::VertexIndex: NumIndexType,
+{
+    type VertexIndicesIter<'a> = RangeIndices<Ix::VertexIndex>
     where
         Self: 'a;
 
@@ -46,81 +66,93 @@ impl<V, E, Ty: EdgeType> VerticesBase for AdjMatrix<V, E, Ty> {
         (0..self.vertex_bound()).into()
     }
 
-    fn vertex_index_map(&self) -> CompactIndexMap<VertexIndex> {
+    fn vertex_index_map(&self) -> CompactIndexMap<Ix::VertexIndex>
+    where
+        Ix::VertexIndex: NumIndexType,
+    {
         CompactIndexMap::isomorphic(self.vertex_count())
     }
 }
 
-impl<V, E, Ty: EdgeType> Vertices<V> for AdjMatrix<V, E, Ty> {
-    type VertexRef<'a, T: 'a> = (VertexIndex, &'a T)
+impl<V, E, Ty: EdgeType, Ix: Indexing> Vertices<V> for AdjMatrix<V, E, Ty, Ix>
+where
+    Ix::VertexIndex: NumIndexType,
+{
+    type VertexRef<'a> = (Ix::VertexIndex, &'a V)
     where
-        Self: 'a;
+        Self: 'a,
+        V: 'a;
 
-    type VerticesIter<'a, T: 'a> = VerticesIter<'a, T>
+    type VerticesIter<'a> = VerticesIter<'a, Ix, V>
     where
-        Self: 'a;
+        Self: 'a,
+        V: 'a;
 
-    fn vertex(&self, index: VertexIndex) -> Option<&V> {
-        self.vertices.get(index.to_usize())
+    fn vertex(&self, index: &Ix::VertexIndex) -> Option<&V> {
+        self.vertices.get(index.as_usize())
     }
 
-    fn vertices(&self) -> Self::VerticesIter<'_, V> {
+    fn vertices(&self) -> Self::VerticesIter<'_> {
         VerticesIter::new(self.vertices.iter())
     }
 }
 
-impl<V, E, Ty: EdgeType> VerticesMut<V> for AdjMatrix<V, E, Ty> {
-    fn vertex_mut(&mut self, index: VertexIndex) -> Option<&mut V> {
-        self.vertices.get_mut(index.to_usize())
+impl<V, E, Ty: EdgeType, Ix: Indexing> VerticesMut<V> for AdjMatrix<V, E, Ty, Ix>
+where
+    Ix::VertexIndex: NumIndexType,
+    Ix::EdgeIndex: NumIndexType,
+{
+    fn vertex_mut(&mut self, index: &Ix::VertexIndex) -> Option<&mut V> {
+        self.vertices.get_mut(index.as_usize())
     }
 
-    fn add_vertex(&mut self, vertex: V) -> VertexIndex {
+    fn add_vertex(&mut self, vertex: V) -> Ix::VertexIndex {
         self.matrix.ensure_capacity(self.vertex_count() + 1);
 
         let index = self.vertices.len();
         self.vertices.push(vertex);
-        index.into()
+        Ix::VertexIndex::from_usize(index)
     }
 
-    fn remove_vertex(&mut self, index: VertexIndex) -> Option<V> {
+    fn remove_vertex(&mut self, index: &Ix::VertexIndex) -> Option<V> {
         self.vertex(index)?;
 
         // Remove incident edges.
         for i in 0..self.vertices.len() {
-            let edge_index = self.matrix.index(index.to_usize(), i);
+            let edge_index = self.matrix.index(index.as_usize(), i);
             if self.matrix.remove(edge_index).is_some() {
                 self.n_edges -= 1;
             }
 
             if Ty::is_directed() {
-                let edge_index = self.matrix.index(i, index.to_usize());
+                let edge_index = self.matrix.index(i, index.as_usize());
                 if self.matrix.remove(edge_index).is_some() {
                     self.n_edges -= 1;
                 }
             }
         }
 
-        let vertex = self.vertices.swap_remove(index.to_usize());
+        let vertex = self.vertices.swap_remove(index.as_usize());
 
         // Relocate the edges of the last vertex, if it is going to replace the
         // removed vertex.
-        if index.to_usize() < self.vertices.len() {
-            let last_index = VertexIndex::new(self.vertices.len());
+        if index.as_usize() < self.vertices.len() {
+            let last_index = Ix::VertexIndex::from_usize(self.vertices.len());
 
             // We already removed the vertex from the vector, so its size is one
             // less than before. But we need to iterate over entire matrix, so
             // the range is inclusive.
             for i in 0..=self.vertices.len() {
-                let edge_index = self.matrix.index(last_index.to_usize(), i);
+                let edge_index = self.matrix.index(last_index.as_usize(), i);
                 if let Some(edge) = self.matrix.remove(edge_index) {
-                    let edge_index = self.matrix.index(index.to_usize(), i);
+                    let edge_index = self.matrix.index(index.as_usize(), i);
                     self.matrix.insert(edge_index, edge);
                 }
 
                 if Ty::is_directed() {
-                    let edge_index = self.matrix.index(i, last_index.to_usize());
+                    let edge_index = self.matrix.index(i, last_index.as_usize());
                     if let Some(edge) = self.matrix.remove(edge_index) {
-                        let edge_index = self.matrix.index(i, index.to_usize());
+                        let edge_index = self.matrix.index(i, index.as_usize());
                         self.matrix.insert(edge_index, edge);
                     }
                 }
@@ -137,8 +169,12 @@ impl<V, E, Ty: EdgeType> VerticesMut<V> for AdjMatrix<V, E, Ty> {
     }
 }
 
-impl<V, E, Ty: EdgeType> EdgesBase<Ty> for AdjMatrix<V, E, Ty> {
-    type EdgeIndicesIter<'a> = EdgeIndicesIter<'a, Ty>
+impl<V, E, Ty: EdgeType, Ix: Indexing> EdgesBase<Ty> for AdjMatrix<V, E, Ty, Ix>
+where
+    Ix::VertexIndex: NumIndexType,
+    Ix::EdgeIndex: NumIndexType,
+{
+    type EdgeIndicesIter<'a> = EdgeIndicesIter<'a, Ty, Ix>
     where
         Self: 'a;
 
@@ -147,20 +183,23 @@ impl<V, E, Ty: EdgeType> EdgesBase<Ty> for AdjMatrix<V, E, Ty> {
     }
 
     fn edge_bound(&self) -> usize {
-        self.matrix.index(self.vertex_count(), 0).to_usize()
+        self.matrix.index(self.vertex_count(), 0).as_usize()
     }
 
-    fn endpoints(&self, index: EdgeIndex) -> Option<(VertexIndex, VertexIndex)> {
-        let (row, col) = self.matrix.coords(index);
+    fn endpoints(&self, index: &Ix::EdgeIndex) -> Option<(Ix::VertexIndex, Ix::VertexIndex)> {
+        let (row, col) = self.matrix.coords(*index);
         if row < self.vertex_count() {
-            Some((row.into(), col.into()))
+            Some((
+                Ix::VertexIndex::from_usize(row),
+                Ix::VertexIndex::from_usize(col),
+            ))
         } else {
             None
         }
     }
 
-    fn edge_index(&self, src: VertexIndex, dst: VertexIndex) -> Option<EdgeIndex> {
-        let index = self.matrix.index(src.to_usize(), dst.to_usize());
+    fn edge_index(&self, src: &Ix::VertexIndex, dst: &Ix::VertexIndex) -> Option<Ix::EdgeIndex> {
+        let index = self.matrix.index(src.as_usize(), dst.as_usize());
         self.matrix.get(index).map(|_| index)
     }
 
@@ -169,46 +208,58 @@ impl<V, E, Ty: EdgeType> EdgesBase<Ty> for AdjMatrix<V, E, Ty> {
             matrix: &self.matrix,
             index: 0,
             edge_bound: self.edge_bound(),
+            ty: PhantomData,
         }
     }
 }
 
-impl<V, E, Ty: EdgeType> Edges<E, Ty> for AdjMatrix<V, E, Ty> {
-    type EdgeRef<'a, T: 'a> = (EdgeIndex, &'a T, VertexIndex, VertexIndex)
+impl<V, E, Ty: EdgeType, Ix: Indexing> Edges<E, Ty> for AdjMatrix<V, E, Ty, Ix>
+where
+    Ix::VertexIndex: NumIndexType,
+    Ix::EdgeIndex: NumIndexType,
+{
+    type EdgeRef<'a> = (Ix::EdgeIndex, &'a E, Ix::VertexIndex, Ix::VertexIndex)
     where
-        Self: 'a;
+        Self: 'a,
+        E: 'a;
 
-    type EdgesIter<'a, T: 'a> = EdgesIter<'a, T, Ty>
+    type EdgesIter<'a> = EdgesIter<'a, E, Ty, Ix>
     where
-        Self: 'a;
+        Self: 'a,
+        E:'a;
 
-    fn edge(&self, index: EdgeIndex) -> Option<&E> {
-        self.matrix.get(index)
+    fn edge(&self, index: &Ix::EdgeIndex) -> Option<&E> {
+        self.matrix.get(*index)
     }
 
-    fn edges(&self) -> Self::EdgesIter<'_, E> {
+    fn edges(&self) -> Self::EdgesIter<'_> {
         EdgesIter {
             matrix: &self.matrix,
             index: 0,
             edge_bound: self.edge_bound(),
+            ty: PhantomData,
         }
     }
 }
 
-impl<V, E, Ty: EdgeType + 'static> EdgesMut<E, Ty> for AdjMatrix<V, E, Ty> {
-    fn edge_mut(&mut self, index: EdgeIndex) -> Option<&mut E> {
-        self.matrix.get_mut(index)
+impl<V, E, Ty: EdgeType, Ix: Indexing> EdgesMut<E, Ty> for AdjMatrix<V, E, Ty, Ix>
+where
+    Ix::VertexIndex: NumIndexType,
+    Ix::EdgeIndex: NumIndexType,
+{
+    fn edge_mut(&mut self, index: &Ix::EdgeIndex) -> Option<&mut E> {
+        self.matrix.get_mut(*index)
     }
 
-    fn add_edge(&mut self, src: VertexIndex, dst: VertexIndex, edge: E) -> EdgeIndex {
-        let index = self.matrix.index(src.to_usize(), dst.to_usize());
+    fn add_edge(&mut self, src: &Ix::VertexIndex, dst: &Ix::VertexIndex, edge: E) -> Ix::EdgeIndex {
+        let index = self.matrix.index(src.as_usize(), dst.as_usize());
         self.matrix.insert(index, edge);
         self.n_edges += 1;
         index
     }
 
-    fn remove_edge(&mut self, index: EdgeIndex) -> Option<E> {
-        match self.matrix.remove(index) {
+    fn remove_edge(&mut self, index: &Ix::EdgeIndex) -> Option<E> {
+        match self.matrix.remove(*index) {
             Some(edge) => {
                 self.n_edges -= 1;
                 Some(edge)
@@ -223,16 +274,20 @@ impl<V, E, Ty: EdgeType + 'static> EdgesMut<E, Ty> for AdjMatrix<V, E, Ty> {
     }
 }
 
-impl<V, E, Ty: EdgeType> Neighbors for AdjMatrix<V, E, Ty> {
-    type NeighborRef<'a> = (VertexIndex, EdgeIndex, VertexIndex, Direction)
+impl<V, E, Ty: EdgeType, Ix: Indexing> Neighbors for AdjMatrix<V, E, Ty, Ix>
+where
+    Ix::VertexIndex: NumIndexType,
+    Ix::EdgeIndex: NumIndexType,
+{
+    type NeighborRef<'a> = (Ix::VertexIndex, Ix::EdgeIndex, Ix::VertexIndex, Direction)
     where
         Self: 'a;
 
-    type NeighborsIter<'a> = NeighborsIter<'a, Ty>
+    type NeighborsIter<'a> = NeighborsIter<'a, Ty, Ix>
     where
         Self: 'a;
 
-    fn neighbors(&self, src: VertexIndex) -> Self::NeighborsIter<'_> {
+    fn neighbors(&self, src: &Ix::VertexIndex) -> Self::NeighborsIter<'_> {
         let filter = if Ty::is_directed() {
             None
         } else {
@@ -242,7 +297,7 @@ impl<V, E, Ty: EdgeType> Neighbors for AdjMatrix<V, E, Ty> {
 
         NeighborsIter {
             matrix: self.matrix.detach(),
-            src,
+            src: *src,
             other: 0,
             vertex_count: self.vertex_count(),
             filter,
@@ -250,10 +305,10 @@ impl<V, E, Ty: EdgeType> Neighbors for AdjMatrix<V, E, Ty> {
         }
     }
 
-    fn neighbors_directed(&self, src: VertexIndex, dir: Direction) -> Self::NeighborsIter<'_> {
+    fn neighbors_directed(&self, src: &Ix::VertexIndex, dir: Direction) -> Self::NeighborsIter<'_> {
         NeighborsIter {
             matrix: self.matrix.detach(),
-            src,
+            src: *src,
             other: 0,
             vertex_count: self.vertex_count(),
             filter: Some(dir),
@@ -262,26 +317,35 @@ impl<V, E, Ty: EdgeType> Neighbors for AdjMatrix<V, E, Ty> {
     }
 }
 
-impl<V, E, Ty: EdgeType + 'static> Create<V, E, Ty> for AdjMatrix<V, E, Ty> {
+impl<V, E, Ty: EdgeType, Ix: Indexing> Create<V, E, Ty> for AdjMatrix<V, E, Ty, Ix>
+where
+    Ix::VertexIndex: NumIndexType,
+    Ix::EdgeIndex: NumIndexType,
+{
     fn with_capacity(vertex_count: usize, _edge_count: usize) -> Self {
         Self {
             matrix: Matrix::with_capacity(vertex_count),
             vertices: Vec::with_capacity(vertex_count),
             n_edges: 0,
+            ty: PhantomData,
         }
     }
 }
 
-impl<V, E, Ty: EdgeType> Guarantee for AdjMatrix<V, E, Ty> {}
+impl<V, E, Ty: EdgeType, Ix: Indexing> Guarantee for AdjMatrix<V, E, Ty, Ix> {}
 
-pub struct EdgeIndicesIter<'a, Ty> {
-    matrix: &'a BitMatrix<Ty>,
+pub struct EdgeIndicesIter<'a, Ty, Ix> {
+    matrix: &'a BitMatrix<Ty, Ix>,
     index: usize,
     edge_bound: usize,
+    ty: PhantomData<fn() -> Ix>,
 }
 
-impl<'a, Ty: EdgeType> Iterator for EdgeIndicesIter<'a, Ty> {
-    type Item = EdgeIndex;
+impl<'a, Ty: EdgeType, Ix: Indexing> Iterator for EdgeIndicesIter<'a, Ty, Ix>
+where
+    Ix::EdgeIndex: NumIndexType,
+{
+    type Item = Ix::EdgeIndex;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -289,7 +353,7 @@ impl<'a, Ty: EdgeType> Iterator for EdgeIndicesIter<'a, Ty> {
                 return None;
             }
 
-            let index = self.index.into();
+            let index = Ix::EdgeIndex::from_usize(self.index);
             self.index += 1;
 
             if self.matrix.contains(index) {
@@ -299,14 +363,19 @@ impl<'a, Ty: EdgeType> Iterator for EdgeIndicesIter<'a, Ty> {
     }
 }
 
-pub struct EdgesIter<'a, E, Ty> {
-    matrix: &'a Matrix<E, Ty>,
+pub struct EdgesIter<'a, E, Ty, Ix> {
+    matrix: &'a Matrix<E, Ty, Ix>,
     index: usize,
     edge_bound: usize,
+    ty: PhantomData<fn() -> Ix>,
 }
 
-impl<'a, E, Ty: EdgeType> Iterator for EdgesIter<'a, E, Ty> {
-    type Item = (EdgeIndex, &'a E, VertexIndex, VertexIndex);
+impl<'a, E, Ty: EdgeType, Ix: Indexing> Iterator for EdgesIter<'a, E, Ty, Ix>
+where
+    Ix::VertexIndex: NumIndexType,
+    Ix::EdgeIndex: NumIndexType,
+{
+    type Item = (Ix::EdgeIndex, &'a E, Ix::VertexIndex, Ix::VertexIndex);
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -314,28 +383,37 @@ impl<'a, E, Ty: EdgeType> Iterator for EdgesIter<'a, E, Ty> {
                 return None;
             }
 
-            let index = self.index.into();
+            let index = Ix::EdgeIndex::from_usize(self.index);
             self.index += 1;
 
             if let Some(edge) = self.matrix.get(index) {
                 let (row, col) = self.matrix.coords(index);
-                return Some((index, edge, row.into(), col.into()));
+                return Some((
+                    index,
+                    edge,
+                    Ix::VertexIndex::from_usize(row),
+                    Ix::VertexIndex::from_usize(col),
+                ));
             }
         }
     }
 }
 
-pub struct NeighborsIter<'a, Ty> {
-    matrix: &'a BitMatrix<Ty>,
-    src: VertexIndex,
+pub struct NeighborsIter<'a, Ty, Ix: Indexing> {
+    matrix: &'a BitMatrix<Ty, Ix>,
+    src: Ix::VertexIndex,
     other: usize,
     vertex_count: usize,
     filter: Option<Direction>,
     dir: Direction,
 }
 
-impl<'a, Ty: EdgeType> Iterator for NeighborsIter<'a, Ty> {
-    type Item = (VertexIndex, EdgeIndex, VertexIndex, Direction);
+impl<'a, Ty: EdgeType, Ix: Indexing> Iterator for NeighborsIter<'a, Ty, Ix>
+where
+    Ix::VertexIndex: NumIndexType,
+    Ix::EdgeIndex: NumIndexType,
+{
+    type Item = (Ix::VertexIndex, Ix::EdgeIndex, Ix::VertexIndex, Direction);
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -356,12 +434,12 @@ impl<'a, Ty: EdgeType> Iterator for NeighborsIter<'a, Ty> {
                 self.other += 1;
 
                 let index = match self.dir {
-                    Direction::Outgoing => self.matrix.index(self.src.to_usize(), dst),
-                    Direction::Incoming => self.matrix.index(dst, self.src.to_usize()),
+                    Direction::Outgoing => self.matrix.index(self.src.as_usize(), dst),
+                    Direction::Incoming => self.matrix.index(dst, self.src.as_usize()),
                 };
 
                 if self.matrix.contains(index) {
-                    return Some((dst.into(), index, self.src, self.dir));
+                    return Some((Ix::VertexIndex::from_usize(dst), index, self.src, self.dir));
                 }
             }
         }
@@ -375,14 +453,14 @@ mod matrix {
 
     use bitvec::prelude::*;
 
-    use crate::index::{EdgeIndex, IndexType};
+    use crate::index::{Indexing, NumIndexType};
     use crate::marker::EdgeType;
 
     #[derive(Debug)]
-    pub struct BitMatrix<Ty> {
+    pub struct BitMatrix<Ty, Ix> {
         bits: BitVec,
         capacity: usize,
-        ty: PhantomData<Ty>,
+        ty: PhantomData<(Ty, Ix)>,
     }
 
     // The matrix could be implemented safely as Vec<Option<E>>. However, that
@@ -392,8 +470,8 @@ mod matrix {
     // problem. Unfortunately, it brings unsafe code and a bit more logic
     // complexity.
     #[derive(Debug)]
-    pub struct Matrix<E, Ty> {
-        inner: BitMatrix<Ty>,
+    pub struct Matrix<E, Ty, Ix> {
+        inner: BitMatrix<Ty, Ix>,
         data: Vec<MaybeUninit<E>>,
     }
 
@@ -483,7 +561,10 @@ mod matrix {
         }
     }
 
-    impl<Ty: EdgeType> BitMatrix<Ty> {
+    impl<Ty: EdgeType, Ix: Indexing> BitMatrix<Ty, Ix>
+    where
+        Ix::EdgeIndex: NumIndexType,
+    {
         fn with_capacity(capacity: usize) -> Self {
             Self {
                 bits: bitvec![0; size_of::<Ty>(capacity)],
@@ -492,25 +573,28 @@ mod matrix {
             }
         }
 
-        pub fn index(&self, row: usize, col: usize) -> EdgeIndex {
-            index::<Ty>(row, col, self.capacity).into()
+        pub fn index(&self, row: usize, col: usize) -> Ix::EdgeIndex {
+            Ix::EdgeIndex::from_usize(index::<Ty>(row, col, self.capacity))
         }
 
-        pub fn coords(&self, index: EdgeIndex) -> (usize, usize) {
-            coords::<Ty>(index.to_usize(), self.capacity)
+        pub fn coords(&self, index: Ix::EdgeIndex) -> (usize, usize) {
+            coords::<Ty>(index.as_usize(), self.capacity)
         }
 
-        pub fn set(&mut self, index: EdgeIndex, value: bool) -> bool {
-            let mut bit = self.bits.get_mut(index.to_usize()).unwrap();
+        pub fn set(&mut self, index: Ix::EdgeIndex, value: bool) -> bool {
+            let mut bit = self.bits.get_mut(index.as_usize()).unwrap();
             bit.replace(value)
         }
 
-        pub fn contains(&self, index: EdgeIndex) -> bool {
-            self.bits[index.to_usize()]
+        pub fn contains(&self, index: Ix::EdgeIndex) -> bool {
+            self.bits[index.as_usize()]
         }
     }
 
-    impl<E, Ty: EdgeType> Matrix<E, Ty> {
+    impl<E, Ty: EdgeType, Ix: Indexing> Matrix<E, Ty, Ix>
+    where
+        Ix::EdgeIndex: NumIndexType,
+    {
         pub fn with_capacity(capacity: usize) -> Self {
             let capacity = capacity.next_power_of_two();
             let inner = BitMatrix::with_capacity(capacity);
@@ -530,44 +614,44 @@ mod matrix {
             }
         }
 
-        pub fn get(&self, index: EdgeIndex) -> Option<&E> {
+        pub fn get(&self, index: Ix::EdgeIndex) -> Option<&E> {
             if self.inner.contains(index) {
                 // SAFETY: self.inner and self.data are consistent with each
                 // other. If self.inner confirms that there is an edge at given
                 // index, then the corresponding data are guaranteed to be
                 // initialized.
-                Some(unsafe { self.data[index.to_usize()].assume_init_ref() })
+                Some(unsafe { self.data[index.as_usize()].assume_init_ref() })
             } else {
                 None
             }
         }
 
-        pub fn get_mut(&mut self, index: EdgeIndex) -> Option<&mut E> {
+        pub fn get_mut(&mut self, index: Ix::EdgeIndex) -> Option<&mut E> {
             if self.inner.contains(index) {
                 // SAFETY: See Matrix::get.
-                Some(unsafe { self.data[index.to_usize()].assume_init_mut() })
+                Some(unsafe { self.data[index.as_usize()].assume_init_mut() })
             } else {
                 None
             }
         }
 
-        pub fn insert(&mut self, index: EdgeIndex, edge: E) {
+        pub fn insert(&mut self, index: Ix::EdgeIndex, edge: E) {
             if self.inner.set(index, true) {
                 // There was already an edge, that we must drop so it does not
                 // leak.
 
                 // SAFETY: See Matrix::get.
-                unsafe { self.data[index.to_usize()].assume_init_drop() };
+                unsafe { self.data[index.as_usize()].assume_init_drop() };
             }
 
             // SAFETY: Initializing value of MaybeUninit.
-            unsafe { self.data[index.to_usize()].as_mut_ptr().write(edge) };
+            unsafe { self.data[index.as_usize()].as_mut_ptr().write(edge) };
         }
 
-        pub fn remove(&mut self, index: EdgeIndex) -> Option<E> {
+        pub fn remove(&mut self, index: Ix::EdgeIndex) -> Option<E> {
             if self.inner.contains(index) {
                 self.inner.set(index, false);
-                let slot = &mut self.data[index.to_usize()];
+                let slot = &mut self.data[index.as_usize()];
                 let old = mem::replace(slot, MaybeUninit::uninit());
                 // SAFETY: See Matrix::get.
                 Some(unsafe { old.assume_init() })
@@ -576,12 +660,12 @@ mod matrix {
             }
         }
 
-        pub fn detach(&self) -> &BitMatrix<Ty> {
+        pub fn detach(&self) -> &BitMatrix<Ty, Ix> {
             &self.inner
         }
     }
 
-    impl<E, Ty> Matrix<E, Ty> {
+    impl<E, Ty, Ix> Matrix<E, Ty, Ix> {
         pub fn clear(&mut self) {
             self.clear_edges();
             self.inner.bits.clear();
@@ -600,14 +684,14 @@ mod matrix {
         }
     }
 
-    impl<E, Ty> Drop for Matrix<E, Ty> {
+    impl<E, Ty, Ix> Drop for Matrix<E, Ty, Ix> {
         fn drop(&mut self) {
             self.clear_edges()
         }
     }
 
-    impl<E, Ty: EdgeType> Deref for Matrix<E, Ty> {
-        type Target = BitMatrix<Ty>;
+    impl<E, Ty: EdgeType, Ix> Deref for Matrix<E, Ty, Ix> {
+        type Target = BitMatrix<Ty, Ix>;
 
         fn deref(&self) -> &Self::Target {
             &self.inner
@@ -618,16 +702,17 @@ mod matrix {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::index::DefaultIndexing;
     use crate::marker::{Directed, Undirected};
     use crate::storage::tests::*;
 
     #[test]
     fn basic_undirected() {
-        test_basic::<Undirected, AdjMatrix<_, _, _>>();
+        test_basic::<Undirected, AdjMatrix<_, _, _, DefaultIndexing>>();
     }
 
     #[test]
     fn basic_directed() {
-        test_basic::<Directed, AdjMatrix<_, _, _>>();
+        test_basic::<Directed, AdjMatrix<_, _, _, DefaultIndexing>>();
     }
 }

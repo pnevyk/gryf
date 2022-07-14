@@ -1,16 +1,17 @@
 use std::ops::Deref;
 
-use crate::index::{EdgeIndex, VertexIndex};
+use crate::index::{EdgeIndex, NumIndexType, VertexIndex};
 use crate::infra::CompactIndexMap;
 use crate::marker::{Direction, EdgeType};
 use crate::traits::*;
 use crate::{
-    Edges, EdgesBase, EdgesBaseWeak, EdgesWeak, Guarantee, Neighbors, Vertices, VerticesBase,
-    VerticesBaseWeak, VerticesWeak,
+    Edges, EdgesBase, EdgesBaseWeak, EdgesWeak, GraphBase, Guarantee, Neighbors, Vertices,
+    VerticesBase, VerticesBaseWeak, VerticesWeak,
 };
 
 #[derive(
     Debug,
+    GraphBase,
     VerticesBase,
     Vertices,
     EdgesBase,

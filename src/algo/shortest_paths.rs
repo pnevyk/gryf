@@ -1,14 +1,15 @@
 use std::cmp::{max, Reverse};
 use std::collections::{hash_map::Entry, BinaryHeap, HashSet};
+use std::fmt;
 use std::hash::BuildHasherDefault;
 
-use rustc_hash::{FxHashMap, FxHashSet, FxHasher};
+use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::index::{EdgeIndex, IndexType, VertexIndex, Virtual};
+use crate::index::Virtual;
 use crate::infra::VisitSet;
 use crate::marker::{EdgeType, Outgoing};
-use crate::traits::*;
 use crate::weight::Weighted;
+use crate::{traits::*, NumIndexType};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
@@ -21,35 +22,33 @@ pub enum Algo {
 pub enum Error {
     NegativeWeight,
     NegativeCycle,
+    EdgeNotAvailable,
 }
 
-#[derive(Debug)]
-pub struct ShortestPaths<W> {
-    start: VertexIndex,
+pub struct ShortestPaths<W, G: GraphBase> {
+    start: G::VertexIndex,
     // Using HashMaps because the algorithm supports early termination when
     // reaching given goal. It is likely that reaching goal means visiting a
     // subgraph which is significantly smaller than the original graph.
-    dist: FxHashMap<VertexIndex, W>,
-    pred: FxHashMap<VertexIndex, VertexIndex>,
+    dist: FxHashMap<G::VertexIndex, W>,
+    pred: FxHashMap<G::VertexIndex, G::VertexIndex>,
 }
 
-impl<W> ShortestPaths<W>
+impl<W, G> ShortestPaths<W, G>
 where
+    G: GraphBase,
     W: Weight,
 {
-    pub fn run_algo<E, Ty: EdgeType, G, F>(
+    pub fn run_algo<E, Ty: EdgeType, F>(
         graph: &G,
-        start: VertexIndex,
-        goal: Option<VertexIndex>,
+        start: G::VertexIndex,
+        goal: Option<G::VertexIndex>,
         edge_weight: F,
         algo: Option<Algo>,
-    ) -> Result<Self, Error>
+    ) -> Result<ShortestPaths<W, G>, Error>
     where
-        G: VerticesBase
-            + Edges<E, Ty>
-            + VerticesBaseWeak
-            + EdgesWeak<E, Ty, EdgeIndex = EdgeIndex>
-            + Neighbors,
+        G: VerticesBase + Edges<E, Ty> + VerticesBaseWeak + EdgesWeak<E, Ty> + Neighbors,
+        G::VertexIndex: NumIndexType,
         F: Fn(&E) -> W,
     {
         let algo = algo.unwrap_or_else(|| {
@@ -81,57 +80,61 @@ where
         }
     }
 
-    pub fn run<E, Ty: EdgeType, G, F>(
+    pub fn run<E, Ty: EdgeType, F>(
         graph: &G,
-        start: VertexIndex,
-        goal: Option<VertexIndex>,
+        start: G::VertexIndex,
+        goal: Option<G::VertexIndex>,
         edge_weight: F,
-    ) -> Result<Self, Error>
+    ) -> Result<ShortestPaths<W, G>, Error>
     where
-        G: VerticesBase
-            + Edges<E, Ty>
-            + VerticesBaseWeak
-            + EdgesWeak<E, Ty, EdgeIndex = EdgeIndex>
-            + Neighbors,
+        G: VerticesBase + Edges<E, Ty> + VerticesBaseWeak + EdgesWeak<E, Ty> + Neighbors,
+        G::VertexIndex: NumIndexType,
         F: Fn(&E) -> W,
     {
         Self::run_algo(graph, start, goal, edge_weight, None)
     }
 
-    pub fn run_dijkstra<E, Ty: EdgeType, G, F>(
+    pub fn run_dijkstra<E, Ty: EdgeType, F>(
         graph: &G,
-        start: VertexIndex,
-        goal: Option<VertexIndex>,
+        start: G::VertexIndex,
+        goal: Option<G::VertexIndex>,
         edge_weight: F,
-    ) -> Result<Self, Error>
+    ) -> Result<ShortestPaths<W, G>, Error>
     where
-        G: VerticesBaseWeak + EdgesWeak<E, Ty, EdgeIndex = EdgeIndex> + Neighbors,
+        G: VerticesBaseWeak + EdgesWeak<E, Ty> + Neighbors,
         F: Fn(&E) -> W,
     {
         dijkstra(graph, start, goal, edge_weight)
     }
 
-    pub fn run_bellman_ford<E, Ty: EdgeType, G, F>(
+    pub fn run_bellman_ford<E, Ty: EdgeType, F>(
         graph: &G,
-        start: VertexIndex,
+        start: G::VertexIndex,
         edge_weight: F,
-    ) -> Result<Self, Error>
+    ) -> Result<ShortestPaths<W, G>, Error>
     where
         G: VerticesBase + Edges<E, Ty>,
+        G::VertexIndex: NumIndexType,
         F: Fn(&E) -> W,
     {
         bellman_ford(graph, start, edge_weight)
     }
+}
 
-    pub fn start(&self) -> VertexIndex {
-        self.start
+impl<W, G> ShortestPaths<W, G>
+where
+    W: Weight,
+    G: GraphBase,
+{
+    pub fn start(&self) -> &G::VertexIndex {
+        &self.start
     }
 
-    pub fn dist(&self, from: VertexIndex) -> Option<&W> {
-        self.dist.get(&from)
+    pub fn dist(&self, from: &G::VertexIndex) -> Option<&W> {
+        self.dist.get(from)
     }
 
-    pub fn reconstruct(&self, from: VertexIndex) -> PathReconstruction<'_> {
+    pub fn reconstruct(&self, from: G::VertexIndex) -> PathReconstruction<'_, G> {
         PathReconstruction {
             curr: from,
             pred: &self.pred,
@@ -139,17 +142,31 @@ where
     }
 }
 
-pub struct PathReconstruction<'a> {
-    curr: VertexIndex,
-    pred: &'a FxHashMap<VertexIndex, VertexIndex>,
+impl<W, G: GraphBase> fmt::Debug for ShortestPaths<W, G>
+where
+    W: fmt::Debug,
+    G::VertexIndex: fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ShortestPaths")
+            .field("start", &self.start)
+            .field("dist", &self.dist)
+            .field("pred", &self.pred)
+            .finish()
+    }
 }
 
-impl<'a> Iterator for PathReconstruction<'a> {
-    type Item = VertexIndex;
+pub struct PathReconstruction<'a, G: GraphBase> {
+    curr: G::VertexIndex,
+    pred: &'a FxHashMap<G::VertexIndex, G::VertexIndex>,
+}
+
+impl<'a, G: GraphBase> Iterator for PathReconstruction<'a, G> {
+    type Item = G::VertexIndex;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.curr = self.pred.get(&self.curr).copied()?;
-        Some(self.curr)
+        self.curr = self.pred.get(&self.curr).cloned()?;
+        Some(self.curr.clone())
     }
 }
 
@@ -163,12 +180,12 @@ pub fn unit<E>(_edge: &E) -> usize {
 
 fn dijkstra<E, Ty: EdgeType, G, W, F>(
     graph: &G,
-    start: VertexIndex,
-    goal: Option<VertexIndex>,
+    start: G::VertexIndex,
+    goal: Option<G::VertexIndex>,
     edge_weight: F,
-) -> Result<ShortestPaths<W>, Error>
+) -> Result<ShortestPaths<W, G>, Error>
 where
-    G: VerticesBaseWeak + EdgesWeak<E, Ty, EdgeIndex = EdgeIndex> + Neighbors,
+    G: VerticesBaseWeak + EdgesWeak<E, Ty> + Neighbors,
     W: Weight,
     F: Fn(&E) -> W,
 {
@@ -178,20 +195,20 @@ where
     // original graph.
     let mut visited: FxHashSet<_> = HashSet::with_capacity_and_hasher(
         graph.vertex_count_hint().unwrap_or(32),
-        BuildHasherDefault::<FxHasher>::default(),
+        BuildHasherDefault::default(),
     );
 
     let mut dist = FxHashMap::default();
     let mut pred = FxHashMap::default();
     let mut queue = BinaryHeap::new();
 
-    dist.insert(start, W::zero());
-    queue.push(Reverse(Weighted(start, W::zero())));
+    dist.insert(start.clone(), W::zero());
+    queue.push(Reverse(Weighted(start.clone(), W::zero())));
 
     while let Some(Reverse(Weighted(vertex, vertex_dist))) = queue.pop() {
         // This can happen due to duplication of vertices when doing relaxation
         // in our implementation.
-        if visited.is_visited(vertex) {
+        if visited.is_visited(&vertex) {
             continue;
         }
 
@@ -199,15 +216,17 @@ where
             break;
         }
 
-        for neighbor in graph.neighbors_directed(vertex, Outgoing) {
-            let edge = graph.edge_weak(neighbor.edge()).unwrap();
-            let next = neighbor.index();
+        for neighbor in graph.neighbors_directed(&vertex, Outgoing) {
+            let edge = graph
+                .edge_weak(&neighbor.edge())
+                .ok_or(Error::EdgeNotAvailable)?;
+            let next = neighbor.index().into_owned();
 
-            if visited.is_visited(next) {
+            if visited.is_visited(&next) {
                 continue;
             }
 
-            let edge_dist = edge_weight(edge.as_ref());
+            let edge_dist = edge_weight(&edge);
 
             // The check for unsignedness should eliminate the negativity weight
             // check, because the implementation of `is_unsigned` method is
@@ -218,7 +237,7 @@ where
 
             let next_dist = vertex_dist.clone() + edge_dist;
 
-            match dist.entry(next) {
+            match dist.entry(next.clone()) {
                 Entry::Occupied(curr_dist) => {
                     // Relaxation operation. If the distance is better than what
                     // we had so far, update it.
@@ -228,19 +247,19 @@ where
                         // priority of `next`. Adding it as a new item causes
                         // duplicities which is unfortunate for dense graphs,
                         // but should be fine in practice.
-                        queue.push(Reverse(Weighted(next, next_dist)));
-                        pred.insert(next, vertex);
+                        queue.push(Reverse(Weighted(next.clone(), next_dist)));
+                        pred.insert(next, vertex.clone());
                     }
                 }
                 Entry::Vacant(slot) => {
                     slot.insert(next_dist.clone());
-                    queue.push(Reverse(Weighted(next, next_dist)));
-                    pred.insert(next, vertex);
+                    queue.push(Reverse(Weighted(next.clone(), next_dist)));
+                    pred.insert(next, vertex.clone());
                 }
             }
 
             // The vertex is finished.
-            visited.visit(vertex);
+            visited.visit(vertex.clone());
         }
     }
 
@@ -249,11 +268,12 @@ where
 
 fn bellman_ford<E, Ty: EdgeType, G, W, F>(
     graph: &G,
-    start: VertexIndex,
+    start: G::VertexIndex,
     edge_weight: F,
-) -> Result<ShortestPaths<W>, Error>
+) -> Result<ShortestPaths<W, G>, Error>
 where
     G: VerticesBase + Edges<E, Ty>,
+    G::VertexIndex: NumIndexType,
     W: Weight,
     F: Fn(&E) -> W,
 {
@@ -262,7 +282,7 @@ where
     let mut dist = vec![W::inf(); vertex_map.len()];
     let mut pred = vec![Virtual::null(); vertex_map.len()];
 
-    dist[vertex_map.virt(start).unwrap().to_usize()] = W::zero();
+    dist[vertex_map.virt(start).unwrap().as_usize()] = W::zero();
 
     let mut terminated_early = false;
 
@@ -271,16 +291,16 @@ where
         let mut relaxed = false;
 
         for edge in graph.edges() {
-            let u = vertex_map.virt(edge.src()).unwrap();
-            let v = vertex_map.virt(edge.dst()).unwrap();
+            let u = vertex_map.virt(*edge.src()).unwrap();
+            let v = vertex_map.virt(*edge.dst()).unwrap();
 
             let edge_dist = edge_weight(edge.data());
-            let next_dist = dist[u.to_usize()].clone() + edge_dist;
+            let next_dist = dist[u.as_usize()].clone() + edge_dist;
 
             // Relax if better.
-            if next_dist < dist[v.to_usize()] {
-                dist[v.to_usize()] = next_dist;
-                pred[v.to_usize()] = u;
+            if next_dist < dist[v.as_usize()] {
+                dist[v.as_usize()] = next_dist;
+                pred[v.as_usize()] = u;
                 relaxed = true;
             }
         }
@@ -297,12 +317,12 @@ where
     // the absence of cycle if guaranteed.
     if !terminated_early {
         for edge in graph.edges() {
-            let u = vertex_map.virt(edge.src()).unwrap();
-            let v = vertex_map.virt(edge.dst()).unwrap();
+            let u = vertex_map.virt(*edge.src()).unwrap();
+            let v = vertex_map.virt(*edge.dst()).unwrap();
 
             let edge_dist = edge_weight(edge.data());
 
-            if dist[u.to_usize()].clone() + edge_dist < dist[v.to_usize()] {
+            if dist[u.as_usize()].clone() + edge_dist < dist[v.as_usize()] {
                 return Err(Error::NegativeCycle);
             }
         }
@@ -313,7 +333,7 @@ where
         .enumerate()
         .filter_map(|(i, d)| {
             if d != W::inf() {
-                vertex_map.real(Virtual::new(i)).map(|u| (u, d))
+                vertex_map.real(Virtual::from(i)).map(|u| (u, d))
             } else {
                 None
             }
@@ -326,7 +346,7 @@ where
         .filter_map(|(i, p)| {
             if !p.is_null() {
                 Some((
-                    vertex_map.real(Virtual::new(i)).unwrap(),
+                    vertex_map.real(Virtual::from(i)).unwrap(),
                     vertex_map.real(p).unwrap(),
                 ))
             } else {
@@ -343,10 +363,11 @@ mod tests {
     use std::assert_matches::assert_matches;
 
     use super::*;
+    use crate::index::DefaultIndexing;
     use crate::marker::{Directed, Undirected};
     use crate::storage::AdjList;
 
-    fn create_basic_graph() -> AdjList<(), i32, Undirected> {
+    fn create_basic_graph() -> AdjList<(), i32, Undirected, DefaultIndexing> {
         let mut graph = AdjList::default();
 
         let v0 = graph.add_vertex(());
@@ -356,14 +377,14 @@ mod tests {
         let v4 = graph.add_vertex(());
         let v5 = graph.add_vertex(());
 
-        graph.add_edge(v0, v1, 3);
-        graph.add_edge(v0, v2, 2);
-        graph.add_edge(v1, v2, 2);
-        graph.add_edge(v1, v3, 2);
-        graph.add_edge(v1, v4, 7);
-        graph.add_edge(v2, v3, 5);
-        graph.add_edge(v3, v4, 3);
-        graph.add_edge(v4, v5, 10);
+        graph.add_edge(&v0, &v1, 3);
+        graph.add_edge(&v0, &v2, 2);
+        graph.add_edge(&v1, &v2, 2);
+        graph.add_edge(&v1, &v3, 2);
+        graph.add_edge(&v1, &v4, 7);
+        graph.add_edge(&v2, &v3, 5);
+        graph.add_edge(&v3, &v4, 3);
+        graph.add_edge(&v4, &v5, 10);
 
         graph
     }
@@ -371,33 +392,37 @@ mod tests {
     #[test]
     fn dijkstra_basic() {
         let graph = create_basic_graph();
-        let shortest_paths = ShortestPaths::run_dijkstra(&graph, 0.into(), None, identity).unwrap();
+        let shortest_paths =
+            ShortestPaths::run_dijkstra(&graph, 0usize.into(), None, identity).unwrap();
 
-        assert_eq!(shortest_paths.dist(4.into()), Some(&8));
+        assert_eq!(shortest_paths.dist(&4usize.into()), Some(&8));
         assert_eq!(
-            shortest_paths.reconstruct(4.into()).collect::<Vec<_>>(),
-            vec![3.into(), 1.into(), 0.into()]
+            shortest_paths
+                .reconstruct(4usize.into())
+                .collect::<Vec<_>>(),
+            vec![3usize.into(), 1usize.into(), 0usize.into()]
         );
 
-        assert_eq!(shortest_paths.dist(2.into()), Some(&2));
+        assert_eq!(shortest_paths.dist(&2usize.into()), Some(&2));
     }
 
     #[test]
     fn dijkstra_early_termination() {
         let graph = create_basic_graph();
         let shortest_paths =
-            ShortestPaths::run_dijkstra(&graph, 0.into(), Some(4.into()), identity).unwrap();
+            ShortestPaths::run_dijkstra(&graph, 0usize.into(), Some(4usize.into()), identity)
+                .unwrap();
 
-        assert!(shortest_paths.dist(5.into()).is_none());
+        assert!(shortest_paths.dist(&5usize.into()).is_none());
     }
 
     #[test]
     fn dijkstra_negative_edge() {
         let mut graph = create_basic_graph();
-        graph.replace_edge(2.into(), -1);
+        graph.replace_edge(&2usize.into(), -1);
 
         let shortest_paths =
-            ShortestPaths::run_dijkstra(&graph, 0.into(), Some(4.into()), identity);
+            ShortestPaths::run_dijkstra(&graph, 0usize.into(), Some(4usize.into()), identity);
 
         assert_matches!(shortest_paths, Err(Error::NegativeWeight));
     }
@@ -405,36 +430,42 @@ mod tests {
     #[test]
     fn bellman_ford_basic() {
         let graph = create_basic_graph();
-        let shortest_paths = ShortestPaths::run_bellman_ford(&graph, 0.into(), identity).unwrap();
+        let shortest_paths =
+            ShortestPaths::run_bellman_ford(&graph, 0usize.into(), identity).unwrap();
 
-        assert_eq!(shortest_paths.dist(4.into()), Some(&8));
+        assert_eq!(shortest_paths.dist(&4usize.into()), Some(&8));
         assert_eq!(
-            shortest_paths.reconstruct(4.into()).collect::<Vec<_>>(),
-            vec![3.into(), 1.into(), 0.into()]
+            shortest_paths
+                .reconstruct(4usize.into())
+                .collect::<Vec<_>>(),
+            vec![3usize.into(), 1usize.into(), 0usize.into()]
         );
 
-        assert_eq!(shortest_paths.dist(2.into()), Some(&2));
+        assert_eq!(shortest_paths.dist(&2usize.into()), Some(&2));
     }
 
     #[test]
     fn bellman_ford_negative_edge() {
         let mut graph = create_basic_graph();
-        graph.replace_edge(2.into(), -1);
+        graph.replace_edge(&2usize.into(), -1);
 
-        let shortest_paths = ShortestPaths::run_bellman_ford(&graph, 0.into(), identity).unwrap();
+        let shortest_paths =
+            ShortestPaths::run_bellman_ford(&graph, 0usize.into(), identity).unwrap();
 
-        assert_eq!(shortest_paths.dist(4.into()), Some(&8));
+        assert_eq!(shortest_paths.dist(&4usize.into()), Some(&8));
         assert_eq!(
-            shortest_paths.reconstruct(4.into()).collect::<Vec<_>>(),
-            vec![3.into(), 1.into(), 0.into()]
+            shortest_paths
+                .reconstruct(4usize.into())
+                .collect::<Vec<_>>(),
+            vec![3usize.into(), 1usize.into(), 0usize.into()]
         );
 
-        assert_eq!(shortest_paths.dist(2.into()), Some(&2));
+        assert_eq!(shortest_paths.dist(&2usize.into()), Some(&2));
     }
 
     #[test]
     fn bellman_ford_negative_cycle() {
-        let mut graph = AdjList::<(), i32, Directed>::new();
+        let mut graph = AdjList::<(), i32, Directed, DefaultIndexing>::new();
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -442,13 +473,13 @@ mod tests {
         let v3 = graph.add_vertex(());
         let v4 = graph.add_vertex(());
 
-        graph.add_edge(v0, v1, 3);
-        graph.add_edge(v1, v2, -2);
-        graph.add_edge(v2, v3, 2);
-        graph.add_edge(v2, v1, -2);
-        graph.add_edge(v2, v4, 3);
+        graph.add_edge(&v0, &v1, 3);
+        graph.add_edge(&v1, &v2, -2);
+        graph.add_edge(&v2, &v3, 2);
+        graph.add_edge(&v2, &v1, -2);
+        graph.add_edge(&v2, &v4, 3);
 
-        let shortest_paths = ShortestPaths::run_bellman_ford(&graph, 0.into(), identity);
+        let shortest_paths = ShortestPaths::run_bellman_ford(&graph, 0usize.into(), identity);
 
         assert_matches!(shortest_paths, Err(Error::NegativeCycle));
     }

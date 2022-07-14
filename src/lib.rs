@@ -1,8 +1,9 @@
 #![feature(generic_associated_types)]
-#![feature(associated_type_defaults)]
 #![feature(assert_matches)]
 #![feature(int_log)]
 #![feature(try_blocks)]
+#![feature(auto_traits)]
+#![feature(negative_impls)]
 
 pub mod algo;
 pub mod export;
@@ -19,8 +20,8 @@ pub mod visit;
 pub mod weight;
 
 pub use macros::{
-    Edges, EdgesBase, EdgesBaseWeak, EdgesMut, EdgesWeak, Guarantee, MultiEdges, Neighbors,
-    Vertices, VerticesBase, VerticesBaseWeak, VerticesMut, VerticesWeak,
+    Edges, EdgesBase, EdgesBaseWeak, EdgesMut, EdgesWeak, GraphBase, Guarantee, MultiEdges,
+    Neighbors, Vertices, VerticesBase, VerticesBaseWeak, VerticesMut, VerticesWeak,
 };
 
 #[cfg(feature = "arbitrary")]
@@ -31,7 +32,9 @@ pub mod proptest;
 
 pub mod testing;
 
-pub use index::{EdgeIndex, IndexType, VertexIndex, Virtual};
+pub use index::{
+    DefaultIndexing, EdgeIndex, IndexType, Indexing, NumIndexType, VertexIndex, Virtual,
+};
 
 pub mod prelude {
     pub use crate::graph::Graph;

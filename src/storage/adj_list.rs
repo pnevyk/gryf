@@ -1,22 +1,23 @@
+use std::fmt;
 use std::marker::PhantomData;
 
 use super::shared::AdjVertex as Vertex;
 pub use super::shared::{AdjVerticesIter as VerticesIter, EdgesIter, RangeIndices};
-use crate::index::{EdgeIndex, IndexType, VertexIndex};
+use crate::index::{Indexing, NumIndexType};
 use crate::infra::CompactIndexMap;
 use crate::marker::{Direction, EdgeType};
 use crate::traits::*;
 use crate::{EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak};
 
-#[derive(Debug, VerticesBaseWeak, VerticesWeak, EdgesBaseWeak, EdgesWeak)]
-pub struct AdjList<V, E, Ty> {
-    vertices: Vec<Vertex<V>>,
+#[derive(VerticesBaseWeak, VerticesWeak, EdgesBaseWeak, EdgesWeak, Clone, PartialEq, Eq)]
+pub struct AdjList<V, E, Ty, Ix: Indexing> {
+    vertices: Vec<Vertex<Ix, V>>,
     edges: Vec<E>,
-    endpoints: Vec<[VertexIndex; 2]>,
-    ty: PhantomData<Ty>,
+    endpoints: Vec<[Ix::VertexIndex; 2]>,
+    ty: PhantomData<fn() -> (Ty, Ix)>,
 }
 
-impl<V, E, Ty: EdgeType> AdjList<V, E, Ty> {
+impl<V, E, Ty: EdgeType, Ix: Indexing> AdjList<V, E, Ty, Ix> {
     pub fn new() -> Self {
         Self {
             vertices: Vec::new(),
@@ -25,9 +26,19 @@ impl<V, E, Ty: EdgeType> AdjList<V, E, Ty> {
             ty: PhantomData,
         }
     }
+}
 
-    fn remove_edge_inner(&mut self, index: EdgeIndex, cause: Option<VertexIndex>) -> Option<E> {
-        let endpoints = self.endpoints.get(index.to_usize())?;
+impl<V, E, Ty: EdgeType, Ix: Indexing> AdjList<V, E, Ty, Ix>
+where
+    Ix::VertexIndex: NumIndexType,
+    Ix::EdgeIndex: NumIndexType,
+{
+    fn remove_edge_inner(
+        &mut self,
+        index: Ix::EdgeIndex,
+        cause: Option<Ix::VertexIndex>,
+    ) -> Option<E> {
+        let endpoints = self.endpoints.get(index.as_usize())?;
 
         for (i, dir) in Self::directions().iter().enumerate() {
             let endpoint = endpoints[i];
@@ -37,32 +48,32 @@ impl<V, E, Ty: EdgeType> AdjList<V, E, Ty> {
             // to remove it.
             if Some(endpoint) != cause {
                 Self::disconnect(
-                    &mut self.vertices[endpoint.to_usize()].edges[dir.index()],
+                    &mut self.vertices[endpoint.as_usize()].edges[dir.index()],
                     index,
                 );
             }
         }
 
         // Remove the edge from the graph.
-        let edge = self.edges.swap_remove(index.to_usize());
-        self.endpoints.swap_remove(index.to_usize());
+        let edge = self.edges.swap_remove(index.as_usize());
+        self.endpoints.swap_remove(index.as_usize());
 
         // If `swap_remove` actually moved an existing edge somewhere, we need
         // to fix its index in the entire graph.
-        if index.to_usize() < self.edges.len() {
-            self.relocate_edge(self.edges.len().into(), index);
+        if index.as_usize() < self.edges.len() {
+            self.relocate_edge(NumIndexType::from_usize(self.edges.len()), index);
         }
 
         Some(edge)
     }
 
-    fn relocate_vertex(&mut self, old_index: VertexIndex, new_index: VertexIndex) {
-        let vertex = &mut self.vertices[new_index.to_usize()];
+    fn relocate_vertex(&mut self, old_index: Ix::VertexIndex, new_index: Ix::VertexIndex) {
+        let vertex = &mut self.vertices[new_index.as_usize()];
 
         // Fix the index of the vertex in all edges it has.
         for dir in Ty::directions() {
-            for edge_index in vertex.edges[dir.index()].iter().copied() {
-                let endpoints = &mut self.endpoints[edge_index.to_usize()];
+            for edge_index in vertex.edges[dir.index()].iter() {
+                let endpoints = &mut self.endpoints[edge_index.as_usize()];
                 for endpoint in endpoints.iter_mut() {
                     if *endpoint == old_index {
                         *endpoint = new_index;
@@ -72,12 +83,12 @@ impl<V, E, Ty: EdgeType> AdjList<V, E, Ty> {
         }
     }
 
-    fn relocate_edge(&mut self, old_index: EdgeIndex, new_index: EdgeIndex) {
-        let endpoints = &mut self.endpoints[new_index.to_usize()];
+    fn relocate_edge(&mut self, old_index: Ix::EdgeIndex, new_index: Ix::EdgeIndex) {
+        let endpoints = &mut self.endpoints[new_index.as_usize()];
 
         // Fix the index of the edge in all vertices it is incident with.
         for i in 0..=1 {
-            let vertex = &mut self.vertices[endpoints[i].to_usize()];
+            let vertex = &mut self.vertices[endpoints[i].as_usize()];
 
             for dir in Ty::directions() {
                 for edge_index in &mut vertex.edges[dir.index()] {
@@ -95,7 +106,7 @@ impl<V, E, Ty: EdgeType> AdjList<V, E, Ty> {
         }
     }
 
-    fn disconnect(edges: &mut Vec<EdgeIndex>, index: EdgeIndex) {
+    fn disconnect(edges: &mut Vec<Ix::EdgeIndex>, index: Ix::EdgeIndex) {
         for i in 0..edges.len() {
             if edges[i] == index {
                 edges.swap_remove(i);
@@ -113,14 +124,41 @@ impl<V, E, Ty: EdgeType> AdjList<V, E, Ty> {
     }
 }
 
-impl<V, E, Ty: EdgeType> Default for AdjList<V, E, Ty> {
+impl<V, E, Ty: EdgeType, Ix: Indexing> Default for AdjList<V, E, Ty, Ix> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<V, E, Ty: EdgeType> VerticesBase for AdjList<V, E, Ty> {
-    type VertexIndicesIter<'a> = RangeIndices<VertexIndex>
+impl<V, E, Ty, Ix> fmt::Debug for AdjList<V, E, Ty, Ix>
+where
+    V: fmt::Debug,
+    E: fmt::Debug,
+    Ty: fmt::Debug,
+    Ix: Indexing,
+    Ix::VertexIndex: fmt::Debug,
+    Ix::EdgeIndex: fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("AdjList")
+            .field("vertices", &self.vertices)
+            .field("edges", &self.edges)
+            .field("endpoints", &self.endpoints)
+            .field("ty", &self.ty)
+            .finish()
+    }
+}
+
+impl<V, E, Ty: EdgeType, Ix: Indexing> GraphBase for AdjList<V, E, Ty, Ix> {
+    type VertexIndex = Ix::VertexIndex;
+    type EdgeIndex = Ix::EdgeIndex;
+}
+
+impl<V, E, Ty: EdgeType, Ix: Indexing> VerticesBase for AdjList<V, E, Ty, Ix>
+where
+    Ix::VertexIndex: NumIndexType,
+{
+    type VertexIndicesIter<'a> = RangeIndices<Self::VertexIndex>
     where
         Self: 'a;
 
@@ -136,49 +174,59 @@ impl<V, E, Ty: EdgeType> VerticesBase for AdjList<V, E, Ty> {
         (0..self.vertex_bound()).into()
     }
 
-    fn vertex_index_map(&self) -> CompactIndexMap<VertexIndex> {
+    fn vertex_index_map(&self) -> CompactIndexMap<Self::VertexIndex>
+    where
+        Self::VertexIndex: NumIndexType,
+    {
         CompactIndexMap::isomorphic(self.vertex_count())
     }
 }
 
-impl<V, E, Ty: EdgeType> Vertices<V> for AdjList<V, E, Ty> {
-    type VertexRef<'a, T: 'a> = (VertexIndex, &'a T)
+impl<V, E, Ty: EdgeType, Ix: Indexing> Vertices<V> for AdjList<V, E, Ty, Ix>
+where
+    Ix::VertexIndex: NumIndexType,
+{
+    type VertexRef<'a> = (Self::VertexIndex, &'a V)
     where
         Self: 'a;
 
-    type VerticesIter<'a, T: 'a> = VerticesIter<'a, T>
+    type VerticesIter<'a> = VerticesIter<'a, Ix, V>
     where
         Self: 'a;
 
-    fn vertex(&self, index: VertexIndex) -> Option<&V> {
+    fn vertex(&self, index: &Self::VertexIndex) -> Option<&V> {
         self.vertices
-            .get(index.to_usize())
+            .get(index.as_usize())
             .map(|vertex| &vertex.data)
     }
 
-    fn vertices(&self) -> Self::VerticesIter<'_, V> {
+    fn vertices(&self) -> Self::VerticesIter<'_> {
         VerticesIter::new(self.vertices.iter())
     }
 }
 
-impl<V, E, Ty: EdgeType> VerticesMut<V> for AdjList<V, E, Ty> {
-    fn vertex_mut(&mut self, index: VertexIndex) -> Option<&mut V> {
+impl<V, E, Ty: EdgeType, Ix: Indexing> VerticesMut<V> for AdjList<V, E, Ty, Ix>
+where
+    Ix::VertexIndex: NumIndexType,
+    Ix::EdgeIndex: NumIndexType,
+{
+    fn vertex_mut(&mut self, index: &Self::VertexIndex) -> Option<&mut V> {
         self.vertices
-            .get_mut(index.to_usize())
+            .get_mut(index.as_usize())
             .map(|vertex| &mut vertex.data)
     }
 
-    fn add_vertex(&mut self, vertex: V) -> VertexIndex {
-        let index = self.vertices.len();
+    fn add_vertex(&mut self, vertex: V) -> Self::VertexIndex {
+        let index = self.vertices.len() as u64;
         self.vertices.push(Vertex::new(vertex));
         index.into()
     }
 
-    fn remove_vertex(&mut self, index: VertexIndex) -> Option<V> {
+    fn remove_vertex(&mut self, index: &Self::VertexIndex) -> Option<V> {
         for dir in Ty::directions() {
             // Remove all edges connected to this vertex in this direction.
             loop {
-                let vertex = self.vertices.get_mut(index.to_usize())?;
+                let vertex = self.vertices.get_mut(index.as_usize())?;
                 if vertex.edges[dir.index()].is_empty() {
                     break;
                 }
@@ -186,17 +234,17 @@ impl<V, E, Ty: EdgeType> VerticesMut<V> for AdjList<V, E, Ty> {
                 // Remove the edge from the list of this vertex.
                 let edge_index = vertex.edges[dir.index()].swap_remove(0);
                 // Remove the edge from the whole graph.
-                self.remove_edge_inner(edge_index, Some(index));
+                self.remove_edge_inner(edge_index, Some(*index));
             }
         }
 
         // Remove the vertex from the graph.
-        let vertex = self.vertices.swap_remove(index.to_usize());
+        let vertex = self.vertices.swap_remove(index.as_usize());
 
         // If `swap_remove` actually moved an existing vertex somewhere, we need
         // to fix its index in the entire graph.
-        if index.to_usize() < self.vertices.len() {
-            self.relocate_vertex(self.vertices.len().into(), index);
+        if index.as_usize() < self.vertices.len() {
+            self.relocate_vertex(NumIndexType::from_usize(self.vertices.len()), *index);
         }
 
         Some(vertex.data)
@@ -209,8 +257,12 @@ impl<V, E, Ty: EdgeType> VerticesMut<V> for AdjList<V, E, Ty> {
     }
 }
 
-impl<V, E, Ty: EdgeType> EdgesBase<Ty> for AdjList<V, E, Ty> {
-    type EdgeIndicesIter<'a> = RangeIndices<EdgeIndex>
+impl<V, E, Ty: EdgeType, Ix: Indexing> EdgesBase<Ty> for AdjList<V, E, Ty, Ix>
+where
+    Ix::VertexIndex: NumIndexType,
+    Ix::EdgeIndex: NumIndexType,
+{
+    type EdgeIndicesIter<'a> = RangeIndices<Self::EdgeIndex>
     where
         Self: 'a;
 
@@ -222,21 +274,25 @@ impl<V, E, Ty: EdgeType> EdgesBase<Ty> for AdjList<V, E, Ty> {
         self.edge_count()
     }
 
-    fn endpoints(&self, index: EdgeIndex) -> Option<(VertexIndex, VertexIndex)> {
+    fn endpoints(&self, index: &Self::EdgeIndex) -> Option<(Self::VertexIndex, Self::VertexIndex)> {
         self.endpoints
-            .get(index.to_usize())
+            .get(index.as_usize())
             .map(|endpoints| (endpoints[0], endpoints[1]))
     }
 
-    fn edge_index(&self, src: VertexIndex, dst: VertexIndex) -> Option<EdgeIndex> {
+    fn edge_index(
+        &self,
+        src: &Self::VertexIndex,
+        dst: &Self::VertexIndex,
+    ) -> Option<Self::EdgeIndex> {
         self.vertices
-            .get(src.to_usize())
+            .get(src.as_usize())
             .and_then(|src| {
                 src.edges[Direction::Outgoing.index()]
                     .iter()
                     .find(|edge_index| {
-                        let endpoints = &self.endpoints[edge_index.to_usize()];
-                        endpoints[1] == dst || (!Ty::is_directed() && endpoints[0] == dst)
+                        let endpoints = &self.endpoints[edge_index.as_usize()];
+                        endpoints[1] == *dst || (!Ty::is_directed() && endpoints[0] == *dst)
                     })
             })
             .copied()
@@ -246,57 +302,73 @@ impl<V, E, Ty: EdgeType> EdgesBase<Ty> for AdjList<V, E, Ty> {
         (0..self.edge_bound()).into()
     }
 
-    fn edge_index_map(&self) -> CompactIndexMap<EdgeIndex> {
+    fn edge_index_map(&self) -> CompactIndexMap<Self::EdgeIndex>
+    where
+        Self::EdgeIndex: NumIndexType,
+    {
         CompactIndexMap::isomorphic(self.edge_count())
     }
 }
 
-impl<V, E, Ty: EdgeType> Edges<E, Ty> for AdjList<V, E, Ty> {
-    type EdgeRef<'a, T: 'a> = (EdgeIndex, &'a T, VertexIndex, VertexIndex)
+impl<V, E, Ty: EdgeType, Ix: Indexing> Edges<E, Ty> for AdjList<V, E, Ty, Ix>
+where
+    Ix::VertexIndex: NumIndexType,
+    Ix::EdgeIndex: NumIndexType,
+{
+    type EdgeRef<'a> = (Self::EdgeIndex, &'a E, Self::VertexIndex, Self::VertexIndex)
     where
         Self: 'a;
 
-    type EdgesIter<'a, T: 'a> = EdgesIter<'a, T>
+    type EdgesIter<'a> = EdgesIter<'a, Ix, E>
     where
         Self: 'a;
 
-    fn edge(&self, index: EdgeIndex) -> Option<&E> {
-        self.edges.get(index.to_usize())
+    fn edge(&self, index: &Self::EdgeIndex) -> Option<&E> {
+        self.edges.get(index.as_usize())
     }
 
-    fn edges(&self) -> Self::EdgesIter<'_, E> {
+    fn edges(&self) -> Self::EdgesIter<'_> {
         EdgesIter::new(self.edges.iter(), self.endpoints.iter())
     }
 }
 
-impl<V, E, Ty: EdgeType> EdgesMut<E, Ty> for AdjList<V, E, Ty> {
-    fn edge_mut(&mut self, index: EdgeIndex) -> Option<&mut E> {
-        self.edges.get_mut(index.to_usize())
+impl<V, E, Ty: EdgeType, Ix: Indexing> EdgesMut<E, Ty> for AdjList<V, E, Ty, Ix>
+where
+    Ix::VertexIndex: NumIndexType,
+    Ix::EdgeIndex: NumIndexType,
+{
+    fn edge_mut(&mut self, index: &Self::EdgeIndex) -> Option<&mut E> {
+        self.edges.get_mut(index.as_usize())
     }
 
-    fn add_edge(&mut self, src: VertexIndex, dst: VertexIndex, edge: E) -> EdgeIndex {
+    fn add_edge(
+        &mut self,
+        src: &Self::VertexIndex,
+        dst: &Self::VertexIndex,
+        edge: E,
+    ) -> Self::EdgeIndex {
         assert!(
-            src.to_usize() < self.vertices.len(),
+            src.as_usize() < self.vertices.len(),
             "src vertex does not exist"
         );
         assert!(
-            dst.to_usize() < self.vertices.len(),
+            dst.as_usize() < self.vertices.len(),
             "dst vertex does not exist"
         );
 
-        let index = self.edges.len().into();
+        let index = NumIndexType::from_usize(self.edges.len());
         self.edges.push(edge);
-        self.endpoints.push([src, dst]);
+        self.endpoints.push([*src, *dst]);
 
         let directions = Self::directions();
-        self.vertices[src.to_usize()].edges[directions[0].index()].push(index);
-        self.vertices[dst.to_usize()].edges[directions[1].index()].push(index);
+        self.vertices[src.as_usize()].edges[directions[0].index()].push(index);
+        self.vertices[dst.as_usize()].edges[directions[1].index()].push(index);
 
         index
     }
 
-    fn remove_edge(&mut self, index: EdgeIndex) -> Option<E> {
-        self.remove_edge_inner(index, None)
+    fn remove_edge(&mut self, index: &Self::EdgeIndex) -> Option<E> {
+        self.remove_edge_inner(*index, None)
     }
 
     fn clear_edges(&mut self) {
@@ -305,57 +377,69 @@ impl<V, E, Ty: EdgeType> EdgesMut<E, Ty> for AdjList<V, E, Ty> {
     }
 }
 
-impl<V, E, Ty: EdgeType> MultiEdges<E, Ty> for AdjList<V, E, Ty> {
-    type MultiEdgeIndicesIter<'a> = MultiEdgeIndicesIter<'a>
+impl<V, E, Ty: EdgeType, Ix: Indexing> MultiEdges<E, Ty> for AdjList<V, E, Ty, Ix>
+where
+    Ix::VertexIndex: NumIndexType,
+    Ix::EdgeIndex: NumIndexType,
+{
+    type MultiEdgeIndicesIter<'a> = MultiEdgeIndicesIter<'a, Ix>
     where
         Self: 'a;
 
     fn multi_edge_index(
         &self,
-        src: VertexIndex,
-        dst: VertexIndex,
+        src: &Self::VertexIndex,
+        dst: &Self::VertexIndex,
     ) -> Self::MultiEdgeIndicesIter<'_> {
         let vertex = self
             .vertices
-            .get(src.to_usize())
+            .get(src.as_usize())
             .expect("vertex does not exist");
 
         MultiEdgeIndicesIter {
-            src,
-            dst,
+            src: *src,
+            dst: *dst,
             edges: &vertex.edges[0],
             endpoints: self.endpoints.as_slice(),
         }
     }
 }
 
-impl<V, E, Ty: EdgeType> Neighbors for AdjList<V, E, Ty> {
-    type NeighborRef<'a> = (VertexIndex, EdgeIndex, VertexIndex, Direction)
+impl<V, E, Ty: EdgeType, Ix: Indexing> Neighbors for AdjList<V, E, Ty, Ix>
+where
+    Ix::VertexIndex: NumIndexType,
+    Ix::EdgeIndex: NumIndexType,
+{
+    type NeighborRef<'a> = (Self::VertexIndex, Self::EdgeIndex, Self::VertexIndex, Direction)
     where
         Self: 'a;
 
-    type NeighborsIter<'a> = NeighborsIter<'a>
+    type NeighborsIter<'a> = NeighborsIter<'a, Ix>
     where
         Self: 'a;
 
-    fn neighbors(&self, src: VertexIndex) -> Self::NeighborsIter<'_> {
+    fn neighbors(&self, src: &Self::VertexIndex) -> Self::NeighborsIter<'_> {
         let vertex = self
             .vertices
-            .get(src.to_usize())
+            .get(src.as_usize())
             .expect("vertex does not exist");
 
         NeighborsIter {
-            src,
+            src: *src,
             edges: [&vertex.edges[0], &vertex.edges[1]],
             endpoints: self.endpoints.as_slice(),
             dir: 0,
         }
     }
 
-    fn neighbors_directed(&self, src: VertexIndex, dir: Direction) -> Self::NeighborsIter<'_> {
+    fn neighbors_directed(
+        &self,
+        src: &Self::VertexIndex,
+        dir: Direction,
+    ) -> Self::NeighborsIter<'_> {
         let vertex = self
             .vertices
-            .get(src.to_usize())
+            .get(src.as_usize())
             .expect("vertex does not exist");
 
         let adj_dir = if !Ty::is_directed() {
@@ -367,11 +451,11 @@ impl<V, E, Ty: EdgeType> Neighbors for AdjList<V, E, Ty> {
             dir
         };
 
-        let mut edges: [&[EdgeIndex]; 2] = [&[], &[]];
+        let mut edges: [&[Self::EdgeIndex]; 2] = [&[], &[]];
         edges[dir.index()] = &vertex.edges[adj_dir.index()];
 
         NeighborsIter {
-            src,
+            src: *src,
             edges,
             endpoints: self.endpoints.as_slice(),
             dir: dir.index(),
@@ -379,7 +463,11 @@ impl<V, E, Ty: EdgeType> Neighbors for AdjList<V, E, Ty> {
     }
 }
 
-impl<V, E, Ty: EdgeType> Create<V, E, Ty> for AdjList<V, E, Ty> {
+impl<V, E, Ty: EdgeType, Ix: Indexing> Create<V, E, Ty> for AdjList<V, E, Ty, Ix>
+where
+    Ix::VertexIndex: NumIndexType,
+    Ix::EdgeIndex: NumIndexType,
+{
     fn with_capacity(vertex_count: usize, edge_count: usize) -> Self {
         Self {
             vertices: Vec::with_capacity(vertex_count),
@@ -390,24 +478,28 @@ impl<V, E, Ty: EdgeType> Create<V, E, Ty> for AdjList<V, E, Ty> {
     }
 }
 
-impl<V, E, Ty: EdgeType> Guarantee for AdjList<V, E, Ty> {}
+impl<V, E, Ty: EdgeType, Ix: Indexing> Guarantee for AdjList<V, E, Ty, Ix> {}
 
-pub struct MultiEdgeIndicesIter<'a> {
-    src: VertexIndex,
-    dst: VertexIndex,
-    edges: &'a [EdgeIndex],
-    endpoints: &'a [[VertexIndex; 2]],
+pub struct MultiEdgeIndicesIter<'a, Ix: Indexing> {
+    src: Ix::VertexIndex,
+    dst: Ix::VertexIndex,
+    edges: &'a [Ix::EdgeIndex],
+    endpoints: &'a [[Ix::VertexIndex; 2]],
 }
 
-impl<'a> Iterator for MultiEdgeIndicesIter<'a> {
-    type Item = EdgeIndex;
+impl<'a, Ix: Indexing> Iterator for MultiEdgeIndicesIter<'a, Ix>
+where
+    Ix::VertexIndex: NumIndexType,
+    Ix::EdgeIndex: NumIndexType,
+{
+    type Item = Ix::EdgeIndex;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             let (edge, tail) = self.edges.split_first()?;
             self.edges = tail;
 
-            let endpoints = self.endpoints[edge.to_usize()];
+            let endpoints = self.endpoints[edge.as_usize()];
 
             if endpoints[0] == self.src && endpoints[1] == self.dst {
                 return Some(*edge);
@@ -416,15 +508,19 @@ impl<'a> Iterator for MultiEdgeIndicesIter<'a> {
     }
 }
 
-pub struct NeighborsIter<'a> {
-    src: VertexIndex,
-    edges: [&'a [EdgeIndex]; 2],
-    endpoints: &'a [[VertexIndex; 2]],
+pub struct NeighborsIter<'a, Ix: Indexing> {
+    src: Ix::VertexIndex,
+    edges: [&'a [Ix::EdgeIndex]; 2],
+    endpoints: &'a [[Ix::VertexIndex; 2]],
     dir: usize,
 }
 
-impl Iterator for NeighborsIter<'_> {
-    type Item = (VertexIndex, EdgeIndex, VertexIndex, Direction);
+impl<Ix: Indexing> Iterator for NeighborsIter<'_, Ix>
+where
+    Ix::VertexIndex: NumIndexType,
+    Ix::EdgeIndex: NumIndexType,
+{
+    type Item = (Ix::VertexIndex, Ix::EdgeIndex, Ix::VertexIndex, Direction);
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -443,7 +539,7 @@ impl Iterator for NeighborsIter<'_> {
         self.edges[self.dir] = tail;
         let edge = head[0];
 
-        let endpoints = self.endpoints[edge.to_usize()];
+        let endpoints = self.endpoints[edge.as_usize()];
 
         let neighbor = if endpoints[0] != self.src {
             endpoints[0]
@@ -460,26 +556,27 @@ impl Iterator for NeighborsIter<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::index::DefaultIndexing;
     use crate::marker::{Directed, Undirected};
     use crate::storage::tests::*;
 
     #[test]
     fn basic_undirected() {
-        test_basic::<Undirected, AdjList<_, _, _>>();
+        test_basic::<Undirected, AdjList<_, _, _, DefaultIndexing>>();
     }
 
     #[test]
     fn basic_directed() {
-        test_basic::<Directed, AdjList<_, _, _>>();
+        test_basic::<Directed, AdjList<_, _, _, DefaultIndexing>>();
     }
 
     #[test]
     fn multi_undirected() {
-        test_multi::<Undirected, AdjList<_, _, _>>();
+        test_multi::<Undirected, AdjList<_, _, _, DefaultIndexing>>();
     }
 
     #[test]
     fn multi_directed() {
-        test_multi::<Directed, AdjList<_, _, _>>();
+        test_multi::<Directed, AdjList<_, _, _, DefaultIndexing>>();
     }
 }

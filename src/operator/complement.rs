@@ -2,13 +2,13 @@ use rustc_hash::FxHashSet;
 
 use super::{OpMut, OpOwned};
 use crate::facts;
-use crate::index::{EdgeIndex, IndexType, VertexIndex};
+use crate::index::NumIndexType;
 use crate::infra::CompactIndexMap;
 use crate::marker::{Direction, Outgoing, Undirected};
 use crate::traits::*;
-use crate::{Vertices, VerticesBase, VerticesMut};
+use crate::{GraphBase, Vertices, VerticesBase, VerticesMut};
 
-#[derive(Debug, VerticesBase, Vertices, VerticesMut)]
+#[derive(Debug, GraphBase, VerticesBase, Vertices, VerticesMut)]
 pub struct Complement<E, G> {
     #[graph]
     graph: G,
@@ -37,6 +37,8 @@ impl<V, E, G1, G2> OpMut<G2, V> for Complement<E, G1>
 where
     G1: Vertices<V> + Edges<E, Undirected>,
     G2: VerticesMut<V> + EdgesMut<E, Undirected>,
+    G1::VertexIndex: NumIndexType,
+    G2::VertexIndex: NumIndexType,
     V: Clone,
     E: Clone,
 {
@@ -51,15 +53,15 @@ where
 
             // Assumption: adding vertices to the result graph generates index
             // sequence going from zero with step 1.
-            debug_assert!(idx.to_usize() == cur, "unexpected behavior of `add_vertex`");
+            debug_assert!(idx.as_usize() == cur, "unexpected behavior of `add_vertex`");
         }
 
         for u in self.graph.vertex_indices() {
             for v in self.graph.vertex_indices() {
-                if u.to_usize() < v.to_usize() && self.graph.edge_index(u, v).is_none() {
-                    let u = vertex_map.virt(u).unwrap().to_usize().into();
-                    let v = vertex_map.virt(v).unwrap().to_usize().into();
-                    result.add_edge(u, v, self.edge.clone());
+                if u.as_usize() < v.as_usize() && self.graph.edge_index(&u, &v).is_none() {
+                    let u = NumIndexType::from_usize(vertex_map.virt(u).unwrap().as_usize());
+                    let v = NumIndexType::from_usize(vertex_map.virt(v).unwrap().as_usize());
+                    result.add_edge(&u, &v, self.edge.clone());
                 }
             }
         }
@@ -69,6 +71,7 @@ where
 impl<V, E, G> OpOwned<G, V> for Complement<E, G>
 where
     G: VerticesMut<V> + EdgesMut<E, Undirected> + Create<V, E, Undirected>,
+    G::VertexIndex: NumIndexType,
     V: Clone,
     E: Clone,
 {
@@ -86,8 +89,9 @@ where
 impl<E, G> Neighbors for Complement<E, G>
 where
     G: Neighbors + VerticesBase,
+    G::EdgeIndex: NumIndexType,
 {
-    type NeighborRef<'a> = (VertexIndex, EdgeIndex, VertexIndex, Direction)
+    type NeighborRef<'a> = (G::VertexIndex, G::EdgeIndex, G::VertexIndex, Direction)
     where
         Self: 'a;
 
@@ -95,23 +99,27 @@ where
     where
         Self: 'a;
 
-    fn neighbors(&self, src: VertexIndex) -> Self::NeighborsIter<'_> {
+    fn neighbors(&self, src: &G::VertexIndex) -> Self::NeighborsIter<'_> {
         NeighborsIter {
-            src,
+            src: src.clone(),
             dir: Outgoing,
-            neighbors: self.graph.neighbors(src).map(|n| n.index()).collect(),
+            neighbors: self
+                .graph
+                .neighbors(src)
+                .map(|n| n.index().into_owned().into())
+                .collect(),
             vertices: self.graph.vertex_indices(),
         }
     }
 
-    fn neighbors_directed(&self, src: VertexIndex, dir: Direction) -> Self::NeighborsIter<'_> {
+    fn neighbors_directed(&self, src: &G::VertexIndex, dir: Direction) -> Self::NeighborsIter<'_> {
         NeighborsIter {
-            src,
+            src: src.clone(),
             dir,
             neighbors: self
                 .graph
                 .neighbors_directed(src, dir)
-                .map(|n| n.index())
+                .map(|n| n.index().into_owned().into())
                 .collect(),
             vertices: self.graph.vertex_indices(),
         }
@@ -122,24 +130,25 @@ pub struct NeighborsIter<'a, G>
 where
     G: VerticesBase + 'a,
 {
-    src: VertexIndex,
+    src: G::VertexIndex,
     dir: Direction,
-    neighbors: FxHashSet<VertexIndex>,
+    neighbors: FxHashSet<WeakRef<'a, G::VertexIndex>>,
     vertices: G::VertexIndicesIter<'a>,
 }
 
 impl<'a, G> Iterator for NeighborsIter<'a, G>
 where
     G: VerticesBase + 'a,
+    G::EdgeIndex: NumIndexType,
 {
-    type Item = (VertexIndex, EdgeIndex, VertexIndex, Direction);
+    type Item = (G::VertexIndex, G::EdgeIndex, G::VertexIndex, Direction);
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             let v = self.vertices.next()?;
 
             if v != self.src && !self.neighbors.contains(&v) {
-                return Some((v, EdgeIndex::null(), self.src, self.dir));
+                return Some((v, G::EdgeIndex::null(), self.src.clone(), self.dir));
             }
         }
     }
@@ -149,23 +158,26 @@ where
 mod tests {
     use std::collections::HashSet;
 
-    use crate::storage::{AdjList, Stable};
+    use crate::{
+        index::{DefaultIndexing, VertexIndex},
+        storage::{AdjList, Stable},
+    };
 
     use super::*;
 
     #[test]
     fn edge_count() {
-        let mut graph = AdjList::new();
+        let mut graph: AdjList<_, _, _, DefaultIndexing> = AdjList::new();
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
         let v2 = graph.add_vertex(());
         let v3 = graph.add_vertex(());
 
-        graph.add_edge(v0, v1, ());
-        graph.add_edge(v1, v2, ());
-        graph.add_edge(v2, v3, ());
-        graph.add_edge(v3, v1, ());
+        graph.add_edge(&v0, &v1, ());
+        graph.add_edge(&v1, &v2, ());
+        graph.add_edge(&v2, &v3, ());
+        graph.add_edge(&v3, &v1, ());
 
         let complement = Complement::new(graph, ());
         assert_eq!(complement.edge_count(), 2);
@@ -173,64 +185,64 @@ mod tests {
 
     #[test]
     fn apply() {
-        let mut graph = AdjList::new();
+        let mut graph: AdjList<_, _, _, DefaultIndexing> = AdjList::new();
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
         let v2 = graph.add_vertex(());
         let v3 = graph.add_vertex(());
 
-        graph.add_edge(v0, v1, ());
-        graph.add_edge(v1, v2, ());
-        graph.add_edge(v2, v3, ());
-        graph.add_edge(v3, v1, ());
+        graph.add_edge(&v0, &v1, ());
+        graph.add_edge(&v1, &v2, ());
+        graph.add_edge(&v2, &v3, ());
+        graph.add_edge(&v3, &v1, ());
 
-        let complement: AdjList<_, _, _> = Complement::new(graph, ()).apply();
+        let complement: AdjList<_, _, _, _> = Complement::new(graph, ()).apply();
 
-        assert!(complement.edge_index(v0, v1).is_none());
-        assert!(complement.edge_index(v1, v2).is_none());
-        assert!(complement.edge_index(v2, v3).is_none());
-        assert!(complement.edge_index(v3, v1).is_none());
+        assert!(complement.edge_index(&v0, &v1).is_none());
+        assert!(complement.edge_index(&v1, &v2).is_none());
+        assert!(complement.edge_index(&v2, &v3).is_none());
+        assert!(complement.edge_index(&v3, &v1).is_none());
 
-        assert!(complement.edge_index(v0, v2).is_some());
-        assert!(complement.edge_index(v0, v3).is_some());
+        assert!(complement.edge_index(&v0, &v3).is_some());
+        assert!(complement.edge_index(&v0, &v2).is_some());
     }
 
     #[test]
     fn neighbors() {
-        let mut graph = AdjList::new();
+        let mut graph: AdjList<_, _, _, DefaultIndexing> = AdjList::new();
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
         let v2 = graph.add_vertex(());
         let v3 = graph.add_vertex(());
 
-        graph.add_edge(v0, v1, ());
-        graph.add_edge(v1, v2, ());
-        graph.add_edge(v2, v3, ());
-        graph.add_edge(v3, v1, ());
+        graph.add_edge(&v0, &v1, ());
+        graph.add_edge(&v1, &v2, ());
+        graph.add_edge(&v2, &v3, ());
+        graph.add_edge(&v3, &v1, ());
 
         let complement = Complement::new(graph, ());
 
         assert_eq!(
             complement
-                .neighbors(v0)
-                .map(|n| n.index())
-                .collect::<HashSet<_>>(),
+                .neighbors(&v0)
+                .map(|n| NeighborRef::<DefaultIndexing>::index(&n).into_owned())
+                .collect::<HashSet<VertexIndex>>(),
             vec![v2, v3].into_iter().collect()
         );
-        assert_eq!(complement.neighbors(v1).count(), 0);
+        assert_eq!(complement.neighbors(&v1).count(), 0);
         assert_eq!(
             complement
-                .neighbors(v2)
-                .map(|n| n.index())
+                .neighbors(&v2)
+                .map(|n| NeighborRef::<DefaultIndexing>::index(&n).into_owned())
                 .collect::<HashSet<_>>(),
             vec![v0].into_iter().collect()
         );
         assert_eq!(
             complement
-                .neighbors(v3)
-                .map(|n| n.index())
+                .neighbors(&v3)
+                .map(|n| NeighborRef::<DefaultIndexing>::index(&n).into_owned())
                 .collect::<HashSet<_>>(),
             vec![v0].into_iter().collect()
         );
@@ -238,7 +250,7 @@ mod tests {
 
     #[test]
     fn apply_holes() {
-        let mut graph = Stable::new(AdjList::new());
+        let mut graph: Stable<AdjList<_, _, _, DefaultIndexing>> = Stable::new(AdjList::new());
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -246,29 +258,29 @@ mod tests {
         let v3 = graph.add_vertex(());
         let v4 = graph.add_vertex(());
 
-        graph.add_edge(v0, v1, ());
-        graph.add_edge(v1, v2, ());
-        graph.add_edge(v2, v3, ());
-        graph.add_edge(v3, v4, ());
-        graph.add_edge(v4, v1, ());
+        graph.add_edge(&v0, &v1, ());
+        graph.add_edge(&v1, &v2, ());
+        graph.add_edge(&v2, &v3, ());
+        graph.add_edge(&v3, &v4, ());
+        graph.add_edge(&v4, &v1, ());
 
-        graph.remove_vertex(v3);
+        graph.remove_vertex(&v3);
 
-        let complement: Stable<AdjList<_, _, _>> = Complement::new(graph, ()).apply();
+        let complement: Stable<AdjList<_, _, _, _>> = Complement::new(graph, ()).apply();
 
         // XXX: Complement does not preserve the vertex indices when there are
         // holes. This would change if we implement an in-place algorithm.
-        let v0 = VertexIndex::new(0);
-        let v1 = VertexIndex::new(1);
-        let v2 = VertexIndex::new(2);
-        let v4 = VertexIndex::new(3);
+        let v0 = VertexIndex::from(0usize);
+        let v1 = VertexIndex::from(1usize);
+        let v2 = VertexIndex::from(2usize);
+        let v4 = VertexIndex::from(3usize);
 
-        assert!(complement.edge_index(v0, v1).is_none());
-        assert!(complement.edge_index(v1, v2).is_none());
-        assert!(complement.edge_index(v4, v1).is_none());
+        assert!(complement.edge_index(&v0, &v1).is_none());
+        assert!(complement.edge_index(&v1, &v2).is_none());
+        assert!(complement.edge_index(&v4, &v1).is_none());
 
-        assert!(complement.edge_index(v0, v2).is_some());
-        assert!(complement.edge_index(v0, v4).is_some());
-        assert!(complement.edge_index(v2, v4).is_some());
+        assert!(complement.edge_index(&v0, &v2).is_some());
+        assert!(complement.edge_index(&v0, &v4).is_some());
+        assert!(complement.edge_index(&v2, &v4).is_some());
     }
 }

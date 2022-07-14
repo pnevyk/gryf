@@ -1,49 +1,87 @@
-use std::cmp::max;
+use std::borrow::Borrow;
+use std::cmp::{max, Ordering};
+use std::hash::{Hash, Hasher};
 use std::mem;
 use std::ops::{Add, Deref};
 
-use crate::index::{EdgeIndex, IndexType, VertexIndex};
+use crate::index::{CustomIndexing, IndexType, Indexing, NumIndexType};
 use crate::infra::CompactIndexMap;
 use crate::marker::{Direction, EdgeType};
 
-pub trait VertexRef<V> {
-    fn index(&self) -> VertexIndex;
+pub trait VertexRef<Ix: Indexing + ?Sized, V> {
+    fn index(&self) -> &Ix::VertexIndex;
     fn data(&self) -> &V;
 }
 
-pub trait EdgeRef<E> {
-    fn index(&self) -> EdgeIndex;
+pub trait EdgeRef<Ix: Indexing + ?Sized, E> {
+    fn index(&self) -> &Ix::EdgeIndex;
     fn data(&self) -> &E;
-    fn src(&self) -> VertexIndex;
-    fn dst(&self) -> VertexIndex;
+    fn src(&self) -> &Ix::VertexIndex;
+    fn dst(&self) -> &Ix::VertexIndex;
 }
 
-pub trait HyperEdgeRef<E> {
-    fn index(&self) -> EdgeIndex;
-    fn data(&self) -> &E;
-    fn vertices(&self) -> &[VertexIndex];
-}
-
-enum WeakRefData<'a, T> {
+#[derive(Debug, Clone)]
+pub enum WeakRef<'a, T> {
     Borrowed(&'a T),
     Owned(T),
 }
 
-pub struct WeakRef<'a, T> {
-    data: WeakRefData<'a, T>,
-}
-
-impl<'a, T> WeakRef<'a, T> {
-    pub fn borrowed(borrowed: &'a T) -> Self {
-        Self {
-            data: WeakRefData::Borrowed(borrowed),
+impl<T: Clone> WeakRef<'_, T> {
+    pub fn into_owned(self) -> T {
+        match self {
+            WeakRef::Borrowed(data) => data.clone(),
+            WeakRef::Owned(data) => data,
         }
     }
+}
 
-    pub fn owned(owned: T) -> Self {
-        Self {
-            data: WeakRefData::Owned(owned),
-        }
+impl<T> PartialEq for WeakRef<'_, T>
+where
+    T: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        PartialEq::eq(&**self, &**other)
+    }
+}
+
+impl<T> Eq for WeakRef<'_, T> where T: Eq {}
+
+impl<T> Hash for WeakRef<'_, T>
+where
+    T: Hash,
+{
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        (**self).hash(state);
+    }
+}
+
+impl<T> PartialOrd for WeakRef<'_, T>
+where
+    T: PartialOrd,
+{
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        PartialOrd::partial_cmp(&**self, &**other)
+    }
+}
+
+impl<T> Ord for WeakRef<'_, T>
+where
+    T: Ord,
+{
+    fn cmp(&self, other: &Self) -> Ordering {
+        Ord::cmp(&**self, &**other)
+    }
+}
+
+impl<'a, T> From<&'a T> for WeakRef<'a, T> {
+    fn from(value: &'a T) -> Self {
+        WeakRef::Borrowed(value)
+    }
+}
+
+impl<T> From<T> for WeakRef<'_, T> {
+    fn from(value: T) -> Self {
+        WeakRef::Owned(value)
     }
 }
 
@@ -51,24 +89,59 @@ impl<T> Deref for WeakRef<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        match self.data {
-            WeakRefData::Borrowed(data) => data,
-            WeakRefData::Owned(ref data) => data,
+        match self {
+            WeakRef::Borrowed(data) => data,
+            WeakRef::Owned(ref data) => data,
         }
     }
 }
 
 impl<T> AsRef<T> for WeakRef<'_, T> {
     fn as_ref(&self) -> &T {
-        match self.data {
-            WeakRefData::Borrowed(data) => data,
-            WeakRefData::Owned(ref data) => data,
+        match self {
+            WeakRef::Borrowed(data) => data,
+            WeakRef::Owned(ref data) => data,
         }
     }
 }
 
-pub trait VerticesBase {
-    type VertexIndicesIter<'a>: Iterator<Item = VertexIndex>
+impl<T> Borrow<T> for WeakRef<'_, T> {
+    fn borrow(&self) -> &T {
+        self
+    }
+}
+
+pub trait GraphBase {
+    type VertexIndex: IndexType;
+    type EdgeIndex: IndexType;
+}
+
+impl<G> GraphBase for &G
+where
+    G: GraphBase,
+{
+    type VertexIndex = G::VertexIndex;
+    type EdgeIndex = G::EdgeIndex;
+}
+
+impl<G> GraphBase for &mut G
+where
+    G: GraphBase,
+{
+    type VertexIndex = G::VertexIndex;
+    type EdgeIndex = G::EdgeIndex;
+}
+
+impl<G> Indexing for G
+where
+    G: GraphBase,
+{
+    type VertexIndex = G::VertexIndex;
+    type EdgeIndex = G::EdgeIndex;
+}
+
+pub trait VerticesBase: GraphBase {
+    type VertexIndicesIter<'a>: Iterator<Item = Self::VertexIndex>
     where
         Self: 'a;
 
@@ -76,35 +149,40 @@ pub trait VerticesBase {
     fn vertex_bound(&self) -> usize;
     fn vertex_indices(&self) -> Self::VertexIndicesIter<'_>;
 
-    fn contains_vertex(&self, index: VertexIndex) -> bool {
-        self.vertex_indices().any(|vertex| vertex == index)
+    fn contains_vertex(&self, index: &Self::VertexIndex) -> bool {
+        self.vertex_indices().any(|v| &v == index)
     }
 
-    fn vertex_index_map(&self) -> CompactIndexMap<VertexIndex> {
+    fn vertex_index_map(&self) -> CompactIndexMap<Self::VertexIndex>
+    where
+        Self::VertexIndex: NumIndexType,
+    {
         // Should be overridden to use `isomorphic` whenever possible.
         CompactIndexMap::new(self.vertex_indices())
     }
 }
 
 pub trait Vertices<V>: VerticesBase {
-    type VertexRef<'a, T: 'a>: VertexRef<T>
+    type VertexRef<'a>: VertexRef<CustomIndexing<Self::VertexIndex, Self::EdgeIndex>, V>
     where
-        Self: 'a;
+        Self: 'a,
+        V: 'a;
 
-    type VerticesIter<'a, T: 'a>: Iterator<Item = Self::VertexRef<'a, T>>
+    type VerticesIter<'a>: Iterator<Item = Self::VertexRef<'a>>
     where
-        Self: 'a;
+        Self: 'a,
+        V: 'a;
 
-    fn vertex(&self, index: VertexIndex) -> Option<&V>;
-    fn vertices(&self) -> Self::VerticesIter<'_, V>;
+    fn vertex(&self, index: &Self::VertexIndex) -> Option<&V>;
+    fn vertices(&self) -> Self::VerticesIter<'_>;
 }
 
 pub trait VerticesMut<V>: Vertices<V> {
-    fn vertex_mut(&mut self, index: VertexIndex) -> Option<&mut V>;
-    fn add_vertex(&mut self, vertex: V) -> VertexIndex;
-    fn remove_vertex(&mut self, index: VertexIndex) -> Option<V>;
+    fn vertex_mut(&mut self, index: &Self::VertexIndex) -> Option<&mut V>;
+    fn add_vertex(&mut self, vertex: V) -> Self::VertexIndex;
+    fn remove_vertex(&mut self, index: &Self::VertexIndex) -> Option<V>;
 
-    fn replace_vertex(&mut self, index: VertexIndex, vertex: V) -> V {
+    fn replace_vertex(&mut self, index: &Self::VertexIndex, vertex: V) -> V {
         let slot = self.vertex_mut(index).expect("vertex does not exist");
         mem::replace(slot, vertex)
     }
@@ -115,39 +193,44 @@ pub trait VerticesMut<V>: Vertices<V> {
         let mut vertices = self.vertex_indices().collect::<Vec<_>>();
         vertices.reverse();
 
-        for vertex in vertices {
-            self.remove_vertex(vertex);
+        for v in vertices {
+            self.remove_vertex(&v);
         }
     }
 }
 
-pub trait VerticesBaseWeak {
-    type VertexIndex = VertexIndex;
-
+pub trait VerticesBaseWeak: GraphBase {
     fn vertex_count_hint(&self) -> Option<usize>;
     fn vertex_bound_hint(&self) -> Option<usize>;
 }
 
 pub trait VerticesWeak<V>: VerticesBaseWeak {
-    fn vertex_weak(&self, index: Self::VertexIndex) -> Option<WeakRef<'_, V>>;
+    fn vertex_weak(&self, index: &Self::VertexIndex) -> Option<WeakRef<'_, V>>;
 }
 
-pub trait EdgesBase<Ty: EdgeType> {
-    type EdgeIndicesIter<'a>: Iterator<Item = EdgeIndex>
+pub trait EdgesBase<Ty: EdgeType>: GraphBase {
+    type EdgeIndicesIter<'a>: Iterator<Item = Self::EdgeIndex>
     where
         Self: 'a;
 
     fn edge_count(&self) -> usize;
     fn edge_bound(&self) -> usize;
-    fn endpoints(&self, index: EdgeIndex) -> Option<(VertexIndex, VertexIndex)>;
-    fn edge_index(&self, src: VertexIndex, dst: VertexIndex) -> Option<EdgeIndex>;
+    fn endpoints(&self, index: &Self::EdgeIndex) -> Option<(Self::VertexIndex, Self::VertexIndex)>;
+    fn edge_index(
+        &self,
+        src: &Self::VertexIndex,
+        dst: &Self::VertexIndex,
+    ) -> Option<Self::EdgeIndex>;
     fn edge_indices(&self) -> Self::EdgeIndicesIter<'_>;
 
-    fn contains_edge(&self, index: EdgeIndex) -> bool {
+    fn contains_edge(&self, index: &Self::EdgeIndex) -> bool {
         self.endpoints(index).is_some()
     }
 
-    fn edge_index_map(&self) -> CompactIndexMap<EdgeIndex> {
+    fn edge_index_map(&self) -> CompactIndexMap<Self::EdgeIndex>
+    where
+        Self::EdgeIndex: NumIndexType,
+    {
         // Should be overridden to use `isomorphic` whenever possible.
         CompactIndexMap::new(self.edge_indices())
     }
@@ -158,24 +241,31 @@ pub trait EdgesBase<Ty: EdgeType> {
 }
 
 pub trait Edges<E, Ty: EdgeType>: EdgesBase<Ty> {
-    type EdgeRef<'a, T: 'a>: EdgeRef<T>
+    type EdgeRef<'a>: EdgeRef<CustomIndexing<Self::VertexIndex, Self::EdgeIndex>, E>
     where
-        Self: 'a;
+        Self: 'a,
+        E: 'a;
 
-    type EdgesIter<'a, T: 'a>: Iterator<Item = Self::EdgeRef<'a, T>>
+    type EdgesIter<'a>: Iterator<Item = Self::EdgeRef<'a>>
     where
-        Self: 'a;
+        Self: 'a,
+        E: 'a;
 
-    fn edge(&self, index: EdgeIndex) -> Option<&E>;
-    fn edges(&self) -> Self::EdgesIter<'_, E>;
+    fn edge(&self, index: &Self::EdgeIndex) -> Option<&E>;
+    fn edges(&self) -> Self::EdgesIter<'_>;
 }
 
 pub trait EdgesMut<E, Ty: EdgeType>: Edges<E, Ty> {
-    fn edge_mut(&mut self, index: EdgeIndex) -> Option<&mut E>;
-    fn add_edge(&mut self, src: VertexIndex, dst: VertexIndex, edge: E) -> EdgeIndex;
-    fn remove_edge(&mut self, index: EdgeIndex) -> Option<E>;
+    fn edge_mut(&mut self, index: &Self::EdgeIndex) -> Option<&mut E>;
+    fn add_edge(
+        &mut self,
+        src: &Self::VertexIndex,
+        dst: &Self::VertexIndex,
+        edge: E,
+    ) -> Self::EdgeIndex;
+    fn remove_edge(&mut self, index: &Self::EdgeIndex) -> Option<E>;
 
-    fn replace_edge(&mut self, index: EdgeIndex, edge: E) -> E {
+    fn replace_edge(&mut self, index: &Self::EdgeIndex, edge: E) -> E {
         let slot = self.edge_mut(index).expect("edge does not exist");
         mem::replace(slot, edge)
     }
@@ -186,26 +276,23 @@ pub trait EdgesMut<E, Ty: EdgeType>: Edges<E, Ty> {
         let mut edges = self.edge_indices().collect::<Vec<_>>();
         edges.reverse();
 
-        for edge in edges {
-            self.remove_edge(edge);
+        for e in edges {
+            self.remove_edge(&e);
         }
     }
 }
 
-pub trait EdgesBaseWeak<Ty: EdgeType> {
-    type VertexIndex = VertexIndex;
-    type EdgeIndex = EdgeIndex;
-
+pub trait EdgesBaseWeak<Ty: EdgeType>: GraphBase {
     fn edge_count_hint(&self) -> Option<usize>;
     fn edge_bound_hint(&self) -> Option<usize>;
     fn endpoints_weak(
         &self,
-        index: Self::EdgeIndex,
+        index: &Self::EdgeIndex,
     ) -> Option<(Self::VertexIndex, Self::VertexIndex)>;
     fn edge_index_weak(
         &self,
-        src: Self::VertexIndex,
-        dst: Self::VertexIndex,
+        src: &Self::VertexIndex,
+        dst: &Self::VertexIndex,
     ) -> Option<Self::EdgeIndex>;
 
     fn is_directed_weak(&self) -> bool {
@@ -214,40 +301,30 @@ pub trait EdgesBaseWeak<Ty: EdgeType> {
 }
 
 pub trait EdgesWeak<E, Ty: EdgeType>: EdgesBaseWeak<Ty> {
-    fn edge_weak(&self, index: Self::EdgeIndex) -> Option<WeakRef<'_, E>>;
+    fn edge_weak(&self, index: &Self::EdgeIndex) -> Option<WeakRef<'_, E>>;
 }
 
 pub trait MultiEdges<E, Ty: EdgeType>: Edges<E, Ty> {
-    type MultiEdgeIndicesIter<'a>: Iterator<Item = EdgeIndex>
+    type MultiEdgeIndicesIter<'a>: Iterator<Item = Self::EdgeIndex>
     where
         Self: 'a;
 
     fn multi_edge_index(
         &self,
-        src: VertexIndex,
-        dst: VertexIndex,
+        src: &Self::VertexIndex,
+        dst: &Self::VertexIndex,
     ) -> Self::MultiEdgeIndicesIter<'_>;
 }
 
-pub trait HyperEdges<E, Ty: EdgeType> {
-    fn edge_count(&self) -> usize;
-    fn edge(&self, index: EdgeIndex) -> Option<&E>;
-    fn edge_index(&self, vertices: &[VertexIndex]) -> Option<EdgeIndex>;
-
-    fn contains_edge(&self, index: EdgeIndex) -> bool {
-        self.edge(index).is_some()
-    }
-}
-
-pub trait NeighborRef {
-    fn index(&self) -> VertexIndex;
-    fn edge(&self) -> EdgeIndex;
-    fn src(&self) -> VertexIndex;
+pub trait NeighborRef<Ix: Indexing + ?Sized> {
+    fn index(&self) -> WeakRef<'_, Ix::VertexIndex>;
+    fn edge(&self) -> WeakRef<'_, Ix::EdgeIndex>;
+    fn src(&self) -> WeakRef<'_, Ix::VertexIndex>;
     fn dir(&self) -> Direction;
 }
 
-pub trait Neighbors {
-    type NeighborRef<'a>: NeighborRef
+pub trait Neighbors: GraphBase {
+    type NeighborRef<'a>: NeighborRef<CustomIndexing<Self::VertexIndex, Self::EdgeIndex>>
     where
         Self: 'a;
 
@@ -255,20 +332,24 @@ pub trait Neighbors {
     where
         Self: 'a;
 
-    fn neighbors(&self, src: VertexIndex) -> Self::NeighborsIter<'_>;
-    fn neighbors_directed(&self, src: VertexIndex, dir: Direction) -> Self::NeighborsIter<'_>;
+    fn neighbors(&self, src: &Self::VertexIndex) -> Self::NeighborsIter<'_>;
+    fn neighbors_directed(
+        &self,
+        src: &Self::VertexIndex,
+        dir: Direction,
+    ) -> Self::NeighborsIter<'_>;
 
-    fn degree(&self, index: VertexIndex) -> usize {
+    fn degree(&self, index: &Self::VertexIndex) -> usize {
         self.neighbors(index).count()
     }
 
-    fn degree_directed(&self, index: VertexIndex, dir: Direction) -> usize {
+    fn degree_directed(&self, index: &Self::VertexIndex, dir: Direction) -> usize {
         self.neighbors_directed(index, dir).count()
     }
 }
 
-pub trait IntoEdge<E, Ty: EdgeType> {
-    fn unpack(self) -> (VertexIndex, VertexIndex, E);
+pub trait IntoEdge<Ix: Indexing, E, Ty: EdgeType> {
+    fn unpack(self) -> (Ix::VertexIndex, Ix::VertexIndex, E);
 }
 
 pub trait Create<V, E, Ty: EdgeType>: VerticesMut<V> + EdgesMut<E, Ty> + Default {
@@ -277,7 +358,7 @@ pub trait Create<V, E, Ty: EdgeType>: VerticesMut<V> + EdgesMut<E, Ty> + Default
 
 pub trait ExtendWithEdges<T, V, E, Ty: EdgeType>
 where
-    T: IntoEdge<E, Ty>,
+    T: IntoEdge<Self, E, Ty>,
     V: Default,
     Self: Create<V, E, Ty>,
 {
@@ -301,9 +382,10 @@ where
 
 impl<T, V, E, Ty: EdgeType, G> ExtendWithEdges<T, V, E, Ty> for G
 where
-    T: IntoEdge<E, Ty>,
+    T: IntoEdge<Self, E, Ty>,
     V: Default,
     G: Create<V, E, Ty>,
+    Self::VertexIndex: NumIndexType,
 {
     fn extend_with_edges<I>(&mut self, iter: I)
     where
@@ -311,13 +393,13 @@ where
     {
         for edge in iter {
             let (src, dst, edge) = edge.unpack();
-            let vertex_bound = max(src, dst).to_usize();
+            let vertex_bound = max(src, dst).as_usize();
 
             while self.vertex_count() <= vertex_bound {
                 self.add_vertex(V::default());
             }
 
-            self.add_edge(src, dst, edge);
+            self.add_edge(&src, &dst, edge);
         }
     }
 }
@@ -423,9 +505,9 @@ pub trait Weight: Ord + Add<Self, Output = Self> + Clone + Sized {
 mod imp {
     use super::*;
 
-    impl<'a, V> VertexRef<V> for (VertexIndex, &'a V) {
-        fn index(&self) -> VertexIndex {
-            self.0
+    impl<'a, Ix: Indexing, V> VertexRef<Ix, V> for (Ix::VertexIndex, &'a V) {
+        fn index(&self) -> &Ix::VertexIndex {
+            &self.0
         }
 
         fn data(&self) -> &V {
@@ -433,35 +515,39 @@ mod imp {
         }
     }
 
-    impl<'a, E> EdgeRef<E> for (EdgeIndex, &'a E, VertexIndex, VertexIndex) {
-        fn index(&self) -> EdgeIndex {
-            self.0
+    impl<'a, Ix: Indexing, E> EdgeRef<Ix, E>
+        for (Ix::EdgeIndex, &'a E, Ix::VertexIndex, Ix::VertexIndex)
+    {
+        fn index(&self) -> &Ix::EdgeIndex {
+            &self.0
         }
 
         fn data(&self) -> &E {
             self.1
         }
 
-        fn src(&self) -> VertexIndex {
-            self.2
+        fn src(&self) -> &Ix::VertexIndex {
+            &self.2
         }
 
-        fn dst(&self) -> VertexIndex {
-            self.3
+        fn dst(&self) -> &Ix::VertexIndex {
+            &self.3
         }
     }
 
-    impl NeighborRef for (VertexIndex, EdgeIndex, VertexIndex, Direction) {
-        fn index(&self) -> VertexIndex {
-            self.0
+    impl<Ix: Indexing> NeighborRef<Ix>
+        for (Ix::VertexIndex, Ix::EdgeIndex, Ix::VertexIndex, Direction)
+    {
+        fn index(&self) -> WeakRef<'_, Ix::VertexIndex> {
+            WeakRef::Borrowed(&self.0)
         }
 
-        fn edge(&self) -> EdgeIndex {
-            self.1
+        fn edge(&self) -> WeakRef<'_, Ix::EdgeIndex> {
+            WeakRef::Borrowed(&self.1)
         }
 
-        fn src(&self) -> VertexIndex {
-            self.2
+        fn src(&self) -> WeakRef<'_, Ix::VertexIndex> {
+            WeakRef::Borrowed(&self.2)
         }
 
         fn dir(&self) -> Direction {
@@ -469,26 +555,32 @@ mod imp {
         }
     }
 
-    impl<E, Ty: EdgeType, I: Into<VertexIndex>> IntoEdge<E, Ty> for (I, I, E) {
-        fn unpack(self) -> (VertexIndex, VertexIndex, E) {
+    impl<Ix: Indexing, E, Ty: EdgeType, I: Into<Ix::VertexIndex>> IntoEdge<Ix, E, Ty> for (I, I, E) {
+        fn unpack(self) -> (Ix::VertexIndex, Ix::VertexIndex, E) {
             (self.0.into(), self.1.into(), self.2)
         }
     }
 
-    impl<E: Clone, Ty: EdgeType, I: Into<VertexIndex> + Clone> IntoEdge<E, Ty> for &(I, I, E) {
-        fn unpack(self) -> (VertexIndex, VertexIndex, E) {
+    impl<Ix: Indexing, E: Clone, Ty: EdgeType, I: Into<Ix::VertexIndex> + Clone> IntoEdge<Ix, E, Ty>
+        for &(I, I, E)
+    {
+        fn unpack(self) -> (Ix::VertexIndex, Ix::VertexIndex, E) {
             (self.0.clone().into(), self.1.clone().into(), self.2.clone())
         }
     }
 
-    impl<E: Default, Ty: EdgeType, I: Into<VertexIndex>> IntoEdge<E, Ty> for (I, I) {
-        fn unpack(self) -> (VertexIndex, VertexIndex, E) {
+    impl<Ix: Indexing, E: Default, Ty: EdgeType, I: Into<Ix::VertexIndex>> IntoEdge<Ix, E, Ty>
+        for (I, I)
+    {
+        fn unpack(self) -> (Ix::VertexIndex, Ix::VertexIndex, E) {
             (self.0.into(), self.1.into(), E::default())
         }
     }
 
-    impl<E: Default, Ty: EdgeType, I: Into<VertexIndex> + Clone> IntoEdge<E, Ty> for &(I, I) {
-        fn unpack(self) -> (VertexIndex, VertexIndex, E) {
+    impl<Ix: Indexing, E: Default, Ty: EdgeType, I: Into<Ix::VertexIndex> + Clone>
+        IntoEdge<Ix, E, Ty> for &(I, I)
+    {
+        fn unpack(self) -> (Ix::VertexIndex, Ix::VertexIndex, E) {
             (self.0.clone().into(), self.1.clone().into(), E::default())
         }
     }
@@ -544,11 +636,14 @@ mod imp {
                     (**self).vertex_indices()
                 }
 
-                fn contains_vertex(&self, index: VertexIndex) -> bool {
+                fn contains_vertex(&self, index: &Self::VertexIndex) -> bool {
                     (**self).contains_vertex(index)
                 }
 
-                fn vertex_index_map(&self) -> CompactIndexMap<VertexIndex> {
+                fn vertex_index_map(&self) -> CompactIndexMap<Self::VertexIndex>
+                where
+                    Self::VertexIndex: NumIndexType,
+                {
                     (**self).vertex_index_map()
                 }
             }
@@ -564,19 +659,21 @@ mod imp {
             where
                 G: Vertices<V>,
             {
-                type VertexRef<'a, T: 'a> = G::VertexRef<'a, T>
+                type VertexRef<'a> = G::VertexRef<'a>
                 where
-                    Self: 'a;
+                    Self: 'a,
+                    V: 'a;
 
-                type VerticesIter<'a, T: 'a> = G::VerticesIter<'a, T>
+                type VerticesIter<'a> = G::VerticesIter<'a>
                 where
-                    Self: 'a;
+                    Self: 'a,
+                    V: 'a;
 
-                fn vertex(&self, index: VertexIndex) -> Option<&V> {
+                fn vertex(&self, index: &Self::VertexIndex) -> Option<&V> {
                     (**self).vertex(index)
                 }
 
-                fn vertices(&self) -> Self::VerticesIter<'_, V> {
+                fn vertices(&self) -> Self::VerticesIter<'_> {
                     (**self).vertices()
                 }
             }
@@ -590,19 +687,19 @@ mod imp {
     where
         G: VerticesMut<V>,
     {
-        fn vertex_mut(&mut self, index: VertexIndex) -> Option<&mut V> {
+        fn vertex_mut(&mut self, index: &Self::VertexIndex) -> Option<&mut V> {
             (**self).vertex_mut(index)
         }
 
-        fn add_vertex(&mut self, vertex: V) -> VertexIndex {
+        fn add_vertex(&mut self, vertex: V) -> Self::VertexIndex {
             (**self).add_vertex(vertex)
         }
 
-        fn remove_vertex(&mut self, index: VertexIndex) -> Option<V> {
+        fn remove_vertex(&mut self, index: &Self::VertexIndex) -> Option<V> {
             (**self).remove_vertex(index)
         }
 
-        fn replace_vertex(&mut self, index: VertexIndex, vertex: V) -> V {
+        fn replace_vertex(&mut self, index: &Self::VertexIndex, vertex: V) -> V {
             (**self).replace_vertex(index, vertex)
         }
 
@@ -617,8 +714,6 @@ mod imp {
             where
                 G: VerticesBaseWeak,
             {
-                type VertexIndex = G::VertexIndex;
-
                 fn vertex_count_hint(&self) -> Option<usize> {
                     (**self).vertex_count_hint()
                 }
@@ -639,7 +734,7 @@ mod imp {
             where
                 G: VerticesWeak<V>,
             {
-                fn vertex_weak(&self, index: Self::VertexIndex) -> Option<WeakRef<'_, V>> {
+                fn vertex_weak(&self, index: &Self::VertexIndex) -> Option<WeakRef<'_, V>> {
                     (**self).vertex_weak(index)
                 }
             }
@@ -667,11 +762,11 @@ mod imp {
                     (**self).edge_bound()
                 }
 
-                fn endpoints(&self, index: EdgeIndex) -> Option<(VertexIndex, VertexIndex)> {
+                fn endpoints(&self, index: &Self::EdgeIndex) -> Option<(Self::VertexIndex, Self::VertexIndex)> {
                     (**self).endpoints(index)
                 }
 
-                fn edge_index(&self, src: VertexIndex, dst: VertexIndex) -> Option<EdgeIndex> {
+                fn edge_index(&self, src: &Self::VertexIndex, dst: &Self::VertexIndex) -> Option<Self::EdgeIndex> {
                     (**self).edge_index(src, dst)
                 }
 
@@ -679,11 +774,14 @@ mod imp {
                     (**self).edge_indices()
                 }
 
-                fn contains_edge(&self, index: EdgeIndex) -> bool {
+                fn contains_edge(&self, index: &Self::EdgeIndex) -> bool {
                     (**self).contains_edge(index)
                 }
 
-                fn edge_index_map(&self) -> CompactIndexMap<EdgeIndex> {
+                fn edge_index_map(&self) -> CompactIndexMap<Self::EdgeIndex>
+                where
+                    Self::EdgeIndex: NumIndexType
+                {
                     (**self).edge_index_map()
                 }
 
@@ -703,19 +801,21 @@ mod imp {
             where
                 G: Edges<E, Ty>,
             {
-                type EdgeRef<'a, T: 'a> = G::EdgeRef<'a, T>
+                type EdgeRef<'a> = G::EdgeRef<'a>
                 where
-                    Self:'a;
+                    Self:'a,
+                    E: 'a;
 
-                type EdgesIter<'a, T: 'a> = G::EdgesIter<'a, T>
+                type EdgesIter<'a> = G::EdgesIter<'a>
                 where
-                    Self: 'a;
+                    Self: 'a,
+                    E: 'a;
 
-                fn edge(&self, index: EdgeIndex) -> Option<&E> {
+                fn edge(&self, index: &Self::EdgeIndex) -> Option<&E> {
                     (**self).edge(index)
                 }
 
-                fn edges(&self) -> Self::EdgesIter<'_, E> {
+                fn edges(&self) -> Self::EdgesIter<'_> {
                     (**self).edges()
                 }
             }
@@ -729,19 +829,24 @@ mod imp {
     where
         G: EdgesMut<E, Ty>,
     {
-        fn edge_mut(&mut self, index: EdgeIndex) -> Option<&mut E> {
+        fn edge_mut(&mut self, index: &Self::EdgeIndex) -> Option<&mut E> {
             (**self).edge_mut(index)
         }
 
-        fn add_edge(&mut self, src: VertexIndex, dst: VertexIndex, edge: E) -> EdgeIndex {
+        fn add_edge(
+            &mut self,
+            src: &Self::VertexIndex,
+            dst: &Self::VertexIndex,
+            edge: E,
+        ) -> Self::EdgeIndex {
             (**self).add_edge(src, dst, edge)
         }
 
-        fn remove_edge(&mut self, index: EdgeIndex) -> Option<E> {
+        fn remove_edge(&mut self, index: &Self::EdgeIndex) -> Option<E> {
             (**self).remove_edge(index)
         }
 
-        fn replace_edge(&mut self, index: EdgeIndex, edge: E) -> E {
+        fn replace_edge(&mut self, index: &Self::EdgeIndex, edge: E) -> E {
             (**self).replace_edge(index, edge)
         }
 
@@ -756,9 +861,6 @@ mod imp {
             where
                 G: EdgesBaseWeak<Ty>,
             {
-                type VertexIndex = G::VertexIndex;
-                type EdgeIndex = G::EdgeIndex;
-
                 fn edge_count_hint(&self) -> Option<usize> {
                     (**self).edge_count_hint()
                 }
@@ -769,15 +871,15 @@ mod imp {
 
                 fn endpoints_weak(
                     &self,
-                    index: Self::EdgeIndex,
+                    index: &Self::EdgeIndex,
                 ) -> Option<(Self::VertexIndex, Self::VertexIndex)> {
                     (**self).endpoints_weak(index)
                 }
 
                 fn edge_index_weak(
                     &self,
-                    src: Self::VertexIndex,
-                    dst: Self::VertexIndex,
+                    src: &Self::VertexIndex,
+                    dst: &Self::VertexIndex,
                 ) -> Option<Self::EdgeIndex> {
                     (**self).edge_index_weak(src, dst)
                 }
@@ -798,7 +900,7 @@ mod imp {
             where
                 G: EdgesWeak<E, Ty>,
             {
-                fn edge_weak(&self, index: Self::EdgeIndex) -> Option<WeakRef<'_, E>> {
+                fn edge_weak(&self, index: &Self::EdgeIndex) -> Option<WeakRef<'_, E>> {
                     (**self).edge_weak(index)
                 }
             }
@@ -822,19 +924,19 @@ mod imp {
                 where
                     Self: 'a;
 
-                fn neighbors(&self, src: VertexIndex) -> Self::NeighborsIter<'_> {
+                fn neighbors(&self, src: &Self::VertexIndex) -> Self::NeighborsIter<'_> {
                     (**self).neighbors(src)
                 }
 
-                fn neighbors_directed(&self, src: VertexIndex, dir: Direction) -> Self::NeighborsIter<'_> {
+                fn neighbors_directed(&self, src: &Self::VertexIndex, dir: Direction) -> Self::NeighborsIter<'_> {
                     (**self).neighbors_directed(src, dir)
                 }
 
-                fn degree(&self, index: VertexIndex) -> usize {
+                fn degree(&self, index: &Self::VertexIndex) -> usize {
                     (**self).degree(index)
                 }
 
-                fn degree_directed(&self, index: VertexIndex, dir: Direction) -> usize {
+                fn degree_directed(&self, index: &Self::VertexIndex, dir: Direction) -> usize {
                     (**self).degree_directed(index, dir)
                 }
             }

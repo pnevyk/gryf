@@ -6,10 +6,10 @@ use std::{
 
 use rustc_hash::FxHashSet;
 
-use crate::infra::VisitSet;
-use crate::traits::*;
+use crate::{index::Indexing, infra::VisitSet};
+use crate::{index::UseIndex, traits::*};
 use crate::{
-    index::{EdgeIndex, IndexType, VertexIndex},
+    index::{IndexType, UseVertexIndex},
     marker::Outgoing,
 };
 
@@ -87,24 +87,23 @@ impl<T> TraversalCollection<T> for Single<T> {
     }
 }
 
-pub trait RawAlgo {
-    type Index: IndexType;
+pub trait RawAlgo<Ix: Indexing, U: UseIndex<Ix>> {
     type Item;
     type Collection: TraversalCollection<Self::Item>;
 
-    fn index(item: &Self::Item) -> Self::Index;
-    fn start(index: Self::Index) -> Self::Item;
+    fn index(item: &Self::Item) -> U::Index;
+    fn start(index: &U::Index) -> Self::Item;
     fn visit_on_start() -> bool;
 }
 
-pub struct RawVisit<A: RawAlgo> {
+pub struct RawVisit<Ix: Indexing, U: UseIndex<Ix>, A: RawAlgo<Ix, U>> {
     pub collection: A::Collection,
     // FixedBitSet cannot be used because there can be vertex additions/removals
     // during the visiting since the Visitors are detached from the graph.
-    pub visited: FxHashSet<A::Index>,
+    pub visited: FxHashSet<U::Index>,
 }
 
-impl<A: RawAlgo> RawVisit<A> {
+impl<Ix: Indexing, U: UseIndex<Ix>, A: RawAlgo<Ix, U>> RawVisit<Ix, U, A> {
     pub fn new(count_hint: Option<usize>) -> Self {
         let visited = count_hint
             .map(|count| HashSet::with_capacity_and_hasher(count, BuildHasherDefault::default()))
@@ -131,23 +130,23 @@ impl<A: RawAlgo> RawVisit<A> {
     }
 }
 
-pub trait VisitStarts<T: IndexType = VertexIndex> {
-    fn get_next(&mut self) -> Option<T>;
+pub trait VisitStarts<Idx: IndexType> {
+    fn get_next(&mut self) -> Option<Idx>;
 
     #[allow(clippy::wrong_self_convention)]
-    fn is_done(&mut self, _visited: &impl VisitSet<T>) -> bool {
+    fn is_done(&mut self, _visited: &impl VisitSet<Idx>) -> bool {
         // By default, delegate the indication of being done for `Self::next` by
         // returning `None`.
         false
     }
 }
 
-struct VisitStartsIter<'a, T: IndexType, S: VisitStarts<T>> {
+struct VisitStartsIter<'a, Idx: IndexType, S: VisitStarts<Idx>> {
     starts: &'a mut S,
-    ty: PhantomData<&'a T>,
+    ty: PhantomData<&'a Idx>,
 }
 
-impl<'a, T: IndexType, S: VisitStarts<T>> VisitStartsIter<'a, T, S> {
+impl<'a, Idx: IndexType, S: VisitStarts<Idx>> VisitStartsIter<'a, Idx, S> {
     fn new(starts: &'a mut S) -> Self {
         Self {
             starts,
@@ -156,29 +155,31 @@ impl<'a, T: IndexType, S: VisitStarts<T>> VisitStartsIter<'a, T, S> {
     }
 }
 
-impl<T: IndexType, S: VisitStarts<T>> Iterator for VisitStartsIter<'_, T, S> {
-    type Item = T;
+impl<Idx: IndexType, S: VisitStarts<Idx>> Iterator for VisitStartsIter<'_, Idx, S> {
+    type Item = Idx;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.starts.get_next()
     }
 }
 
-impl<T: IndexType, I> VisitStarts<T> for I
+impl<Idx: IndexType, I> VisitStarts<Idx> for I
 where
-    I: Iterator<Item = T>,
+    I: Iterator<Item = Idx>,
 {
-    fn get_next(&mut self) -> Option<T> {
+    fn get_next(&mut self) -> Option<Idx> {
         self.next()
     }
 }
 
-pub struct RawVisitMulti<A, S> {
+pub struct RawVisitMulti<Ix, U, A, S> {
     pub starts: S,
-    ty: PhantomData<A>,
+    ty: PhantomData<(Ix, U, A)>,
 }
 
-impl<A: RawAlgo, S: VisitStarts<A::Index>> RawVisitMulti<A, S> {
+impl<Ix: Indexing, U: UseIndex<Ix>, A: RawAlgo<Ix, U>, S: VisitStarts<U::Index>>
+    RawVisitMulti<Ix, U, A, S>
+{
     pub fn new(starts: S) -> Self {
         Self {
             starts,
@@ -188,13 +189,13 @@ impl<A: RawAlgo, S: VisitStarts<A::Index>> RawVisitMulti<A, S> {
 
     pub fn next_multi<F, R, G>(
         &mut self,
-        raw: &mut RawVisit<A>,
+        raw: &mut RawVisit<Ix, U, A>,
         mut get_next: F,
         is_still_valid: G,
     ) -> Option<R>
     where
-        F: FnMut(&mut RawVisit<A>) -> Option<R>,
-        G: Fn(&A::Index) -> bool,
+        F: FnMut(&mut RawVisit<Ix, U, A>) -> Option<R>,
+        G: Fn(&U::Index) -> bool,
     {
         match get_next(raw) {
             Some(next) => Some(next),
@@ -208,9 +209,9 @@ impl<A: RawAlgo, S: VisitStarts<A::Index>> RawVisitMulti<A, S> {
                 // minimum if it is still in the graph (it could have been
                 // removed during visiting).
                 let root = VisitStartsIter::new(&mut self.starts)
-                    .find(|v| !raw.visited.is_visited(*v) && is_still_valid(v))?;
+                    .find(|v| !raw.visited.is_visited(v) && is_still_valid(v))?;
 
-                raw.start(A::start(root));
+                raw.start(A::start(&root));
                 get_next(raw)
             }
         }
@@ -218,33 +219,32 @@ impl<A: RawAlgo, S: VisitStarts<A::Index>> RawVisitMulti<A, S> {
 }
 
 #[derive(Debug, Clone)]
-pub enum RawEvent {
+pub enum RawEvent<Ix: Indexing> {
     Popped {
-        vertex: VertexIndex,
+        vertex: Ix::VertexIndex,
     },
     Push {
-        vertex: VertexIndex,
-        src: (VertexIndex, EdgeIndex),
+        vertex: Ix::VertexIndex,
+        src: (Ix::VertexIndex, Ix::EdgeIndex),
     },
     Skip {
-        vertex: VertexIndex,
-        src: Option<(VertexIndex, EdgeIndex)>,
+        vertex: Ix::VertexIndex,
+        src: Option<(Ix::VertexIndex, Ix::EdgeIndex)>,
     },
 }
 
 pub enum RawBfs {}
 
-impl RawAlgo for RawBfs {
-    type Index = VertexIndex;
-    type Item = VertexIndex;
-    type Collection = Queue<VertexIndex>;
+impl<Ix: Indexing> RawAlgo<Ix, UseVertexIndex> for RawBfs {
+    type Item = Ix::VertexIndex;
+    type Collection = Queue<Ix::VertexIndex>;
 
-    fn index(item: &Self::Item) -> Self::Index {
-        *item
+    fn index(item: &Ix::VertexIndex) -> Ix::VertexIndex {
+        item.clone()
     }
 
-    fn start(index: Self::Index) -> Self::Item {
-        index
+    fn start(index: &Ix::VertexIndex) -> Ix::VertexIndex {
+        index.clone()
     }
 
     fn visit_on_start() -> bool {
@@ -252,25 +252,25 @@ impl RawAlgo for RawBfs {
     }
 }
 
-impl RawVisit<RawBfs> {
-    pub fn next<G, F>(&mut self, graph: &G, mut f: F) -> Option<VertexIndex>
+impl<G: GraphBase> RawVisit<G, UseVertexIndex, RawBfs> {
+    pub fn next<F>(&mut self, graph: &G, mut f: F) -> Option<G::VertexIndex>
     where
         G: Neighbors,
-        F: FnMut(&Self, RawEvent) -> bool,
+        F: FnMut(&Self, RawEvent<G>) -> bool,
     {
         let v = self.collection.pop()?;
 
-        let event = RawEvent::Popped { vertex: v };
+        let event = RawEvent::Popped { vertex: v.clone() };
         if !f(self, event) {
             return Some(v);
         }
 
-        for n in graph.neighbors_directed(v, Outgoing) {
-            let u = n.index();
-            if self.visited.visit(u) {
+        for n in graph.neighbors_directed(&v, Outgoing) {
+            let u = n.index().into_owned();
+            if self.visited.visit(u.clone()) {
                 let event = RawEvent::Push {
-                    vertex: u,
-                    src: (v, n.edge()),
+                    vertex: u.clone(),
+                    src: (v.clone(), n.edge().into_owned()),
                 };
                 if f(self, event) {
                     self.collection.push(u);
@@ -278,7 +278,7 @@ impl RawVisit<RawBfs> {
             } else {
                 let event = RawEvent::Skip {
                     vertex: u,
-                    src: Some((v, n.edge())),
+                    src: Some((v.clone(), n.edge().into_owned())),
                 };
                 f(self, event);
             }
@@ -290,17 +290,16 @@ impl RawVisit<RawBfs> {
 
 pub enum RawDfs {}
 
-impl RawAlgo for RawDfs {
-    type Index = VertexIndex;
-    type Item = VertexIndex;
-    type Collection = Stack<VertexIndex>;
+impl<Ix: Indexing> RawAlgo<Ix, UseVertexIndex> for RawDfs {
+    type Item = Ix::VertexIndex;
+    type Collection = Stack<Ix::VertexIndex>;
 
-    fn index(item: &Self::Item) -> Self::Index {
-        *item
+    fn index(item: &Ix::VertexIndex) -> Ix::VertexIndex {
+        item.clone()
     }
 
-    fn start(index: Self::Index) -> Self::Item {
-        index
+    fn start(index: &Ix::VertexIndex) -> Ix::VertexIndex {
+        index.clone()
     }
 
     fn visit_on_start() -> bool {
@@ -308,33 +307,33 @@ impl RawAlgo for RawDfs {
     }
 }
 
-impl RawVisit<RawDfs> {
-    pub fn next<G, F>(&mut self, graph: &G, mut f: F) -> Option<VertexIndex>
+impl<G: GraphBase> RawVisit<G, UseVertexIndex, RawDfs> {
+    pub fn next<F>(&mut self, graph: &G, mut f: F) -> Option<G::VertexIndex>
     where
         G: Neighbors,
-        F: FnMut(&Self, RawEvent) -> bool,
+        F: FnMut(&Self, RawEvent<G>) -> bool,
     {
         while let Some(v) = self.collection.pop() {
-            if self.visited.visit(v) {
-                let event = RawEvent::Popped { vertex: v };
+            if self.visited.visit(v.clone()) {
+                let event = RawEvent::Popped { vertex: v.clone() };
                 if !f(self, event) {
                     return Some(v);
                 }
 
-                for n in graph.neighbors_directed(v, Outgoing) {
-                    let u = n.index();
-                    if !self.visited.is_visited(u) {
+                for n in graph.neighbors_directed(&v, Outgoing) {
+                    let u = n.index().into_owned();
+                    if !self.visited.is_visited(&u) {
                         let event = RawEvent::Push {
-                            vertex: u,
-                            src: (v, n.edge()),
+                            vertex: u.clone(),
+                            src: (v.clone(), n.edge().into_owned()),
                         };
                         if f(self, event) {
-                            self.collection.push(u);
+                            self.collection.push(u.clone());
                         }
                     } else {
                         let event = RawEvent::Skip {
-                            vertex: u,
-                            src: Some((v, n.edge())),
+                            vertex: u.clone(),
+                            src: Some((v.clone(), n.edge().into_owned())),
                         };
                         f(self, event);
                     }
@@ -356,21 +355,21 @@ impl RawVisit<RawDfs> {
 
 pub enum RawDfsExtra {}
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct RawDfsExtraItem {
-    vertex: VertexIndex,
-    neighbors: Vec<(VertexIndex, EdgeIndex)>,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RawDfsExtraItem<Ix: Indexing> {
+    vertex: Ix::VertexIndex,
+    neighbors: Vec<(Ix::VertexIndex, Ix::EdgeIndex)>,
 }
 
-impl RawDfsExtraItem {
-    pub fn start(root: VertexIndex) -> Self {
+impl<Ix: Indexing> RawDfsExtraItem<Ix> {
+    pub fn start(root: Ix::VertexIndex) -> Self {
         Self {
             vertex: root,
             neighbors: Vec::new(),
         }
     }
 
-    pub fn closed(vertex: VertexIndex) -> Self {
+    pub fn closed(vertex: Ix::VertexIndex) -> Self {
         Self {
             vertex,
             neighbors: Vec::new(),
@@ -379,34 +378,33 @@ impl RawDfsExtraItem {
 
     fn restart<G>(&mut self, graph: &G)
     where
-        G: Neighbors,
+        G: Neighbors<VertexIndex = Ix::VertexIndex, EdgeIndex = Ix::EdgeIndex>,
     {
         self.neighbors.clear();
         self.neighbors.extend(
             graph
-                .neighbors_directed(self.vertex, Outgoing)
-                .map(|n| (n.index(), n.edge())),
+                .neighbors_directed(&self.vertex, Outgoing)
+                .map(|n| (n.index().into_owned(), n.edge().into_owned())),
         );
     }
 
-    fn open<G>(vertex: VertexIndex, graph: &G) -> Self
+    fn open<G>(vertex: G::VertexIndex, graph: &G) -> Self
     where
-        G: Neighbors,
+        G: Neighbors<VertexIndex = Ix::VertexIndex, EdgeIndex = Ix::EdgeIndex>,
     {
-        Self {
-            vertex,
-            neighbors: graph
-                .neighbors_directed(vertex, Outgoing)
-                .map(|n| (n.index(), n.edge()))
-                .collect(),
-        }
+        let neighbors = graph
+            .neighbors_directed(&vertex, Outgoing)
+            .map(|n| (n.index().into_owned(), n.edge().into_owned()))
+            .collect();
+
+        Self { vertex, neighbors }
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum RawDfsExtraEvent {
-    Open(VertexIndex),
-    Close(VertexIndex),
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RawDfsExtraEvent<Ix: Indexing> {
+    Open(Ix::VertexIndex),
+    Close(Ix::VertexIndex),
 }
 
 // Stack of "iterators" as described in
@@ -421,17 +419,16 @@ pub enum RawDfsExtraEvent {
 // This imposes some overhead compared to a straightforward recursive version.
 // The users are free to implement the recursive algorithm if needed (we may
 // provide it too in the future).
-impl RawAlgo for RawDfsExtra {
-    type Index = VertexIndex;
-    type Item = RawDfsExtraItem;
-    type Collection = Stack<RawDfsExtraItem>;
+impl<G: GraphBase> RawAlgo<G, UseVertexIndex> for RawDfsExtra {
+    type Item = RawDfsExtraItem<G>;
+    type Collection = Stack<RawDfsExtraItem<G>>;
 
-    fn index(item: &Self::Item) -> Self::Index {
-        item.vertex
+    fn index(item: &RawDfsExtraItem<G>) -> G::VertexIndex {
+        item.vertex.clone()
     }
 
-    fn start(index: Self::Index) -> Self::Item {
-        RawDfsExtraItem::start(index)
+    fn start(index: &G::VertexIndex) -> RawDfsExtraItem<G> {
+        RawDfsExtraItem::start(index.clone())
     }
 
     fn visit_on_start() -> bool {
@@ -439,36 +436,36 @@ impl RawAlgo for RawDfsExtra {
     }
 }
 
-impl RawVisit<RawDfsExtra> {
-    pub fn next<G, F>(&mut self, graph: &G, mut f: F) -> Option<RawDfsExtraEvent>
+impl<Ix: GraphBase> RawVisit<Ix, UseVertexIndex, RawDfsExtra> {
+    pub fn next<G, F>(&mut self, graph: &G, mut f: F) -> Option<RawDfsExtraEvent<G>>
     where
-        G: Neighbors,
-        F: FnMut(&Self, RawEvent) -> bool,
+        G: Neighbors<VertexIndex = Ix::VertexIndex, EdgeIndex = Ix::EdgeIndex>,
+        F: FnMut(&Self, RawEvent<G>) -> bool,
     {
         let mut v_item = self.collection.pop()?;
         let v = RawDfsExtra::index(&v_item);
 
-        if self.collection.0.is_empty() && !self.visited.is_visited(v) {
+        if self.collection.0.is_empty() && !self.visited.is_visited(&v) {
             // If the vertex is the start and has not been expanded yet, we need
             // to initialize its neighbors and mark it as visited. This is the
             // consequence of chosen API, but it is considered an acceptable
             // tradeoff.
             v_item.restart(graph);
             self.collection.push(v_item);
-            self.visited.visit(v);
+            self.visited.visit(v.clone());
             return Some(RawDfsExtraEvent::Open(v));
         }
 
         while let Some((u, e)) = v_item.neighbors.pop() {
-            if self.visited.visit(u) {
-                let event = RawEvent::Popped { vertex: v };
+            if self.visited.visit(u.clone()) {
+                let event = RawEvent::Popped { vertex: v.clone() };
                 if !f(self, event) {
                     continue;
                 }
 
                 let event = RawEvent::Push {
-                    vertex: u,
-                    src: (v, e),
+                    vertex: u.clone(),
+                    src: (v.clone(), e),
                 };
                 if !f(self, event) {
                     continue;
@@ -480,12 +477,13 @@ impl RawVisit<RawDfsExtra> {
 
                 // Open the neighbor and store its neighbors onto the stack so
                 // they are processed in the next step.
-                self.collection.push(RawDfsExtraItem::open(u, graph));
+                self.collection
+                    .push(RawDfsExtraItem::open(u.clone(), graph));
                 return Some(RawDfsExtraEvent::Open(u));
             } else {
                 let event = RawEvent::Skip {
                     vertex: u,
-                    src: Some((v, e)),
+                    src: Some((v.clone(), e)),
                 };
                 f(self, event);
             }
@@ -498,17 +496,16 @@ impl RawVisit<RawDfsExtra> {
 
 pub enum RawDfsNoBacktrack {}
 
-impl RawAlgo for RawDfsNoBacktrack {
-    type Index = VertexIndex;
-    type Item = VertexIndex;
-    type Collection = Single<VertexIndex>;
+impl<Ix: Indexing> RawAlgo<Ix, UseVertexIndex> for RawDfsNoBacktrack {
+    type Item = Ix::VertexIndex;
+    type Collection = Single<Ix::VertexIndex>;
 
-    fn index(item: &Self::Item) -> Self::Index {
-        *item
+    fn index(item: &Ix::VertexIndex) -> Ix::VertexIndex {
+        item.clone()
     }
 
-    fn start(index: Self::Index) -> Self::Item {
-        index
+    fn start(index: &Ix::VertexIndex) -> Ix::VertexIndex {
+        index.clone()
     }
 
     fn visit_on_start() -> bool {
@@ -516,30 +513,30 @@ impl RawAlgo for RawDfsNoBacktrack {
     }
 }
 
-impl RawVisit<RawDfsNoBacktrack> {
-    pub fn next<G, F>(&mut self, graph: &G, mut f: F) -> Option<VertexIndex>
+impl<G: GraphBase> RawVisit<G, UseVertexIndex, RawDfsNoBacktrack> {
+    pub fn next<F>(&mut self, graph: &G, mut f: F) -> Option<G::VertexIndex>
     where
         G: Neighbors,
-        F: FnMut(&Self, RawEvent) -> bool,
+        F: FnMut(&Self, RawEvent<G>) -> bool,
     {
         let v = self.collection.pop()?;
 
-        let event = RawEvent::Popped { vertex: v };
+        let event = RawEvent::Popped { vertex: v.clone() };
         if !f(self, event) {
             return Some(v);
         }
 
         let mut neighbor_chosen = false;
 
-        for n in graph.neighbors_directed(v, Outgoing) {
-            let u = n.index();
-            if !neighbor_chosen && self.visited.visit(u) {
+        for n in graph.neighbors_directed(&v, Outgoing) {
+            let u = n.index().into_owned();
+            if !neighbor_chosen && self.visited.visit(u.clone()) {
                 let event = RawEvent::Push {
-                    vertex: u,
-                    src: (v, n.edge()),
+                    vertex: u.clone(),
+                    src: (v.clone(), n.edge().into_owned()),
                 };
                 if f(self, event) {
-                    self.collection.push(u);
+                    self.collection.push(u.clone());
 
                     // Take just one neighbor and ignore the rest, i.e., don't
                     // backtrack to this vertex. However, just mark this fact
@@ -551,7 +548,7 @@ impl RawVisit<RawDfsNoBacktrack> {
             } else {
                 let event = RawEvent::Skip {
                     vertex: u,
-                    src: Some((v, n.edge())),
+                    src: Some((v.clone(), n.edge().into_owned())),
                 };
                 f(self, event);
             }

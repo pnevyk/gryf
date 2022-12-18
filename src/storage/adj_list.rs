@@ -1,4 +1,3 @@
-use std::fmt;
 use std::marker::PhantomData;
 
 use super::shared::AdjVertex as Vertex;
@@ -9,7 +8,7 @@ use crate::marker::{Direction, EdgeType};
 use crate::traits::*;
 use crate::{EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak};
 
-#[derive(VerticesBaseWeak, VerticesWeak, EdgesBaseWeak, EdgesWeak, Clone, PartialEq, Eq)]
+#[derive(Debug, VerticesBaseWeak, VerticesWeak, EdgesBaseWeak, EdgesWeak, Clone, PartialEq, Eq)]
 pub struct AdjList<V, E, Ty, Ix: Indexing> {
     vertices: Vec<Vertex<Ix, V>>,
     edges: Vec<E>,
@@ -127,25 +126,6 @@ where
 impl<V, E, Ty: EdgeType, Ix: Indexing> Default for AdjList<V, E, Ty, Ix> {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-impl<V, E, Ty, Ix> fmt::Debug for AdjList<V, E, Ty, Ix>
-where
-    V: fmt::Debug,
-    E: fmt::Debug,
-    Ty: fmt::Debug,
-    Ix: Indexing,
-    Ix::VertexIndex: fmt::Debug,
-    Ix::EdgeIndex: fmt::Debug,
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("AdjList")
-            .field("vertices", &self.vertices)
-            .field("edges", &self.edges)
-            .field("endpoints", &self.endpoints)
-            .field("ty", &self.ty)
-            .finish()
     }
 }
 

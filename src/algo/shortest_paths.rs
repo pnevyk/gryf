@@ -1,6 +1,5 @@
 use std::cmp::{max, Reverse};
 use std::collections::{hash_map::Entry, BinaryHeap, HashSet};
-use std::fmt;
 use std::hash::BuildHasherDefault;
 
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -25,6 +24,7 @@ pub enum Error {
     EdgeNotAvailable,
 }
 
+#[derive(Debug)]
 pub struct ShortestPaths<W, G: GraphBase> {
     start: G::VertexIndex,
     // Using HashMaps because the algorithm supports early termination when
@@ -139,20 +139,6 @@ where
             curr: from,
             pred: &self.pred,
         }
-    }
-}
-
-impl<W, G: GraphBase> fmt::Debug for ShortestPaths<W, G>
-where
-    W: fmt::Debug,
-    G::VertexIndex: fmt::Debug,
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("ShortestPaths")
-            .field("start", &self.start)
-            .field("dist", &self.dist)
-            .field("pred", &self.pred)
-            .finish()
     }
 }
 

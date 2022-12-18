@@ -1,4 +1,3 @@
-use std::fmt;
 use std::iter::{Enumerate, Zip};
 use std::marker::PhantomData;
 use std::ops::Range;
@@ -6,7 +5,7 @@ use std::slice::Iter;
 
 use crate::index::{Indexing, NumIndexType};
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AdjVertex<Ix: Indexing, V> {
     pub data: V,
     pub edges: [Vec<Ix::EdgeIndex>; 2],
@@ -18,20 +17,6 @@ impl<Ix: Indexing, V> AdjVertex<Ix, V> {
             data,
             edges: [Vec::new(), Vec::new()],
         }
-    }
-}
-
-impl<Ix, V> fmt::Debug for AdjVertex<Ix, V>
-where
-    Ix: Indexing,
-    Ix::EdgeIndex: fmt::Debug,
-    V: fmt::Debug,
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("AdjVertex")
-            .field("data", &self.data)
-            .field("edges", &self.edges)
-            .finish()
     }
 }
 

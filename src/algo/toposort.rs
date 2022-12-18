@@ -254,8 +254,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::fmt;
-
     use super::*;
 
     use crate::{
@@ -271,7 +269,7 @@ mod tests {
             + EdgesBase<Directed>
             + VerticesBaseWeak
             + EdgesBaseWeak<Directed>,
-        G::VertexIndex: NumIndexType + fmt::Debug,
+        G::VertexIndex: NumIndexType,
     {
         let sorted = toposort.collect::<Result<Vec<_>, _>>();
 

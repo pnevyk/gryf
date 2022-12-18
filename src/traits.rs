@@ -4,20 +4,20 @@ use std::hash::{Hash, Hasher};
 use std::mem;
 use std::ops::{Add, Deref};
 
-use crate::index::{CustomIndexing, IndexType, Indexing, NumIndexType};
+use crate::index::{IndexType, Indexing, NumIndexType};
 use crate::infra::CompactIndexMap;
 use crate::marker::{Direction, EdgeType};
 
-pub trait VertexRef<Ix: Indexing + ?Sized, V> {
-    fn index(&self) -> &Ix::VertexIndex;
+pub trait VertexRef<VI: IndexType, V> {
+    fn index(&self) -> &VI;
     fn data(&self) -> &V;
 }
 
-pub trait EdgeRef<Ix: Indexing + ?Sized, E> {
-    fn index(&self) -> &Ix::EdgeIndex;
+pub trait EdgeRef<VI: IndexType, EI: IndexType, E> {
+    fn index(&self) -> &EI;
     fn data(&self) -> &E;
-    fn src(&self) -> &Ix::VertexIndex;
-    fn dst(&self) -> &Ix::VertexIndex;
+    fn src(&self) -> &VI;
+    fn dst(&self) -> &VI;
 }
 
 #[derive(Debug, Clone)]
@@ -140,8 +140,6 @@ where
     type EdgeIndex = G::EdgeIndex;
 }
 
-type GraphIndexing<G> = CustomIndexing<<G as GraphBase>::VertexIndex, <G as GraphBase>::EdgeIndex>;
-
 pub trait VerticesBase: GraphBase {
     type VertexIndicesIter<'a>: Iterator<Item = Self::VertexIndex>
     where
@@ -165,7 +163,7 @@ pub trait VerticesBase: GraphBase {
 }
 
 pub trait Vertices<V>: VerticesBase {
-    type VertexRef<'a>: VertexRef<GraphIndexing<Self>, V>
+    type VertexRef<'a>: VertexRef<Self::VertexIndex, V>
     where
         Self: 'a,
         V: 'a;
@@ -243,7 +241,7 @@ pub trait EdgesBase<Ty: EdgeType>: GraphBase {
 }
 
 pub trait Edges<E, Ty: EdgeType>: EdgesBase<Ty> {
-    type EdgeRef<'a>: EdgeRef<GraphIndexing<Self>, E>
+    type EdgeRef<'a>: EdgeRef<Self::VertexIndex, Self::EdgeIndex, E>
     where
         Self: 'a,
         E: 'a;
@@ -318,15 +316,15 @@ pub trait MultiEdges<E, Ty: EdgeType>: Edges<E, Ty> {
     ) -> Self::MultiEdgeIndicesIter<'_>;
 }
 
-pub trait NeighborRef<Ix: Indexing + ?Sized> {
-    fn index(&self) -> WeakRef<'_, Ix::VertexIndex>;
-    fn edge(&self) -> WeakRef<'_, Ix::EdgeIndex>;
-    fn src(&self) -> WeakRef<'_, Ix::VertexIndex>;
+pub trait NeighborRef<VI: IndexType, EI: IndexType> {
+    fn index(&self) -> WeakRef<'_, VI>;
+    fn edge(&self) -> WeakRef<'_, EI>;
+    fn src(&self) -> WeakRef<'_, VI>;
     fn dir(&self) -> Direction;
 }
 
 pub trait Neighbors: GraphBase {
-    type NeighborRef<'a>: NeighborRef<GraphIndexing<Self>>
+    type NeighborRef<'a>: NeighborRef<Self::VertexIndex, Self::EdgeIndex>
     where
         Self: 'a;
 
@@ -507,8 +505,8 @@ pub trait Weight: Ord + Add<Self, Output = Self> + Clone + Sized {
 mod imp {
     use super::*;
 
-    impl<'a, Ix: Indexing, V> VertexRef<Ix, V> for (Ix::VertexIndex, &'a V) {
-        fn index(&self) -> &Ix::VertexIndex {
+    impl<'a, VI: IndexType, V> VertexRef<VI, V> for (VI, &'a V) {
+        fn index(&self) -> &VI {
             &self.0
         }
 
@@ -517,10 +515,8 @@ mod imp {
         }
     }
 
-    impl<'a, Ix: Indexing, E> EdgeRef<Ix, E>
-        for (Ix::EdgeIndex, &'a E, Ix::VertexIndex, Ix::VertexIndex)
-    {
-        fn index(&self) -> &Ix::EdgeIndex {
+    impl<'a, VI: IndexType, EI: IndexType, E> EdgeRef<VI, EI, E> for (EI, &'a E, VI, VI) {
+        fn index(&self) -> &EI {
             &self.0
         }
 
@@ -528,27 +524,25 @@ mod imp {
             self.1
         }
 
-        fn src(&self) -> &Ix::VertexIndex {
+        fn src(&self) -> &VI {
             &self.2
         }
 
-        fn dst(&self) -> &Ix::VertexIndex {
+        fn dst(&self) -> &VI {
             &self.3
         }
     }
 
-    impl<Ix: Indexing> NeighborRef<Ix>
-        for (Ix::VertexIndex, Ix::EdgeIndex, Ix::VertexIndex, Direction)
-    {
-        fn index(&self) -> WeakRef<'_, Ix::VertexIndex> {
+    impl<VI: IndexType, EI: IndexType> NeighborRef<VI, EI> for (VI, EI, VI, Direction) {
+        fn index(&self) -> WeakRef<'_, VI> {
             WeakRef::Borrowed(&self.0)
         }
 
-        fn edge(&self) -> WeakRef<'_, Ix::EdgeIndex> {
+        fn edge(&self) -> WeakRef<'_, EI> {
             WeakRef::Borrowed(&self.1)
         }
 
-        fn src(&self) -> WeakRef<'_, Ix::VertexIndex> {
+        fn src(&self) -> WeakRef<'_, VI> {
             WeakRef::Borrowed(&self.2)
         }
 

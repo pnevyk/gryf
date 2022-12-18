@@ -3,7 +3,7 @@
 use std::iter;
 
 use gryf::prelude::*;
-use gryf::{marker::Direction, visit::Dfs, Indexing, NumIndexType};
+use gryf::{marker::Direction, visit::Dfs, NumIndexType};
 
 // https://stackoverflow.com/questions/58870416/can-you-explain-implicit-graphsin-graph-theory-with-a-simple-example/58887179#58887179
 struct Collatz;
@@ -22,10 +22,7 @@ struct Neighbor {
     src: VertexIndex,
 }
 
-impl<Ix> NeighborRef<Ix> for Neighbor
-where
-    Ix: Indexing<VertexIndex = VertexIndex, EdgeIndex = EdgeIndex>,
-{
+impl NeighborRef<VertexIndex, EdgeIndex> for Neighbor {
     fn index(&self) -> WeakRef<'_, VertexIndex> {
         let n = self.src.to_bits();
         let c = if n % 2 == 0 { n / 2 } else { 3 * n + 1 };

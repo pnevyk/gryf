@@ -504,7 +504,7 @@ mod tests {
 
         let vertices = graph
             .vertices()
-            .map(|v| VertexRef::<DefaultIndexing, _>::data(&v).to_string())
+            .map(|v| v.data().to_string())
             .collect::<HashSet<_>>();
 
         assert!(vertices.contains("v"));
@@ -514,7 +514,7 @@ mod tests {
 
         let edges = graph
             .edges()
-            .map(|e| EdgeRef::<DefaultIndexing, _>::data(&e).to_string())
+            .map(|e| e.data().to_string())
             .collect::<HashSet<_>>();
 
         assert!(edges.contains("f"));

@@ -1,5 +1,5 @@
 use super::OpOwned;
-use crate::index::{Indexing, NumIndexType};
+use crate::index::{IndexType, NumIndexType};
 use crate::infra::CompactIndexMap;
 use crate::marker::{Directed, Direction, EdgeType};
 use crate::traits::*;
@@ -161,12 +161,13 @@ where
 
 pub struct TransposeRef<R>(R);
 
-impl<Ix, E, R> EdgeRef<Ix, E> for TransposeRef<R>
+impl<VI, EI, E, R> EdgeRef<VI, EI, E> for TransposeRef<R>
 where
-    Ix: Indexing,
-    R: EdgeRef<Ix, E>,
+    VI: IndexType,
+    EI: IndexType,
+    R: EdgeRef<VI, EI, E>,
 {
-    fn index(&self) -> &Ix::EdgeIndex {
+    fn index(&self) -> &EI {
         self.0.index()
     }
 
@@ -174,29 +175,30 @@ where
         self.0.data()
     }
 
-    fn src(&self) -> &Ix::VertexIndex {
+    fn src(&self) -> &VI {
         self.0.dst()
     }
 
-    fn dst(&self) -> &Ix::VertexIndex {
+    fn dst(&self) -> &VI {
         self.0.src()
     }
 }
 
-impl<Ix, R> NeighborRef<Ix> for TransposeRef<R>
+impl<VI, EI, R> NeighborRef<VI, EI> for TransposeRef<R>
 where
-    Ix: Indexing,
-    R: NeighborRef<Ix>,
+    VI: IndexType,
+    EI: IndexType,
+    R: NeighborRef<VI, EI>,
 {
-    fn index(&self) -> WeakRef<'_, Ix::VertexIndex> {
+    fn index(&self) -> WeakRef<'_, VI> {
         self.0.index()
     }
 
-    fn edge(&self) -> WeakRef<'_, Ix::EdgeIndex> {
+    fn edge(&self) -> WeakRef<'_, EI> {
         self.0.edge()
     }
 
-    fn src(&self) -> WeakRef<'_, Ix::VertexIndex> {
+    fn src(&self) -> WeakRef<'_, VI> {
         self.0.src()
     }
 
@@ -260,13 +262,9 @@ mod tests {
     #[test]
     fn edges() {
         let graph = Transpose::new(create_graph());
-        let mut edges = graph.edges().map(|edge| {
-            (
-                *EdgeRef::<DefaultIndexing, _>::src(&edge),
-                *EdgeRef::<DefaultIndexing, _>::dst(&edge),
-                *EdgeRef::<DefaultIndexing, _>::data(&edge),
-            )
-        });
+        let mut edges = graph
+            .edges()
+            .map(|edge| (*edge.src(), *edge.dst(), *edge.data()));
 
         assert_eq!(edges.next(), Some((1.into(), 0.into(), 0)));
         assert_eq!(edges.next(), Some((2.into(), 1.into(), 1)));
@@ -279,9 +277,9 @@ mod tests {
         let graph = Transpose::new(create_graph());
         let mut neighbors = graph.neighbors(&1.into()).map(|neighbor| {
             (
-                NeighborRef::<DefaultIndexing>::index(&neighbor).into_owned(),
-                NeighborRef::<DefaultIndexing>::src(&neighbor).into_owned(),
-                NeighborRef::<DefaultIndexing>::dir(&neighbor),
+                neighbor.index().into_owned(),
+                neighbor.src().into_owned(),
+                neighbor.dir(),
             )
         });
 
@@ -297,9 +295,9 @@ mod tests {
             .neighbors_directed(&1.into(), Outgoing)
             .map(|neighbor| {
                 (
-                    NeighborRef::<DefaultIndexing>::index(&neighbor).into_owned(),
-                    NeighborRef::<DefaultIndexing>::src(&neighbor).into_owned(),
-                    NeighborRef::<DefaultIndexing>::dir(&neighbor),
+                    neighbor.index().into_owned(),
+                    neighbor.src().into_owned(),
+                    neighbor.dir(),
                 )
             });
 
@@ -310,9 +308,9 @@ mod tests {
             .neighbors_directed(&1.into(), Incoming)
             .map(|neighbor| {
                 (
-                    NeighborRef::<DefaultIndexing>::index(&neighbor).into_owned(),
-                    NeighborRef::<DefaultIndexing>::src(&neighbor).into_owned(),
-                    NeighborRef::<DefaultIndexing>::dir(&neighbor),
+                    neighbor.index().into_owned(),
+                    neighbor.src().into_owned(),
+                    neighbor.dir(),
                 )
             });
 

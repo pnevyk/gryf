@@ -227,7 +227,7 @@ mod tests {
         assert_eq!(
             complement
                 .neighbors(&v0)
-                .map(|n| NeighborRef::<DefaultIndexing>::index(&n).into_owned())
+                .map(|n| n.index().into_owned())
                 .collect::<HashSet<VertexIndex>>(),
             vec![v2, v3].into_iter().collect()
         );
@@ -235,14 +235,14 @@ mod tests {
         assert_eq!(
             complement
                 .neighbors(&v2)
-                .map(|n| NeighborRef::<DefaultIndexing>::index(&n).into_owned())
+                .map(|n| n.index().into_owned())
                 .collect::<HashSet<_>>(),
             vec![v0].into_iter().collect()
         );
         assert_eq!(
             complement
                 .neighbors(&v3)
-                .map(|n| NeighborRef::<DefaultIndexing>::index(&n).into_owned())
+                .map(|n| n.index().into_owned())
                 .collect::<HashSet<_>>(),
             vec![v0].into_iter().collect()
         );

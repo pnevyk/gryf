@@ -140,6 +140,8 @@ where
     type EdgeIndex = G::EdgeIndex;
 }
 
+type GraphIndexing<G> = CustomIndexing<<G as GraphBase>::VertexIndex, <G as GraphBase>::EdgeIndex>;
+
 pub trait VerticesBase: GraphBase {
     type VertexIndicesIter<'a>: Iterator<Item = Self::VertexIndex>
     where
@@ -163,7 +165,7 @@ pub trait VerticesBase: GraphBase {
 }
 
 pub trait Vertices<V>: VerticesBase {
-    type VertexRef<'a>: VertexRef<CustomIndexing<Self::VertexIndex, Self::EdgeIndex>, V>
+    type VertexRef<'a>: VertexRef<GraphIndexing<Self>, V>
     where
         Self: 'a,
         V: 'a;
@@ -241,7 +243,7 @@ pub trait EdgesBase<Ty: EdgeType>: GraphBase {
 }
 
 pub trait Edges<E, Ty: EdgeType>: EdgesBase<Ty> {
-    type EdgeRef<'a>: EdgeRef<CustomIndexing<Self::VertexIndex, Self::EdgeIndex>, E>
+    type EdgeRef<'a>: EdgeRef<GraphIndexing<Self>, E>
     where
         Self: 'a,
         E: 'a;
@@ -324,7 +326,7 @@ pub trait NeighborRef<Ix: Indexing + ?Sized> {
 }
 
 pub trait Neighbors: GraphBase {
-    type NeighborRef<'a>: NeighborRef<CustomIndexing<Self::VertexIndex, Self::EdgeIndex>>
+    type NeighborRef<'a>: NeighborRef<GraphIndexing<Self>>
     where
         Self: 'a;
 

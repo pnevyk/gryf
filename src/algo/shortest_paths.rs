@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::cmp::{max, Reverse};
 use std::collections::{hash_map::Entry, BinaryHeap, HashSet};
 use std::hash::BuildHasherDefault;
@@ -130,8 +131,11 @@ where
         &self.start
     }
 
-    pub fn dist(&self, from: &G::VertexIndex) -> Option<&W> {
-        self.dist.get(from)
+    pub fn dist<VI>(&self, from: VI) -> Option<&W>
+    where
+        VI: Borrow<G::VertexIndex>,
+    {
+        self.dist.get(from.borrow())
     }
 
     pub fn reconstruct(&self, from: G::VertexIndex) -> PathReconstruction<'_, G> {

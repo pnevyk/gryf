@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::hash::BuildHasherDefault;
 use std::marker::PhantomData;
 use std::ops::Deref;
@@ -216,11 +217,12 @@ where
         self.graph.vertex_indices()
     }
 
-    pub fn vertex(&self, index: &G::VertexIndex) -> Option<&V>
+    pub fn vertex<VI>(&self, index: VI) -> Option<&V>
     where
         G: Vertices<V>,
+        VI: Borrow<G::VertexIndex>,
     {
-        self.graph.vertex(index)
+        self.graph.vertex(index.borrow())
     }
 
     pub fn vertices(&self) -> G::VerticesIter<'_>
@@ -230,22 +232,26 @@ where
         self.graph.vertices()
     }
 
-    pub fn vertex_mut(&mut self, index: &G::VertexIndex) -> Option<&mut V>
+    pub fn vertex_mut<VI>(&mut self, index: VI) -> Option<&mut V>
     where
         G: VerticesMut<V>,
+        VI: Borrow<G::VertexIndex>,
     {
-        self.graph.vertex_mut(index)
+        self.graph.vertex_mut(index.borrow())
     }
 
-    pub fn try_add_vertex(
+    pub fn try_add_vertex<VI>(
         &mut self,
         vertex: V,
         edge: Option<E>,
-        end: &G::VertexIndex,
+        end: VI,
     ) -> Result<G::VertexIndex, PathError>
     where
         G: VerticesMut<V> + EdgesMut<E, Ty> + Neighbors,
+        VI: Borrow<G::VertexIndex>,
     {
+        let end = end.borrow();
+
         match self.ends.as_mut() {
             Some(ends) => {
                 let end = match ends {
@@ -294,11 +300,14 @@ where
         }
     }
 
-    pub fn add_vertex(&mut self, vertex: V, end: &G::VertexIndex) -> G::VertexIndex
+    pub fn add_vertex<VI>(&mut self, vertex: V, end: VI) -> G::VertexIndex
     where
         E: Default,
         G: VerticesMut<V> + EdgesMut<E, Ty> + Neighbors,
+        VI: Borrow<G::VertexIndex>,
     {
+        let end = end.borrow();
+
         // Check if end is valid. If not, ignore the passed value and pick an
         // arbitrary real end.
         let end = match self.ends.as_ref() {
@@ -317,10 +326,13 @@ where
             .unwrap()
     }
 
-    pub fn remove_vertex(&mut self, index: &G::VertexIndex, edge: Option<E>) -> Option<V>
+    pub fn remove_vertex<VI>(&mut self, index: VI, edge: Option<E>) -> Option<V>
     where
         G: VerticesMut<V> + EdgesMut<E, Ty> + Neighbors,
+        VI: Borrow<G::VertexIndex>,
     {
+        let index = index.borrow();
+
         match self.ends.as_mut() {
             Some(ends) if ends[0] == ends[1] => {
                 if &ends[0] == index {
@@ -391,11 +403,12 @@ where
         }
     }
 
-    pub fn replace_vertex(&mut self, index: &G::VertexIndex, vertex: V) -> V
+    pub fn replace_vertex<VI>(&mut self, index: VI, vertex: V) -> V
     where
         G: VerticesMut<V>,
+        VI: Borrow<G::VertexIndex>,
     {
-        self.graph.replace_vertex(index, vertex)
+        self.graph.replace_vertex(index.borrow(), vertex)
     }
 
     pub fn clear(&mut self)
@@ -420,18 +433,20 @@ where
         self.graph.edge_bound()
     }
 
-    pub fn endpoints(&self, index: &G::EdgeIndex) -> Option<(G::VertexIndex, G::VertexIndex)>
+    pub fn endpoints<EI>(&self, index: EI) -> Option<(G::VertexIndex, G::VertexIndex)>
     where
         G: EdgesBase<Ty>,
+        EI: Borrow<G::EdgeIndex>,
     {
-        self.graph.endpoints(index)
+        self.graph.endpoints(index.borrow())
     }
 
-    pub fn edge_index(&self, src: &G::VertexIndex, dst: &G::VertexIndex) -> Option<G::EdgeIndex>
+    pub fn edge_index<VI>(&self, src: VI, dst: VI) -> Option<G::EdgeIndex>
     where
         G: EdgesBase<Ty>,
+        VI: Borrow<G::VertexIndex>,
     {
-        self.graph.edge_index(src, dst)
+        self.graph.edge_index(src.borrow(), dst.borrow())
     }
 
     pub fn edge_indices(&self) -> G::EdgeIndicesIter<'_>
@@ -441,11 +456,12 @@ where
         self.graph.edge_indices()
     }
 
-    pub fn contains_edge(&self, index: &G::EdgeIndex) -> bool
+    pub fn contains_edge<EI>(&self, index: EI) -> bool
     where
         G: EdgesBase<Ty>,
+        EI: Borrow<G::EdgeIndex>,
     {
-        self.graph.contains_edge(index)
+        self.graph.contains_edge(index.borrow())
     }
 
     pub fn is_directed(&self) -> bool
@@ -455,11 +471,12 @@ where
         self.graph.is_directed()
     }
 
-    pub fn edge(&self, index: &G::EdgeIndex) -> Option<&E>
+    pub fn edge<EI>(&self, index: EI) -> Option<&E>
     where
         G: Edges<E, Ty>,
+        EI: Borrow<G::EdgeIndex>,
     {
-        self.graph.edge(index)
+        self.graph.edge(index.borrow())
     }
 
     pub fn edges(&self) -> G::EdgesIter<'_>
@@ -469,46 +486,52 @@ where
         self.graph.edges()
     }
 
-    pub fn edge_mut(&mut self, index: &G::EdgeIndex) -> Option<&mut E>
+    pub fn edge_mut<EI>(&mut self, index: EI) -> Option<&mut E>
     where
         G: EdgesMut<E, Ty>,
+        EI: Borrow<G::EdgeIndex>,
     {
-        self.graph.edge_mut(index)
+        self.graph.edge_mut(index.borrow())
     }
 
-    pub fn replace_edge(&mut self, index: &G::EdgeIndex, edge: E) -> E
+    pub fn replace_edge<EI>(&mut self, index: EI, edge: E) -> E
     where
         G: EdgesMut<E, Ty>,
+        EI: Borrow<G::EdgeIndex>,
     {
-        self.graph.replace_edge(index, edge)
+        self.graph.replace_edge(index.borrow(), edge)
     }
 
-    pub fn neighbors(&self, src: &G::VertexIndex) -> G::NeighborsIter<'_>
+    pub fn neighbors<VI>(&self, src: VI) -> G::NeighborsIter<'_>
     where
         G: Neighbors,
+        VI: Borrow<G::VertexIndex>,
     {
-        self.graph.neighbors(src)
+        self.graph.neighbors(src.borrow())
     }
 
-    pub fn neighbors_directed(&self, src: &G::VertexIndex, dir: Direction) -> G::NeighborsIter<'_>
+    pub fn neighbors_directed<VI>(&self, src: VI, dir: Direction) -> G::NeighborsIter<'_>
     where
         G: Neighbors,
+        VI: Borrow<G::VertexIndex>,
     {
-        self.graph.neighbors_directed(src, dir)
+        self.graph.neighbors_directed(src.borrow(), dir)
     }
 
-    pub fn degree(&self, src: &G::VertexIndex) -> usize
+    pub fn degree<VI>(&self, src: VI) -> usize
     where
         G: Neighbors,
+        VI: Borrow<G::VertexIndex>,
     {
-        self.graph.degree(src)
+        self.graph.degree(src.borrow())
     }
 
-    pub fn degree_directed(&self, src: &G::VertexIndex, dir: Direction) -> usize
+    pub fn degree_directed<VI>(&self, src: VI, dir: Direction) -> usize
     where
         G: Neighbors,
+        VI: Borrow<G::VertexIndex>,
     {
-        self.graph.degree_directed(src, dir)
+        self.graph.degree_directed(src.borrow(), dir)
     }
 
     pub fn ends(&self) -> Option<&[G::VertexIndex; 2]> {

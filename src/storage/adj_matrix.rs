@@ -13,7 +13,6 @@ pub struct AdjMatrix<V, E, Ty, Ix> {
     matrix: Matrix<E, Ty, Ix>,
     vertices: Vec<V>,
     n_edges: usize,
-    ty: PhantomData<fn() -> Ix>,
 }
 
 impl<V, E, Ty: EdgeType, Ix: Indexing> AdjMatrix<V, E, Ty, Ix>
@@ -26,7 +25,6 @@ where
             matrix: Matrix::with_capacity(8),
             vertices: Vec::new(),
             n_edges: 0,
-            ty: PhantomData,
         }
     }
 }
@@ -327,7 +325,6 @@ where
             matrix: Matrix::with_capacity(vertex_count),
             vertices: Vec::with_capacity(vertex_count),
             n_edges: 0,
-            ty: PhantomData,
         }
     }
 }

@@ -2,8 +2,6 @@
 #![feature(assert_matches)]
 #![feature(int_log)]
 #![feature(try_blocks)]
-#![feature(auto_traits)]
-#![feature(negative_impls)]
 
 pub mod algo;
 pub mod export;

@@ -186,7 +186,7 @@ where
     graph: &'a G,
     map: CompactIndexMap<G::VertexIndex>,
     in_deg: Vec<usize>,
-    // Does not need to be LIFO as the order of reported vertices with in degree
+    // Does not need to be FIFO as the order of reported vertices with in degree
     // 0 does not matter.
     queue: Vec<G::VertexIndex>,
     visited: usize,

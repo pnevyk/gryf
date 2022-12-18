@@ -6,11 +6,11 @@ use std::{
 
 use rustc_hash::FxHashSet;
 
-use crate::{index::Indexing, infra::VisitSet};
-use crate::{index::UseIndex, traits::*};
 use crate::{
-    index::{IndexType, UseVertexIndex},
+    index::{IndexType, Indexing, UseIndex, UseVertexIndex},
+    infra::VisitSet,
     marker::Outgoing,
+    traits::*,
 };
 
 pub trait TraversalCollection<T>: Default {

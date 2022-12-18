@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt::Display;
 use std::io::{self, Write};
 use std::marker::PhantomData;
@@ -49,6 +50,8 @@ where
             out.write_all(b"graph ")?;
         }
 
+        let mut indexer = Indexer::new();
+
         out.write_all(self.name.as_bytes())?;
         out.write_all(b" {\n")?;
 
@@ -56,7 +59,7 @@ where
             out.write_all(
                 format!(
                     "    v{} [label={:?}];\n",
-                    vertex.index().to_usize(),
+                    indexer.get(vertex.index()),
                     (self.get_vertex_label)(vertex.data())
                 )
                 .as_bytes(),
@@ -68,9 +71,9 @@ where
             out.write_all(
                 format!(
                     "    v{} {} v{} [label={:?}];\n",
-                    edge.src().to_usize(),
+                    indexer.get(edge.src()),
                     line,
-                    edge.dst().to_usize(),
+                    indexer.get(edge.dst()),
                     (self.get_edge_label)(edge.data())
                 )
                 .as_bytes(),
@@ -80,5 +83,19 @@ where
         out.write_all(b"}\n")?;
 
         Ok(())
+    }
+}
+
+#[derive(Debug)]
+struct Indexer<Idx>(HashMap<Idx, usize>);
+
+impl<Idx: IndexType> Indexer<Idx> {
+    pub fn new() -> Self {
+        Self(HashMap::new())
+    }
+
+    pub fn get(&mut self, idx: &Idx) -> usize {
+        let new_idx = self.0.len();
+        *self.0.entry(idx.clone()).or_insert(new_idx)
     }
 }

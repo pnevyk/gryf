@@ -5,11 +5,14 @@ use std::{
 
 use fixedbitset::FixedBitSet;
 
-use crate::{index::IndexType, infra::TypedBitSet};
+use crate::{
+    index::{IndexType, NumIndexType},
+    infra::TypedBitSet,
+};
 
 pub trait VisitSet<I: IndexType> {
     fn visit(&mut self, index: I) -> bool;
-    fn is_visited(&self, index: I) -> bool;
+    fn is_visited(&self, index: &I) -> bool;
     fn visited_count(&self) -> usize;
     fn reset_visited(&mut self);
 }
@@ -19,8 +22,8 @@ impl<I: IndexType> VisitSet<I> for BTreeSet<I> {
         self.insert(index)
     }
 
-    fn is_visited(&self, index: I) -> bool {
-        self.contains(&index)
+    fn is_visited(&self, index: &I) -> bool {
+        self.contains(index)
     }
 
     fn visited_count(&self) -> usize {
@@ -37,8 +40,8 @@ impl<I: IndexType, S: BuildHasher> VisitSet<I> for HashSet<I, S> {
         self.insert(index)
     }
 
-    fn is_visited(&self, index: I) -> bool {
-        self.contains(&index)
+    fn is_visited(&self, index: &I) -> bool {
+        self.contains(index)
     }
 
     fn visited_count(&self) -> usize {
@@ -50,7 +53,7 @@ impl<I: IndexType, S: BuildHasher> VisitSet<I> for HashSet<I, S> {
     }
 }
 
-impl<I: IndexType> VisitSet<I> for FixedBitSet {
+impl<I: NumIndexType> VisitSet<I> for FixedBitSet {
     fn visit(&mut self, index: I) -> bool {
         if self.len() < index.to_usize() {
             self.grow(index.to_usize() - self.len());
@@ -58,7 +61,7 @@ impl<I: IndexType> VisitSet<I> for FixedBitSet {
         !self.put(index.to_usize())
     }
 
-    fn is_visited(&self, index: I) -> bool {
+    fn is_visited(&self, index: &I) -> bool {
         self.contains(index.to_usize())
     }
 
@@ -71,12 +74,12 @@ impl<I: IndexType> VisitSet<I> for FixedBitSet {
     }
 }
 
-impl<I: IndexType> VisitSet<I> for TypedBitSet<I> {
+impl<I: NumIndexType> VisitSet<I> for TypedBitSet<I> {
     fn visit(&mut self, index: I) -> bool {
         (**self).visit(index)
     }
 
-    fn is_visited(&self, index: I) -> bool {
+    fn is_visited(&self, index: &I) -> bool {
         (**self).is_visited(index)
     }
 

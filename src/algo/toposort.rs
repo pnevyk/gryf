@@ -1,11 +1,14 @@
+use std::hash::BuildHasherDefault;
+
+use rustc_hash::FxHashSet;
+
 use crate::{
-    index::VertexIndex,
-    infra::{CompactIndexMap, TypedBitSet, VisitSet},
+    index::{NumIndexType, UseVertexIndex},
+    infra::{CompactIndexMap, VisitSet},
     marker::{Directed, Direction},
     operator::Transpose,
     traits::*,
     visit::{self, raw::*, VisitAll, Visitor},
-    IndexType,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -31,7 +34,10 @@ impl<'a, G> TopoSort<'a, G>
 where
     G: Neighbors + VerticesBase + EdgesBase<Directed>,
 {
-    pub fn run_algo(graph: &'a G, algo: Option<Algo>) -> Self {
+    pub fn run_algo(graph: &'a G, algo: Option<Algo>) -> Self
+    where
+        G::VertexIndex: NumIndexType,
+    {
         match algo {
             Some(Algo::Dfs) | None => Self {
                 inner: TopoSortInner::Dfs(Self::run_dfs(graph).into_iter(graph)),
@@ -42,7 +48,10 @@ where
         }
     }
 
-    pub fn run(graph: &'a G) -> Self {
+    pub fn run(graph: &'a G) -> Self
+    where
+        G::VertexIndex: NumIndexType,
+    {
         Self::run_algo(graph, None)
     }
 
@@ -50,7 +59,10 @@ where
         DfsVisit::new(graph)
     }
 
-    pub fn run_kahn(graph: &'a G) -> KahnIter<'a, G> {
+    pub fn run_kahn(graph: &'a G) -> KahnIter<'a, G>
+    where
+        G::VertexIndex: NumIndexType,
+    {
         KahnIter::new(graph)
     }
 }
@@ -58,8 +70,9 @@ where
 impl<'a, G> Iterator for TopoSort<'a, G>
 where
     G: Neighbors + VerticesBase + EdgesBase<Directed>,
+    G::VertexIndex: NumIndexType,
 {
-    type Item = Result<VertexIndex, Error>;
+    type Item = Result<G::VertexIndex, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner.next()
@@ -77,8 +90,9 @@ where
 impl<'a, G> Iterator for TopoSortInner<'a, G>
 where
     G: Neighbors + VerticesBase + EdgesBase<Directed>,
+    G::VertexIndex: NumIndexType,
 {
-    type Item = Result<VertexIndex, Error>;
+    type Item = Result<G::VertexIndex, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
@@ -92,9 +106,9 @@ pub struct DfsVisit<'a, G>
 where
     G: VerticesBase + 'a,
 {
-    raw: RawVisit<RawDfsExtra>,
-    multi: RawVisitMulti<RawDfsExtra, VisitAll<'a, G>>,
-    closed: TypedBitSet<VertexIndex>,
+    raw: RawVisit<G, UseVertexIndex, RawDfsExtra>,
+    multi: RawVisitMulti<G, UseVertexIndex, RawDfsExtra, VisitAll<'a, G>>,
+    closed: FxHashSet<G::VertexIndex>,
 }
 
 impl<'a, G> DfsVisit<'a, G>
@@ -105,7 +119,10 @@ where
         Self {
             raw: RawVisit::new(Some(graph.vertex_count())),
             multi: RawVisitMulti::new(VisitAll::new(graph)),
-            closed: TypedBitSet::with_capacity(graph.vertex_count()),
+            closed: FxHashSet::with_capacity_and_hasher(
+                graph.vertex_count(),
+                BuildHasherDefault::default(),
+            ),
         }
     }
 }
@@ -114,7 +131,7 @@ impl<'a, G> Visitor<G> for DfsVisit<'a, G>
 where
     G: Neighbors + VerticesBase + EdgesBase<Directed>,
 {
-    type Item = Result<VertexIndex, Error>;
+    type Item = Result<G::VertexIndex, Error>;
 
     fn next(&mut self, graph: &G) -> Option<Self::Item> {
         // The implementation differs from classic DFS algorithm for topological
@@ -135,7 +152,7 @@ where
                 &mut self.raw,
                 |raw| {
                     raw.next(graph, |_, raw_event| match raw_event {
-                        RawEvent::Skip { vertex, .. } if !self.closed.is_visited(vertex) => {
+                        RawEvent::Skip { vertex, .. } if !self.closed.is_visited(&vertex) => {
                             // Vertex not added to the stack, but also
                             // has not been closed. That means that we
                             // encountered a back edge.
@@ -147,7 +164,7 @@ where
                         _ => true,
                     })
                 },
-                |vertex| graph.contains_vertex(*vertex),
+                |vertex| graph.contains_vertex(vertex),
             )?;
 
             if cycle {
@@ -155,26 +172,30 @@ where
             }
 
             if let RawDfsExtraEvent::Close(vertex) = raw_extra_event {
-                self.closed.visit(vertex);
+                self.closed.visit(vertex.clone());
                 return Some(Ok(vertex));
             }
         }
     }
 }
 
-pub struct KahnIter<'a, G> {
+pub struct KahnIter<'a, G>
+where
+    G: GraphBase,
+{
     graph: &'a G,
-    map: CompactIndexMap<VertexIndex>,
+    map: CompactIndexMap<G::VertexIndex>,
     in_deg: Vec<usize>,
-    // Does not need to be LIFO as the order of reported vertices with in degree
+    // Does not need to be FIFO as the order of reported vertices with in degree
     // 0 does not matter.
-    queue: Vec<VertexIndex>,
+    queue: Vec<G::VertexIndex>,
     visited: usize,
 }
 
 impl<'a, G> KahnIter<'a, G>
 where
     G: Neighbors + VerticesBase + 'a,
+    G::VertexIndex: NumIndexType,
 {
     fn new(graph: &'a G) -> Self {
         let map = graph.vertex_index_map();
@@ -182,7 +203,7 @@ where
         let mut queue = Vec::new();
 
         for v in graph.vertex_indices() {
-            let deg = graph.degree_directed(v, Direction::Incoming);
+            let deg = graph.degree_directed(&v, Direction::Incoming);
             in_deg.push(deg);
 
             if deg == 0 {
@@ -203,20 +224,21 @@ where
 impl<'a, G> Iterator for KahnIter<'a, G>
 where
     G: Neighbors,
+    G::VertexIndex: NumIndexType,
 {
-    type Item = Result<VertexIndex, Error>;
+    type Item = Result<G::VertexIndex, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(vertex) = self.queue.pop() {
             self.visited += 1;
 
-            for n in self.graph.neighbors_directed(vertex, Direction::Outgoing) {
-                let i = self.map.virt(n.index()).unwrap().to_usize();
+            for n in self.graph.neighbors_directed(&vertex, Direction::Outgoing) {
+                let i = self.map.virt(*n.index()).unwrap().to_usize();
                 let deg = &mut self.in_deg[i];
                 *deg -= 1;
 
                 if *deg == 0 {
-                    self.queue.push(n.index());
+                    self.queue.push(*n.index());
                 }
             }
 
@@ -235,6 +257,7 @@ mod tests {
     use super::*;
 
     use crate::{
+        index::DefaultIndexing,
         storage::AdjList,
         visit::{DfsEvent, DfsEvents},
     };
@@ -246,6 +269,7 @@ mod tests {
             + EdgesBase<Directed>
             + VerticesBaseWeak
             + EdgesBaseWeak<Directed>,
+        G::VertexIndex: NumIndexType,
     {
         let sorted = toposort.collect::<Result<Vec<_>, _>>();
 
@@ -260,19 +284,19 @@ mod tests {
 
         match (sorted, cycle) {
             (Ok(sorted), None) => {
-                for (src, dst) in graph.edge_indices().map(|e| graph.endpoints(e).unwrap()) {
+                for (src, dst) in graph.edge_indices().map(|e| graph.endpoints(&e).unwrap()) {
                     let i = sorted
                         .iter()
                         .copied()
                         .enumerate()
-                        .find_map(|(k, v)| (v == src).then(|| Some(k)))
+                        .find_map(|(k, v)| (v == src).then_some(Some(k)))
                         .unwrap_or_else(|| panic!("algorithm omitted vertex {:?}", src));
 
                     let j = sorted
                         .iter()
                         .copied()
                         .enumerate()
-                        .find_map(|(k, v)| (v == dst).then(|| Some(k)))
+                        .find_map(|(k, v)| (v == dst).then_some(Some(k)))
                         .unwrap_or_else(|| panic!("algorithm omitted vertex {:?}", dst));
 
                     assert!(
@@ -289,7 +313,7 @@ mod tests {
         }
     }
 
-    fn create_basic_graph() -> AdjList<(), (), Directed> {
+    fn create_basic_graph() -> AdjList<(), (), Directed, DefaultIndexing> {
         let mut graph = AdjList::default();
 
         let v0 = graph.add_vertex(());
@@ -299,17 +323,17 @@ mod tests {
         let v4 = graph.add_vertex(());
         let v5 = graph.add_vertex(());
 
-        graph.add_edge(v5, v2, ());
-        graph.add_edge(v5, v0, ());
-        graph.add_edge(v4, v0, ());
-        graph.add_edge(v4, v1, ());
-        graph.add_edge(v2, v3, ());
-        graph.add_edge(v3, v1, ());
+        graph.add_edge(&v5, &v2, ());
+        graph.add_edge(&v5, &v0, ());
+        graph.add_edge(&v4, &v0, ());
+        graph.add_edge(&v4, &v1, ());
+        graph.add_edge(&v2, &v3, ());
+        graph.add_edge(&v3, &v1, ());
 
         graph
     }
 
-    fn create_cyclic_graph() -> AdjList<(), (), Directed> {
+    fn create_cyclic_graph() -> AdjList<(), (), Directed, DefaultIndexing> {
         let mut graph = AdjList::default();
 
         let v0 = graph.add_vertex(());
@@ -319,19 +343,19 @@ mod tests {
         let v4 = graph.add_vertex(());
         let v5 = graph.add_vertex(());
 
-        graph.add_edge(v5, v2, ());
-        graph.add_edge(v5, v0, ());
-        graph.add_edge(v4, v0, ());
-        graph.add_edge(v4, v1, ());
-        graph.add_edge(v2, v3, ());
-        graph.add_edge(v3, v1, ());
+        graph.add_edge(&v5, &v2, ());
+        graph.add_edge(&v5, &v0, ());
+        graph.add_edge(&v4, &v0, ());
+        graph.add_edge(&v4, &v1, ());
+        graph.add_edge(&v2, &v3, ());
+        graph.add_edge(&v3, &v1, ());
 
-        graph.add_edge(v1, v5, ());
+        graph.add_edge(&v1, &v5, ());
 
         graph
     }
 
-    fn create_disconnected_graph() -> AdjList<(), (), Directed> {
+    fn create_disconnected_graph() -> AdjList<(), (), Directed, DefaultIndexing> {
         let mut graph = AdjList::default();
 
         let v0 = graph.add_vertex(());
@@ -341,22 +365,22 @@ mod tests {
         let v4 = graph.add_vertex(());
         let v5 = graph.add_vertex(());
 
-        graph.add_edge(v5, v2, ());
-        graph.add_edge(v5, v0, ());
-        graph.add_edge(v4, v0, ());
-        graph.add_edge(v4, v1, ());
-        graph.add_edge(v2, v3, ());
-        graph.add_edge(v3, v1, ());
+        graph.add_edge(&v5, &v2, ());
+        graph.add_edge(&v5, &v0, ());
+        graph.add_edge(&v4, &v0, ());
+        graph.add_edge(&v4, &v1, ());
+        graph.add_edge(&v2, &v3, ());
+        graph.add_edge(&v3, &v1, ());
 
         let v6 = graph.add_vertex(());
         let v7 = graph.add_vertex(());
         let v8 = graph.add_vertex(());
         let v9 = graph.add_vertex(());
 
-        graph.add_edge(v7, v6, ());
-        graph.add_edge(v7, v8, ());
-        graph.add_edge(v6, v9, ());
-        graph.add_edge(v8, v9, ());
+        graph.add_edge(&v7, &v6, ());
+        graph.add_edge(&v7, &v8, ());
+        graph.add_edge(&v6, &v9, ());
+        graph.add_edge(&v8, &v9, ());
 
         graph
     }

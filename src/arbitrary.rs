@@ -2,17 +2,18 @@ use std::{fmt, marker::PhantomData};
 
 use arbitrary::{Arbitrary, Unstructured};
 
-use crate::index::{EdgeIndex, VertexIndex};
+use crate::index::NumIndexType;
 use crate::infra::CompactIndexMap;
 use crate::marker::{Direction, EdgeType};
 use crate::testing::{Applier, ApplyMutOps, MutOp};
 use crate::traits::*;
 use crate::{
-    Edges, EdgesBase, EdgesBaseWeak, EdgesMut, EdgesWeak, Guarantee, Neighbors, Vertices,
-    VerticesBase, VerticesBaseWeak, VerticesMut, VerticesWeak,
+    Edges, EdgesBase, EdgesBaseWeak, EdgesMut, EdgesWeak, GraphBase, Guarantee, Neighbors,
+    Vertices, VerticesBase, VerticesBaseWeak, VerticesMut, VerticesWeak,
 };
 
 #[derive(
+    GraphBase,
     VerticesBase,
     Vertices,
     VerticesMut,
@@ -46,6 +47,7 @@ where
     V: Arbitrary<'a>,
     E: Arbitrary<'a>,
     G: Default + VerticesMut<V> + EdgesMut<E, Ty>,
+    G::VertexIndex: NumIndexType,
 {
     fn arbitrary(u: &mut Unstructured<'a>) -> arbitrary::Result<Self> {
         let mut graph = G::default();
@@ -101,6 +103,7 @@ impl<V, E, Ty: EdgeType, G> ArbitraryGraph<V, E, Ty, G> {
 mod tests {
     use super::*;
 
+    use crate::index::DefaultIndexing;
     use crate::marker::Undirected;
     use crate::storage::AdjList;
 
@@ -108,6 +111,6 @@ mod tests {
     fn is_arbitrary() {
         fn assert_arbitrary<'a, T: Arbitrary<'a>>() {}
 
-        assert_arbitrary::<ArbitraryGraph<(), (), Undirected, AdjList<_, _, _>>>();
+        assert_arbitrary::<ArbitraryGraph<(), (), Undirected, AdjList<_, _, _, DefaultIndexing>>>();
     }
 }

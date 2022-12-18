@@ -6,6 +6,7 @@ use proptest::{
 };
 
 use crate::{
+    index::NumIndexType,
     marker::EdgeType,
     testing::{Applier, ApplyMutOps, ApplyOptions, MutOp},
     traits::Create,
@@ -18,6 +19,7 @@ where
     E: Arbitrary + Debug,
     Ty: Debug,
     G: Create<V, E, Ty> + Debug,
+    G::VertexIndex: NumIndexType,
 {
     graph_ops_strategy_with(ApplyOptions::default())
 }
@@ -30,6 +32,7 @@ where
     E: Arbitrary + Debug,
     Ty: Debug,
     G: Create<V, E, Ty> + Debug,
+    G::VertexIndex: NumIndexType,
 {
     any::<Vec<MutOp<V, E, Ty>>>().prop_map(move |ops| {
         let mut graph = G::with_capacity(ops.len(), ops.len());
@@ -45,6 +48,7 @@ where
     E: Arbitrary + Debug,
     Ty: Debug,
     G: Create<V, E, Ty> + Debug,
+    G::VertexIndex: NumIndexType,
 {
     graph_strategy_with(ApplyOptions::default())
 }
@@ -55,6 +59,7 @@ where
     E: Arbitrary + Debug,
     Ty: Debug,
     G: Create<V, E, Ty> + Debug,
+    G::VertexIndex: NumIndexType,
 {
     (any::<Vec<V>>(), any::<Vec<(usize, usize, E)>>()).prop_map(move |(vertices, edges)| {
         let vertex_count = vertices.len();

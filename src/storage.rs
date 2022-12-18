@@ -27,14 +27,14 @@ mod tests {
         let v2 = graph.add_vertex(());
         let v3 = graph.add_vertex(());
 
-        graph.add_edge(v0, v1, ());
-        graph.add_edge(v0, v2, ());
-        let e = graph.add_edge(v0, v3, ());
-        graph.add_edge(v2, v1, ());
-        graph.add_edge(v2, v3, ());
+        graph.add_edge(&v0, &v1, ());
+        graph.add_edge(&v0, &v2, ());
+        let e = graph.add_edge(&v0, &v3, ());
+        graph.add_edge(&v2, &v1, ());
+        graph.add_edge(&v2, &v3, ());
 
-        graph.remove_edge(e);
-        graph.remove_vertex(v1);
+        graph.remove_edge(&e);
+        graph.remove_vertex(&v1);
 
         assert_eq!(graph.vertex_count(), 3);
         assert_eq!(graph.vertex_indices().count(), graph.vertex_count());
@@ -45,24 +45,24 @@ mod tests {
         assert_eq!(graph.edges().count(), graph.edge_count());
 
         let valid_edge_indices = graph.edge_indices().all(|edge_index| {
-            let (src, dst) = graph.endpoints(edge_index).unwrap();
-            graph.edge_index(src, dst) == Some(edge_index)
+            let (src, dst) = graph.endpoints(&edge_index).unwrap();
+            graph.edge_index(&src, &dst) == Some(edge_index)
         });
         assert!(valid_edge_indices);
 
         let mut deg = graph
             .vertex_indices()
-            .map(|index| graph.degree(index))
+            .map(|index| graph.degree(&index))
             .collect::<Vec<_>>();
 
         let mut out_deg = graph
             .vertex_indices()
-            .map(|index| graph.degree_directed(index, Direction::Outgoing))
+            .map(|index| graph.degree_directed(&index, Direction::Outgoing))
             .collect::<Vec<_>>();
 
         let mut in_deg = graph
             .vertex_indices()
-            .map(|index| graph.degree_directed(index, Direction::Incoming))
+            .map(|index| graph.degree_directed(&index, Direction::Incoming))
             .collect::<Vec<_>>();
 
         deg.sort_unstable();
@@ -83,7 +83,7 @@ mod tests {
         assert_eq!(graph.edge_count(), 0);
         assert_eq!(graph.vertex_count(), 3);
 
-        graph.add_edge(v0, v1, ());
+        graph.add_edge(&v0, &v1, ());
         assert_eq!(graph.edge_count(), 1);
 
         graph.clear();
@@ -101,20 +101,20 @@ mod tests {
         let v1 = graph.add_vertex(());
         let v2 = graph.add_vertex(());
 
-        graph.add_edge(v0, v1, 0);
-        graph.add_edge(v0, v2, 1);
-        graph.add_edge(v0, v1, 2);
+        graph.add_edge(&v0, &v1, 0);
+        graph.add_edge(&v0, &v2, 1);
+        graph.add_edge(&v0, &v1, 2);
 
         let mut e01 = graph
-            .multi_edge_index(v0, v1)
-            .map(|e| graph.edge(e))
+            .multi_edge_index(&v0, &v1)
+            .map(|e| graph.edge(&e))
             .collect::<Vec<_>>();
 
         e01.sort();
 
         let e02 = graph
-            .multi_edge_index(v0, v2)
-            .map(|e| graph.edge(e))
+            .multi_edge_index(&v0, &v2)
+            .map(|e| graph.edge(&e))
             .collect::<Vec<_>>();
 
         assert_eq!(e01, vec![Some(&0), Some(&2)]);

@@ -13,12 +13,12 @@ where
         facts::complete_graph_edge_count::<Ty>(vertex_count),
     );
 
-    for _ in 0..vertex_count {
-        graph.add_vertex(V::default());
-    }
+    let vertices = (0..vertex_count)
+        .map(|_| graph.add_vertex(V::default()))
+        .collect::<Vec<_>>();
 
-    for u in 0..vertex_count {
-        for v in 0..vertex_count {
+    for u in vertices.clone() {
+        for v in vertices.clone() {
             if u == v {
                 continue;
             }
@@ -27,7 +27,7 @@ where
                 break;
             }
 
-            graph.add_edge(u.into(), v.into(), E::default());
+            graph.add_edge(&u, &v, E::default());
         }
     }
 
@@ -42,23 +42,27 @@ pub fn create_bipartite<V, E, Ty: EdgeType, G, F>(
 where
     V: Default,
     G: Create<V, E, Ty>,
-    F: Fn(usize, usize, Direction) -> Option<E>,
+    F: Fn(&G::VertexIndex, &G::VertexIndex, Direction) -> Option<E>,
 {
     let vertex_count = vertex_count_lhs + vertex_count_rhs;
 
     let mut graph = G::with_capacity(vertex_count, vertex_count);
 
-    for _ in 0..vertex_count {
-        graph.add_vertex(V::default());
-    }
+    let vertices_lhs = (0..vertex_count_lhs)
+        .map(|_| graph.add_vertex(V::default()))
+        .collect::<Vec<_>>();
+
+    let vertices_rhs = (0..vertex_count_rhs)
+        .map(|_| graph.add_vertex(V::default()))
+        .collect::<Vec<_>>();
 
     for dir in Ty::directions() {
-        for i in 0..vertex_count_lhs {
-            for j in 0..vertex_count_rhs {
-                if let Some(edge) = connect(i, j, *dir) {
+        for i in vertices_lhs.clone() {
+            for j in vertices_rhs.clone() {
+                if let Some(edge) = connect(&i, &j, *dir) {
                     match dir {
-                        Direction::Outgoing => graph.add_edge(i.into(), j.into(), edge),
-                        Direction::Incoming => graph.add_edge(j.into(), i.into(), edge),
+                        Direction::Outgoing => graph.add_edge(&i, &j, edge),
+                        Direction::Incoming => graph.add_edge(&j, &i, edge),
                     };
                 }
             }
@@ -79,11 +83,12 @@ where
     }
 
     let mut graph = G::with_capacity(vertex_count, vertex_count - 1);
-    graph.add_vertex(V::default());
+    let mut src = graph.add_vertex(V::default());
 
-    for i in 1..vertex_count {
+    for _ in 1..vertex_count {
         let dst = graph.add_vertex(V::default());
-        graph.add_edge((i - 1).into(), dst, E::default());
+        graph.add_edge(&src, &dst, E::default());
+        src = dst;
     }
 
     graph
@@ -99,14 +104,13 @@ mod random {
     use std::marker::PhantomData;
 
     use crate::export::{Dot, Export};
-    use crate::index::{EdgeIndex, VertexIndex};
+    use crate::index::NumIndexType;
     use crate::infra::CompactIndexMap;
     use crate::marker::{Direction, EdgeType};
     use crate::traits::*;
-    use crate::IndexType;
     use crate::{
-        Edges, EdgesBase, EdgesBaseWeak, EdgesWeak, Guarantee, Neighbors, Vertices, VerticesBase,
-        VerticesBaseWeak, VerticesWeak,
+        Edges, EdgesBase, EdgesBaseWeak, EdgesWeak, GraphBase, Guarantee, Neighbors, Vertices,
+        VerticesBase, VerticesBaseWeak, VerticesWeak,
     };
 
     #[cfg(feature = "proptest")]
@@ -220,6 +224,7 @@ mod random {
     impl<V, E, Ty: EdgeType, G> ApplyMutOps<V, E, Ty> for Applier<'_, G>
     where
         G: VerticesMut<V> + EdgesMut<E, Ty>,
+        G::VertexIndex: NumIndexType,
     {
         fn apply_one(&mut self, op: MutOp<V, E, Ty>) {
             match op {
@@ -234,7 +239,7 @@ mod random {
                     if self.graph.vertex_count() > 0 {
                         let map = self.graph.vertex_index_map();
                         let index = map.real(index % self.graph.vertex_count()).unwrap();
-                        self.graph.remove_vertex(index);
+                        self.graph.remove_vertex(&index);
                     }
                 }
                 MutOp::AddEdge(src, dst, edge, _) => {
@@ -247,11 +252,12 @@ mod random {
                             return;
                         }
 
-                        if !self.options.multi_edges && self.graph.edge_index(src, dst).is_some() {
+                        if !self.options.multi_edges && self.graph.edge_index(&src, &dst).is_some()
+                        {
                             return;
                         }
 
-                        self.graph.add_edge(src, dst, edge);
+                        self.graph.add_edge(&src, &dst, edge);
                     }
                 }
                 MutOp::RemoveEdge(src, dst) => {
@@ -263,8 +269,8 @@ mod random {
                         let map = self.graph.vertex_index_map();
                         let src = map.real(src % self.graph.vertex_count()).unwrap();
                         let dst = map.real(dst % self.graph.vertex_count()).unwrap();
-                        if let Some(index) = self.graph.edge_index(src, dst) {
-                            self.graph.remove_edge(index);
+                        if let Some(index) = self.graph.edge_index(&src, &dst) {
+                            self.graph.remove_edge(&index);
                         }
                     }
                 }
@@ -273,6 +279,7 @@ mod random {
     }
 
     #[derive(
+        GraphBase,
         VerticesBase,
         Vertices,
         EdgesBase,
@@ -321,6 +328,7 @@ mod random {
         V: Clone + fmt::Debug,
         E: Clone + fmt::Debug,
         G: Create<V, E, Ty>,
+        G::VertexIndex: NumIndexType,
     {
         fn with_capacity(vertex_count: usize, edge_count: usize) -> Self {
             Self::new(G::with_capacity(vertex_count, edge_count))
@@ -331,22 +339,23 @@ mod random {
     where
         V: Clone,
         G: VerticesMut<V>,
+        G::VertexIndex: NumIndexType,
     {
-        fn vertex_mut(&mut self, index: VertexIndex) -> Option<&mut V> {
+        fn vertex_mut(&mut self, index: &Self::VertexIndex) -> Option<&mut V> {
             self.graph.vertex_mut(index)
         }
 
-        fn add_vertex(&mut self, vertex: V) -> VertexIndex {
+        fn add_vertex(&mut self, vertex: V) -> Self::VertexIndex {
             self.history.push(MutOp::AddVertex(vertex.clone()));
             self.graph.add_vertex(vertex)
         }
 
-        fn remove_vertex(&mut self, index: VertexIndex) -> Option<V> {
+        fn remove_vertex(&mut self, index: &Self::VertexIndex) -> Option<V> {
             self.history.push(MutOp::RemoveVertex(index.to_usize()));
             self.graph.remove_vertex(index)
         }
 
-        fn replace_vertex(&mut self, index: VertexIndex, vertex: V) -> V {
+        fn replace_vertex(&mut self, index: &Self::VertexIndex, vertex: V) -> V {
             self.graph.replace_vertex(index, vertex)
         }
     }
@@ -355,12 +364,18 @@ mod random {
     where
         E: Clone,
         G: EdgesMut<E, Ty>,
+        G::VertexIndex: NumIndexType,
     {
-        fn edge_mut(&mut self, index: EdgeIndex) -> Option<&mut E> {
+        fn edge_mut(&mut self, index: &Self::EdgeIndex) -> Option<&mut E> {
             self.graph.edge_mut(index)
         }
 
-        fn add_edge(&mut self, src: VertexIndex, dst: VertexIndex, edge: E) -> EdgeIndex {
+        fn add_edge(
+            &mut self,
+            src: &Self::VertexIndex,
+            dst: &Self::VertexIndex,
+            edge: E,
+        ) -> Self::EdgeIndex {
             self.history.push(MutOp::AddEdge(
                 src.to_usize(),
                 dst.to_usize(),
@@ -370,7 +385,7 @@ mod random {
             self.graph.add_edge(src, dst, edge)
         }
 
-        fn remove_edge(&mut self, index: EdgeIndex) -> Option<E> {
+        fn remove_edge(&mut self, index: &Self::EdgeIndex) -> Option<E> {
             if let Some((src, dst)) = self.endpoints(index) {
                 self.history
                     .push(MutOp::RemoveEdge(src.to_usize(), dst.to_usize()));
@@ -378,7 +393,7 @@ mod random {
             self.graph.remove_edge(index)
         }
 
-        fn replace_edge(&mut self, index: EdgeIndex, edge: E) -> E {
+        fn replace_edge(&mut self, index: &Self::EdgeIndex, edge: E) -> E {
             self.graph.replace_edge(index, edge)
         }
     }

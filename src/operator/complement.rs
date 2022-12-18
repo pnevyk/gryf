@@ -53,14 +53,14 @@ where
 
             // Assumption: adding vertices to the result graph generates index
             // sequence going from zero with step 1.
-            debug_assert!(idx.as_usize() == cur, "unexpected behavior of `add_vertex`");
+            debug_assert!(idx.to_usize() == cur, "unexpected behavior of `add_vertex`");
         }
 
         for u in self.graph.vertex_indices() {
             for v in self.graph.vertex_indices() {
-                if u.as_usize() < v.as_usize() && self.graph.edge_index(&u, &v).is_none() {
-                    let u = NumIndexType::from_usize(vertex_map.virt(u).unwrap().as_usize());
-                    let v = NumIndexType::from_usize(vertex_map.virt(v).unwrap().as_usize());
+                if u < v && self.graph.edge_index(&u, &v).is_none() {
+                    let u = NumIndexType::from_usize(vertex_map.virt(u).unwrap().to_usize());
+                    let v = NumIndexType::from_usize(vertex_map.virt(v).unwrap().to_usize());
                     result.add_edge(&u, &v, self.edge.clone());
                 }
             }
@@ -270,10 +270,10 @@ mod tests {
 
         // XXX: Complement does not preserve the vertex indices when there are
         // holes. This would change if we implement an in-place algorithm.
-        let v0 = VertexIndex::from(0usize);
-        let v1 = VertexIndex::from(1usize);
-        let v2 = VertexIndex::from(2usize);
-        let v4 = VertexIndex::from(3usize);
+        let v0 = VertexIndex::from(0);
+        let v1 = VertexIndex::from(1);
+        let v2 = VertexIndex::from(2);
+        let v4 = VertexIndex::from(3);
 
         assert!(complement.edge_index(&v0, &v1).is_none());
         assert!(complement.edge_index(&v1, &v2).is_none());

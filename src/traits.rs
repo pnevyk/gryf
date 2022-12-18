@@ -395,7 +395,7 @@ where
     {
         for edge in iter {
             let (src, dst, edge) = edge.unpack();
-            let vertex_bound = max(src, dst).as_usize();
+            let vertex_bound = max(src, dst).to_usize();
 
             while self.vertex_count() <= vertex_bound {
                 self.add_vertex(V::default());

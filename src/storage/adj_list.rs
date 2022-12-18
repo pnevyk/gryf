@@ -38,7 +38,7 @@ where
         index: Ix::EdgeIndex,
         cause: Option<Ix::VertexIndex>,
     ) -> Option<E> {
-        let endpoints = self.endpoints.get(index.as_usize())?;
+        let endpoints = self.endpoints.get(index.to_usize())?;
 
         for (i, dir) in Self::directions().iter().enumerate() {
             let endpoint = endpoints[i];
@@ -48,19 +48,19 @@ where
             // to remove it.
             if Some(endpoint) != cause {
                 Self::disconnect(
-                    &mut self.vertices[endpoint.as_usize()].edges[dir.index()],
+                    &mut self.vertices[endpoint.to_usize()].edges[dir.index()],
                     index,
                 );
             }
         }
 
         // Remove the edge from the graph.
-        let edge = self.edges.swap_remove(index.as_usize());
-        self.endpoints.swap_remove(index.as_usize());
+        let edge = self.edges.swap_remove(index.to_usize());
+        self.endpoints.swap_remove(index.to_usize());
 
         // If `swap_remove` actually moved an existing edge somewhere, we need
         // to fix its index in the entire graph.
-        if index.as_usize() < self.edges.len() {
+        if index.to_usize() < self.edges.len() {
             self.relocate_edge(NumIndexType::from_usize(self.edges.len()), index);
         }
 
@@ -68,12 +68,12 @@ where
     }
 
     fn relocate_vertex(&mut self, old_index: Ix::VertexIndex, new_index: Ix::VertexIndex) {
-        let vertex = &mut self.vertices[new_index.as_usize()];
+        let vertex = &mut self.vertices[new_index.to_usize()];
 
         // Fix the index of the vertex in all edges it has.
         for dir in Ty::directions() {
             for edge_index in vertex.edges[dir.index()].iter() {
-                let endpoints = &mut self.endpoints[edge_index.as_usize()];
+                let endpoints = &mut self.endpoints[edge_index.to_usize()];
                 for endpoint in endpoints.iter_mut() {
                     if *endpoint == old_index {
                         *endpoint = new_index;
@@ -84,11 +84,11 @@ where
     }
 
     fn relocate_edge(&mut self, old_index: Ix::EdgeIndex, new_index: Ix::EdgeIndex) {
-        let endpoints = &mut self.endpoints[new_index.as_usize()];
+        let endpoints = &mut self.endpoints[new_index.to_usize()];
 
         // Fix the index of the edge in all vertices it is incident with.
         for i in 0..=1 {
-            let vertex = &mut self.vertices[endpoints[i].as_usize()];
+            let vertex = &mut self.vertices[endpoints[i].to_usize()];
 
             for dir in Ty::directions() {
                 for edge_index in &mut vertex.edges[dir.index()] {
@@ -196,7 +196,7 @@ where
 
     fn vertex(&self, index: &Self::VertexIndex) -> Option<&V> {
         self.vertices
-            .get(index.as_usize())
+            .get(index.to_usize())
             .map(|vertex| &vertex.data)
     }
 
@@ -212,12 +212,12 @@ where
 {
     fn vertex_mut(&mut self, index: &Self::VertexIndex) -> Option<&mut V> {
         self.vertices
-            .get_mut(index.as_usize())
+            .get_mut(index.to_usize())
             .map(|vertex| &mut vertex.data)
     }
 
     fn add_vertex(&mut self, vertex: V) -> Self::VertexIndex {
-        let index = self.vertices.len() as u64;
+        let index = self.vertices.len();
         self.vertices.push(Vertex::new(vertex));
         index.into()
     }
@@ -226,7 +226,7 @@ where
         for dir in Ty::directions() {
             // Remove all edges connected to this vertex in this direction.
             loop {
-                let vertex = self.vertices.get_mut(index.as_usize())?;
+                let vertex = self.vertices.get_mut(index.to_usize())?;
                 if vertex.edges[dir.index()].is_empty() {
                     break;
                 }
@@ -239,11 +239,11 @@ where
         }
 
         // Remove the vertex from the graph.
-        let vertex = self.vertices.swap_remove(index.as_usize());
+        let vertex = self.vertices.swap_remove(index.to_usize());
 
         // If `swap_remove` actually moved an existing vertex somewhere, we need
         // to fix its index in the entire graph.
-        if index.as_usize() < self.vertices.len() {
+        if index.to_usize() < self.vertices.len() {
             self.relocate_vertex(NumIndexType::from_usize(self.vertices.len()), *index);
         }
 
@@ -276,7 +276,7 @@ where
 
     fn endpoints(&self, index: &Self::EdgeIndex) -> Option<(Self::VertexIndex, Self::VertexIndex)> {
         self.endpoints
-            .get(index.as_usize())
+            .get(index.to_usize())
             .map(|endpoints| (endpoints[0], endpoints[1]))
     }
 
@@ -286,12 +286,12 @@ where
         dst: &Self::VertexIndex,
     ) -> Option<Self::EdgeIndex> {
         self.vertices
-            .get(src.as_usize())
+            .get(src.to_usize())
             .and_then(|src| {
                 src.edges[Direction::Outgoing.index()]
                     .iter()
                     .find(|edge_index| {
-                        let endpoints = &self.endpoints[edge_index.as_usize()];
+                        let endpoints = &self.endpoints[edge_index.to_usize()];
                         endpoints[1] == *dst || (!Ty::is_directed() && endpoints[0] == *dst)
                     })
             })
@@ -324,7 +324,7 @@ where
         Self: 'a;
 
     fn edge(&self, index: &Self::EdgeIndex) -> Option<&E> {
-        self.edges.get(index.as_usize())
+        self.edges.get(index.to_usize())
     }
 
     fn edges(&self) -> Self::EdgesIter<'_> {
@@ -338,7 +338,7 @@ where
     Ix::EdgeIndex: NumIndexType,
 {
     fn edge_mut(&mut self, index: &Self::EdgeIndex) -> Option<&mut E> {
-        self.edges.get_mut(index.as_usize())
+        self.edges.get_mut(index.to_usize())
     }
 
     fn add_edge(
@@ -348,11 +348,11 @@ where
         edge: E,
     ) -> Self::EdgeIndex {
         assert!(
-            src.as_usize() < self.vertices.len(),
+            src.to_usize() < self.vertices.len(),
             "src vertex does not exist"
         );
         assert!(
-            dst.as_usize() < self.vertices.len(),
+            dst.to_usize() < self.vertices.len(),
             "dst vertex does not exist"
         );
 
@@ -361,8 +361,8 @@ where
         self.endpoints.push([*src, *dst]);
 
         let directions = Self::directions();
-        self.vertices[src.as_usize()].edges[directions[0].index()].push(index);
-        self.vertices[dst.as_usize()].edges[directions[1].index()].push(index);
+        self.vertices[src.to_usize()].edges[directions[0].index()].push(index);
+        self.vertices[dst.to_usize()].edges[directions[1].index()].push(index);
 
         index
     }
@@ -393,7 +393,7 @@ where
     ) -> Self::MultiEdgeIndicesIter<'_> {
         let vertex = self
             .vertices
-            .get(src.as_usize())
+            .get(src.to_usize())
             .expect("vertex does not exist");
 
         MultiEdgeIndicesIter {
@@ -421,7 +421,7 @@ where
     fn neighbors(&self, src: &Self::VertexIndex) -> Self::NeighborsIter<'_> {
         let vertex = self
             .vertices
-            .get(src.as_usize())
+            .get(src.to_usize())
             .expect("vertex does not exist");
 
         NeighborsIter {
@@ -439,7 +439,7 @@ where
     ) -> Self::NeighborsIter<'_> {
         let vertex = self
             .vertices
-            .get(src.as_usize())
+            .get(src.to_usize())
             .expect("vertex does not exist");
 
         let adj_dir = if !Ty::is_directed() {
@@ -499,7 +499,7 @@ where
             let (edge, tail) = self.edges.split_first()?;
             self.edges = tail;
 
-            let endpoints = self.endpoints[edge.as_usize()];
+            let endpoints = self.endpoints[edge.to_usize()];
 
             if endpoints[0] == self.src && endpoints[1] == self.dst {
                 return Some(*edge);
@@ -539,7 +539,7 @@ where
         self.edges[self.dir] = tail;
         let edge = head[0];
 
-        let endpoints = self.endpoints[edge.as_usize()];
+        let endpoints = self.endpoints[edge.to_usize()];
 
         let neighbor = if endpoints[0] != self.src {
             endpoints[0]

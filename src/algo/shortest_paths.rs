@@ -282,7 +282,7 @@ where
     let mut dist = vec![W::inf(); vertex_map.len()];
     let mut pred = vec![Virtual::null(); vertex_map.len()];
 
-    dist[vertex_map.virt(start).unwrap().as_usize()] = W::zero();
+    dist[vertex_map.virt(start).unwrap().to_usize()] = W::zero();
 
     let mut terminated_early = false;
 
@@ -295,12 +295,12 @@ where
             let v = vertex_map.virt(*edge.dst()).unwrap();
 
             let edge_dist = edge_weight(edge.data());
-            let next_dist = dist[u.as_usize()].clone() + edge_dist;
+            let next_dist = dist[u.to_usize()].clone() + edge_dist;
 
             // Relax if better.
-            if next_dist < dist[v.as_usize()] {
-                dist[v.as_usize()] = next_dist;
-                pred[v.as_usize()] = u;
+            if next_dist < dist[v.to_usize()] {
+                dist[v.to_usize()] = next_dist;
+                pred[v.to_usize()] = u;
                 relaxed = true;
             }
         }
@@ -322,7 +322,7 @@ where
 
             let edge_dist = edge_weight(edge.data());
 
-            if dist[u.as_usize()].clone() + edge_dist < dist[v.as_usize()] {
+            if dist[u.to_usize()].clone() + edge_dist < dist[v.to_usize()] {
                 return Err(Error::NegativeCycle);
             }
         }
@@ -392,37 +392,33 @@ mod tests {
     #[test]
     fn dijkstra_basic() {
         let graph = create_basic_graph();
-        let shortest_paths =
-            ShortestPaths::run_dijkstra(&graph, 0usize.into(), None, identity).unwrap();
+        let shortest_paths = ShortestPaths::run_dijkstra(&graph, 0.into(), None, identity).unwrap();
 
-        assert_eq!(shortest_paths.dist(&4usize.into()), Some(&8));
+        assert_eq!(shortest_paths.dist(&4.into()), Some(&8));
         assert_eq!(
-            shortest_paths
-                .reconstruct(4usize.into())
-                .collect::<Vec<_>>(),
-            vec![3usize.into(), 1usize.into(), 0usize.into()]
+            shortest_paths.reconstruct(4.into()).collect::<Vec<_>>(),
+            vec![3.into(), 1.into(), 0.into()]
         );
 
-        assert_eq!(shortest_paths.dist(&2usize.into()), Some(&2));
+        assert_eq!(shortest_paths.dist(&2.into()), Some(&2));
     }
 
     #[test]
     fn dijkstra_early_termination() {
         let graph = create_basic_graph();
         let shortest_paths =
-            ShortestPaths::run_dijkstra(&graph, 0usize.into(), Some(4usize.into()), identity)
-                .unwrap();
+            ShortestPaths::run_dijkstra(&graph, 0.into(), Some(4.into()), identity).unwrap();
 
-        assert!(shortest_paths.dist(&5usize.into()).is_none());
+        assert!(shortest_paths.dist(&5.into()).is_none());
     }
 
     #[test]
     fn dijkstra_negative_edge() {
         let mut graph = create_basic_graph();
-        graph.replace_edge(&2usize.into(), -1);
+        graph.replace_edge(&2.into(), -1);
 
         let shortest_paths =
-            ShortestPaths::run_dijkstra(&graph, 0usize.into(), Some(4usize.into()), identity);
+            ShortestPaths::run_dijkstra(&graph, 0.into(), Some(4.into()), identity);
 
         assert_matches!(shortest_paths, Err(Error::NegativeWeight));
     }
@@ -430,37 +426,31 @@ mod tests {
     #[test]
     fn bellman_ford_basic() {
         let graph = create_basic_graph();
-        let shortest_paths =
-            ShortestPaths::run_bellman_ford(&graph, 0usize.into(), identity).unwrap();
+        let shortest_paths = ShortestPaths::run_bellman_ford(&graph, 0.into(), identity).unwrap();
 
-        assert_eq!(shortest_paths.dist(&4usize.into()), Some(&8));
+        assert_eq!(shortest_paths.dist(&4.into()), Some(&8));
         assert_eq!(
-            shortest_paths
-                .reconstruct(4usize.into())
-                .collect::<Vec<_>>(),
-            vec![3usize.into(), 1usize.into(), 0usize.into()]
+            shortest_paths.reconstruct(4.into()).collect::<Vec<_>>(),
+            vec![3.into(), 1.into(), 0.into()]
         );
 
-        assert_eq!(shortest_paths.dist(&2usize.into()), Some(&2));
+        assert_eq!(shortest_paths.dist(&2.into()), Some(&2));
     }
 
     #[test]
     fn bellman_ford_negative_edge() {
         let mut graph = create_basic_graph();
-        graph.replace_edge(&2usize.into(), -1);
+        graph.replace_edge(&2.into(), -1);
 
-        let shortest_paths =
-            ShortestPaths::run_bellman_ford(&graph, 0usize.into(), identity).unwrap();
+        let shortest_paths = ShortestPaths::run_bellman_ford(&graph, 0.into(), identity).unwrap();
 
-        assert_eq!(shortest_paths.dist(&4usize.into()), Some(&8));
+        assert_eq!(shortest_paths.dist(&4.into()), Some(&8));
         assert_eq!(
-            shortest_paths
-                .reconstruct(4usize.into())
-                .collect::<Vec<_>>(),
-            vec![3usize.into(), 1usize.into(), 0usize.into()]
+            shortest_paths.reconstruct(4.into()).collect::<Vec<_>>(),
+            vec![3.into(), 1.into(), 0.into()]
         );
 
-        assert_eq!(shortest_paths.dist(&2usize.into()), Some(&2));
+        assert_eq!(shortest_paths.dist(&2.into()), Some(&2));
     }
 
     #[test]
@@ -479,7 +469,7 @@ mod tests {
         graph.add_edge(&v2, &v1, -2);
         graph.add_edge(&v2, &v4, 3);
 
-        let shortest_paths = ShortestPaths::run_bellman_ford(&graph, 0usize.into(), identity);
+        let shortest_paths = ShortestPaths::run_bellman_ford(&graph, 0.into(), identity);
 
         assert_matches!(shortest_paths, Err(Error::NegativeCycle));
     }

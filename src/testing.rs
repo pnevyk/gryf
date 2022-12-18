@@ -351,7 +351,7 @@ mod random {
         }
 
         fn remove_vertex(&mut self, index: &Self::VertexIndex) -> Option<V> {
-            self.history.push(MutOp::RemoveVertex(index.as_usize()));
+            self.history.push(MutOp::RemoveVertex(index.to_usize()));
             self.graph.remove_vertex(index)
         }
 
@@ -377,8 +377,8 @@ mod random {
             edge: E,
         ) -> Self::EdgeIndex {
             self.history.push(MutOp::AddEdge(
-                src.as_usize(),
-                dst.as_usize(),
+                src.to_usize(),
+                dst.to_usize(),
                 edge.clone(),
                 PhantomData,
             ));
@@ -388,7 +388,7 @@ mod random {
         fn remove_edge(&mut self, index: &Self::EdgeIndex) -> Option<E> {
             if let Some((src, dst)) = self.endpoints(index) {
                 self.history
-                    .push(MutOp::RemoveEdge(src.as_usize(), dst.as_usize()));
+                    .push(MutOp::RemoveEdge(src.to_usize(), dst.to_usize()));
             }
             self.graph.remove_edge(index)
         }

@@ -47,21 +47,21 @@ impl<I: NumIndexType> CompactIndexMap<I> {
         // Into<Virtual<I>> is used instead of Virtual<I> because the algorithms
         // will usually work with numeric indices with their data structures and
         // so it is more convenient to use this.
-        let index = index.into();
+        let index: Virtual<I> = index.into();
 
         if self.is_isomorphic() {
-            (index.as_usize() < self.len()).then(|| index.to_bits().into())
+            (index.to_usize() < self.len()).then(|| I::from_bits(index.to_bits()))
         } else {
-            self.map.get(index.as_usize()).copied()
+            self.map.get(index.to_usize()).copied()
         }
     }
 
     pub fn virt(&self, index: I) -> Option<Virtual<I>> {
         if self.is_isomorphic() {
-            (index.as_usize() < self.len()).then(|| Virtual::new(index.to_bits()))
+            (index.to_usize() < self.len()).then(|| Virtual::new(index.to_bits()))
         } else {
             // Using `wrapping_sub` not to panic on overflow.
-            let direct = min(index.as_usize(), self.len().wrapping_sub(1));
+            let direct = min(index.to_usize(), self.len().wrapping_sub(1));
             let direct_elem = self.map.get(direct).copied()?;
 
             // This will always be true for storages without holes, and sometimes
@@ -87,46 +87,43 @@ mod tests {
 
     #[test]
     fn no_holes() {
-        let map = CompactIndexMap::new((0..10usize).map(VertexIndex));
+        let map = CompactIndexMap::new((0..10u64).map(VertexIndex));
 
-        assert_eq!(map.virt(3usize.into()), Some(Virtual::new(3)));
-        assert_eq!(map.real(3usize), Some(VertexIndex(3)));
+        assert_eq!(map.virt(3.into()), Some(Virtual::new(3)));
+        assert_eq!(map.real(3u64), Some(VertexIndex(3)));
     }
 
     #[test]
     fn holes_matching() {
-        let map = CompactIndexMap::new((0..10usize).filter(|&i| i != 5).map(VertexIndex));
+        let map = CompactIndexMap::new((0..10u64).filter(|&i| i != 5).map(VertexIndex));
 
-        assert_eq!(map.virt(3usize.into()), Some(Virtual::new(3)));
-        assert_eq!(map.real(3usize), Some(VertexIndex(3)));
+        assert_eq!(map.virt(3.into()), Some(Virtual::new(3)));
+        assert_eq!(map.real(3u64), Some(VertexIndex(3)));
     }
 
     #[test]
     fn holes_close() {
-        let map = CompactIndexMap::new((0..20usize).filter(|&i| i != 15).map(VertexIndex));
+        let map = CompactIndexMap::new((0..20u64).filter(|&i| i != 15).map(VertexIndex));
 
-        assert_eq!(map.virt(18usize.into()), Some(Virtual::new(17)));
-        assert_eq!(map.real(17usize), Some(VertexIndex(18)));
+        assert_eq!(map.virt(18.into()), Some(Virtual::new(17)));
+        assert_eq!(map.real(17u64), Some(VertexIndex(18)));
     }
 
     #[test]
     fn holes_binary_search() {
-        let map = CompactIndexMap::new(
-            (0..20usize)
-                .filter(|i| !(5..15).contains(i))
-                .map(VertexIndex),
-        );
+        let map =
+            CompactIndexMap::new((0..20u64).filter(|i| !(5..15).contains(i)).map(VertexIndex));
 
-        assert_eq!(map.virt(15usize.into()), Some(Virtual::new(5)));
-        assert_eq!(map.real(5usize), Some(VertexIndex(15)));
+        assert_eq!(map.virt(15.into()), Some(Virtual::new(5)));
+        assert_eq!(map.real(5u64), Some(VertexIndex(15)));
     }
 
     #[test]
     fn isomorphic() {
         let map = CompactIndexMap::<VertexIndex>::isomorphic(10);
 
-        assert_eq!(map.virt(3usize.into()), Some(Virtual::new(3)));
-        assert_eq!(map.real(3usize), Some(VertexIndex(3)));
+        assert_eq!(map.virt(3.into()), Some(Virtual::new(3)));
+        assert_eq!(map.real(3u64), Some(VertexIndex(3)));
     }
 
     // TODO: proptest, generate a random Vec of VertexIndex and create the

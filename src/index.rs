@@ -2,25 +2,17 @@ use std::{hash::Hash, marker::PhantomData};
 
 pub trait IndexType: Clone + PartialEq + PartialOrd + Ord + Hash {}
 
-pub trait NumIndexType: IndexType + Copy + From<u64> + Into<u64> {
-    fn to_bits(self) -> u64 {
+pub trait NumIndexType: IndexType + Copy + From<usize> + Into<usize> {
+    fn to_bits(self) -> u64;
+    fn from_bits(bits: u64) -> Self;
+    fn null() -> Self;
+
+    fn to_usize(self) -> usize {
         self.into()
     }
 
-    fn from_bits(bits: u64) -> Self {
-        bits.into()
-    }
-
-    fn as_usize(self) -> usize {
-        self.to_bits().try_into().expect("index type overflow")
-    }
-
     fn from_usize(index: usize) -> Self {
-        (index as u64).into()
-    }
-
-    fn null() -> Self {
-        u64::MAX.into()
+        Self::from(index)
     }
 
     fn is_null(&self) -> bool {
@@ -72,7 +64,19 @@ impl<I: NumIndexType> From<Virtual<I>> for u64 {
     }
 }
 
-impl<I: NumIndexType> NumIndexType for Virtual<I> {}
+impl<I: NumIndexType> NumIndexType for Virtual<I> {
+    fn to_bits(self) -> u64 {
+        self.0
+    }
+
+    fn from_bits(bits: u64) -> Self {
+        Self::new(bits)
+    }
+
+    fn null() -> Self {
+        Self::new(u64::MAX)
+    }
+}
 
 pub trait Indexing {
     type VertexIndex: IndexType;
@@ -131,19 +135,19 @@ mod imp {
                 }
             }
 
-            impl From<u64> for $index_ty<$int_ty> {
-                fn from(index: u64) -> Self {
-                    Self(index.try_into().expect("index type overflow"))
+            impl NumIndexType for $index_ty<$int_ty> {
+                fn to_bits(self) -> u64 {
+                    self.0 as u64
+                }
+
+                fn from_bits(bits: u64) -> Self {
+                    Self(bits as $int_ty)
+                }
+
+                fn null() -> Self {
+                    Self(<$int_ty>::MAX)
                 }
             }
-
-            impl From<$index_ty<$int_ty>> for u64 {
-                fn from(index: $index_ty<$int_ty>) -> Self {
-                    index.0.try_into().expect("index type overflow")
-                }
-            }
-
-            impl NumIndexType for $index_ty<$int_ty> {}
         };
     }
 

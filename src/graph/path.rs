@@ -866,7 +866,7 @@ mod tests {
 
         let mut path = Path::<(), (), Undirected, _>::constrain(graph).unwrap();
 
-        let u = VertexIndex::from(42u64);
+        let u = VertexIndex::from(42);
 
         assert_matches!(
             path.try_add_vertex((), None, &u),

@@ -245,28 +245,16 @@ mod tests {
     fn endpoints() {
         let graph = Transpose::new(create_graph());
 
-        assert_eq!(
-            graph.endpoints(&1usize.into()),
-            Some((2usize.into(), 1usize.into()))
-        );
-        assert_eq!(
-            graph.endpoints(&3usize.into()),
-            Some((1usize.into(), 2usize.into()))
-        );
+        assert_eq!(graph.endpoints(&1.into()), Some((2.into(), 1.into())));
+        assert_eq!(graph.endpoints(&3.into()), Some((1.into(), 2.into())));
     }
 
     #[test]
     fn edge_index() {
         let graph = Transpose::new(create_graph());
 
-        assert_eq!(
-            graph.edge_index(&2usize.into(), &1usize.into()),
-            Some(1usize.into())
-        );
-        assert_eq!(
-            graph.edge_index(&1usize.into(), &2usize.into()),
-            Some(3usize.into())
-        );
+        assert_eq!(graph.edge_index(&2.into(), &1.into()), Some(1.into()));
+        assert_eq!(graph.edge_index(&1.into(), &2.into()), Some(3.into()));
     }
 
     #[test]
@@ -280,16 +268,16 @@ mod tests {
             )
         });
 
-        assert_eq!(edges.next(), Some((1usize.into(), 0usize.into(), 0)));
-        assert_eq!(edges.next(), Some((2usize.into(), 1usize.into(), 1)));
-        assert_eq!(edges.next(), Some((0usize.into(), 2usize.into(), 2)));
-        assert_eq!(edges.next(), Some((1usize.into(), 2usize.into(), 3)));
+        assert_eq!(edges.next(), Some((1.into(), 0.into(), 0)));
+        assert_eq!(edges.next(), Some((2.into(), 1.into(), 1)));
+        assert_eq!(edges.next(), Some((0.into(), 2.into(), 2)));
+        assert_eq!(edges.next(), Some((1.into(), 2.into(), 3)));
     }
 
     #[test]
     fn neighbors() {
         let graph = Transpose::new(create_graph());
-        let mut neighbors = graph.neighbors(&1usize.into()).map(|neighbor| {
+        let mut neighbors = graph.neighbors(&1.into()).map(|neighbor| {
             (
                 NeighborRef::<DefaultIndexing>::index(&neighbor).into_owned(),
                 NeighborRef::<DefaultIndexing>::src(&neighbor).into_owned(),
@@ -297,25 +285,16 @@ mod tests {
             )
         });
 
-        assert_eq!(
-            neighbors.next(),
-            Some((2usize.into(), 1usize.into(), Incoming))
-        );
-        assert_eq!(
-            neighbors.next(),
-            Some((0usize.into(), 1usize.into(), Outgoing))
-        );
-        assert_eq!(
-            neighbors.next(),
-            Some((2usize.into(), 1usize.into(), Outgoing))
-        );
+        assert_eq!(neighbors.next(), Some((2.into(), 1.into(), Incoming)));
+        assert_eq!(neighbors.next(), Some((0.into(), 1.into(), Outgoing)));
+        assert_eq!(neighbors.next(), Some((2.into(), 1.into(), Outgoing)));
     }
 
     #[test]
     fn neighbors_directed() {
         let graph = Transpose::new(create_graph());
         let mut neighbors = graph
-            .neighbors_directed(&1usize.into(), Outgoing)
+            .neighbors_directed(&1.into(), Outgoing)
             .map(|neighbor| {
                 (
                     NeighborRef::<DefaultIndexing>::index(&neighbor).into_owned(),
@@ -324,17 +303,11 @@ mod tests {
                 )
             });
 
-        assert_eq!(
-            neighbors.next(),
-            Some((0usize.into(), 1usize.into(), Outgoing))
-        );
-        assert_eq!(
-            neighbors.next(),
-            Some((2usize.into(), 1usize.into(), Outgoing))
-        );
+        assert_eq!(neighbors.next(), Some((0.into(), 1.into(), Outgoing)));
+        assert_eq!(neighbors.next(), Some((2.into(), 1.into(), Outgoing)));
 
         let mut neighbors = graph
-            .neighbors_directed(&1usize.into(), Incoming)
+            .neighbors_directed(&1.into(), Incoming)
             .map(|neighbor| {
                 (
                     NeighborRef::<DefaultIndexing>::index(&neighbor).into_owned(),
@@ -343,9 +316,6 @@ mod tests {
                 )
             });
 
-        assert_eq!(
-            neighbors.next(),
-            Some((2usize.into(), 1usize.into(), Incoming))
-        );
+        assert_eq!(neighbors.next(), Some((2.into(), 1.into(), Incoming)));
     }
 }

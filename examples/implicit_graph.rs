@@ -14,7 +14,7 @@ impl Collatz {
     }
 
     pub fn vertex_index(&self, n: u64) -> VertexIndex {
-        n.into()
+        VertexIndex::from_bits(n)
     }
 }
 
@@ -29,11 +29,11 @@ where
     fn index(&self) -> WeakRef<'_, VertexIndex> {
         let n = self.src.to_bits();
         let c = if n % 2 == 0 { n / 2 } else { 3 * n + 1 };
-        WeakRef::Owned(c.into())
+        WeakRef::Owned(VertexIndex::from_bits(c))
     }
 
     fn edge(&self) -> WeakRef<'_, EdgeIndex> {
-        WeakRef::Owned(self.src.to_bits().into())
+        WeakRef::Owned(EdgeIndex::from_bits(self.src.to_bits()))
     }
 
     fn src(&self) -> WeakRef<'_, VertexIndex> {

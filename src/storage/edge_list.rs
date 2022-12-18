@@ -97,7 +97,7 @@ where
         V: 'a;
 
     fn vertex(&self, index: &Ix::VertexIndex) -> Option<&V> {
-        self.vertices.get(index.as_usize())
+        self.vertices.get(index.to_usize())
     }
 
     fn vertices(&self) -> Self::VerticesIter<'_> {
@@ -110,7 +110,7 @@ where
     Ix::VertexIndex: NumIndexType,
 {
     fn vertex_mut(&mut self, index: &Ix::VertexIndex) -> Option<&mut V> {
-        self.vertices.get_mut(index.as_usize())
+        self.vertices.get_mut(index.to_usize())
     }
 
     fn add_vertex(&mut self, vertex: V) -> Ix::VertexIndex {
@@ -133,11 +133,11 @@ where
         }
 
         // Remove the vertex from the graph.
-        let vertex = self.vertices.swap_remove(index.as_usize());
+        let vertex = self.vertices.swap_remove(index.to_usize());
 
         // If `swap_remove` actually moved an existing vertex somewhere, we need
         // to fix its index in the entire graph.
-        if index.as_usize() < self.vertices.len() {
+        if index.to_usize() < self.vertices.len() {
             self.relocate_vertex(Ix::VertexIndex::from_usize(self.vertices.len()), *index);
         }
 
@@ -170,7 +170,7 @@ where
 
     fn endpoints(&self, index: &Ix::EdgeIndex) -> Option<(Ix::VertexIndex, Ix::VertexIndex)> {
         self.endpoints
-            .get(index.as_usize())
+            .get(index.to_usize())
             .map(|endpoints| (endpoints[0], endpoints[1]))
     }
 
@@ -218,7 +218,7 @@ where
         E: 'a;
 
     fn edge(&self, index: &Ix::EdgeIndex) -> Option<&E> {
-        self.edges.get(index.as_usize())
+        self.edges.get(index.to_usize())
     }
 
     fn edges(&self) -> Self::EdgesIter<'_> {
@@ -232,16 +232,16 @@ where
     Ix::EdgeIndex: NumIndexType,
 {
     fn edge_mut(&mut self, index: &Ix::EdgeIndex) -> Option<&mut E> {
-        self.edges.get_mut(index.as_usize())
+        self.edges.get_mut(index.to_usize())
     }
 
     fn add_edge(&mut self, src: &Ix::VertexIndex, dst: &Ix::VertexIndex, edge: E) -> Ix::EdgeIndex {
         assert!(
-            src.as_usize() < self.vertices.len(),
+            src.to_usize() < self.vertices.len(),
             "src vertex does not exist"
         );
         assert!(
-            dst.as_usize() < self.vertices.len(),
+            dst.to_usize() < self.vertices.len(),
             "dst vertex does not exist"
         );
 
@@ -253,8 +253,8 @@ where
 
     fn remove_edge(&mut self, index: &Ix::EdgeIndex) -> Option<E> {
         self.edge(index)?;
-        self.endpoints.swap_remove(index.as_usize());
-        Some(self.edges.swap_remove(index.as_usize()))
+        self.endpoints.swap_remove(index.to_usize());
+        Some(self.edges.swap_remove(index.to_usize()))
     }
 
     fn clear_edges(&mut self) {

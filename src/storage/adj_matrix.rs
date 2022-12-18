@@ -87,7 +87,7 @@ where
         V: 'a;
 
     fn vertex(&self, index: &Ix::VertexIndex) -> Option<&V> {
-        self.vertices.get(index.as_usize())
+        self.vertices.get(index.to_usize())
     }
 
     fn vertices(&self) -> Self::VerticesIter<'_> {
@@ -101,7 +101,7 @@ where
     Ix::EdgeIndex: NumIndexType,
 {
     fn vertex_mut(&mut self, index: &Ix::VertexIndex) -> Option<&mut V> {
-        self.vertices.get_mut(index.as_usize())
+        self.vertices.get_mut(index.to_usize())
     }
 
     fn add_vertex(&mut self, vertex: V) -> Ix::VertexIndex {
@@ -117,40 +117,40 @@ where
 
         // Remove incident edges.
         for i in 0..self.vertices.len() {
-            let edge_index = self.matrix.index(index.as_usize(), i);
+            let edge_index = self.matrix.index(index.to_usize(), i);
             if self.matrix.remove(edge_index).is_some() {
                 self.n_edges -= 1;
             }
 
             if Ty::is_directed() {
-                let edge_index = self.matrix.index(i, index.as_usize());
+                let edge_index = self.matrix.index(i, index.to_usize());
                 if self.matrix.remove(edge_index).is_some() {
                     self.n_edges -= 1;
                 }
             }
         }
 
-        let vertex = self.vertices.swap_remove(index.as_usize());
+        let vertex = self.vertices.swap_remove(index.to_usize());
 
         // Relocate the edges of the last vertex, if it is going to replace the
         // removed vertex.
-        if index.as_usize() < self.vertices.len() {
+        if index.to_usize() < self.vertices.len() {
             let last_index = Ix::VertexIndex::from_usize(self.vertices.len());
 
             // We already removed the vertex from the vector, so its size is one
             // less than before. But we need to iterate over entire matrix, so
             // the range is inclusive.
             for i in 0..=self.vertices.len() {
-                let edge_index = self.matrix.index(last_index.as_usize(), i);
+                let edge_index = self.matrix.index(last_index.to_usize(), i);
                 if let Some(edge) = self.matrix.remove(edge_index) {
-                    let edge_index = self.matrix.index(index.as_usize(), i);
+                    let edge_index = self.matrix.index(index.to_usize(), i);
                     self.matrix.insert(edge_index, edge);
                 }
 
                 if Ty::is_directed() {
-                    let edge_index = self.matrix.index(i, last_index.as_usize());
+                    let edge_index = self.matrix.index(i, last_index.to_usize());
                     if let Some(edge) = self.matrix.remove(edge_index) {
-                        let edge_index = self.matrix.index(i, index.as_usize());
+                        let edge_index = self.matrix.index(i, index.to_usize());
                         self.matrix.insert(edge_index, edge);
                     }
                 }
@@ -181,7 +181,7 @@ where
     }
 
     fn edge_bound(&self) -> usize {
-        self.matrix.index(self.vertex_count(), 0).as_usize()
+        self.matrix.index(self.vertex_count(), 0).to_usize()
     }
 
     fn endpoints(&self, index: &Ix::EdgeIndex) -> Option<(Ix::VertexIndex, Ix::VertexIndex)> {
@@ -197,7 +197,7 @@ where
     }
 
     fn edge_index(&self, src: &Ix::VertexIndex, dst: &Ix::VertexIndex) -> Option<Ix::EdgeIndex> {
-        let index = self.matrix.index(src.as_usize(), dst.as_usize());
+        let index = self.matrix.index(src.to_usize(), dst.to_usize());
         self.matrix.get(index).map(|_| index)
     }
 
@@ -250,7 +250,7 @@ where
     }
 
     fn add_edge(&mut self, src: &Ix::VertexIndex, dst: &Ix::VertexIndex, edge: E) -> Ix::EdgeIndex {
-        let index = self.matrix.index(src.as_usize(), dst.as_usize());
+        let index = self.matrix.index(src.to_usize(), dst.to_usize());
         self.matrix.insert(index, edge);
         self.n_edges += 1;
         index
@@ -431,8 +431,8 @@ where
                 self.other += 1;
 
                 let index = match self.dir {
-                    Direction::Outgoing => self.matrix.index(self.src.as_usize(), dst),
-                    Direction::Incoming => self.matrix.index(dst, self.src.as_usize()),
+                    Direction::Outgoing => self.matrix.index(self.src.to_usize(), dst),
+                    Direction::Incoming => self.matrix.index(dst, self.src.to_usize()),
                 };
 
                 if self.matrix.contains(index) {
@@ -575,16 +575,16 @@ mod matrix {
         }
 
         pub fn coords(&self, index: Ix::EdgeIndex) -> (usize, usize) {
-            coords::<Ty>(index.as_usize(), self.capacity)
+            coords::<Ty>(index.to_usize(), self.capacity)
         }
 
         pub fn set(&mut self, index: Ix::EdgeIndex, value: bool) -> bool {
-            let mut bit = self.bits.get_mut(index.as_usize()).unwrap();
+            let mut bit = self.bits.get_mut(index.to_usize()).unwrap();
             bit.replace(value)
         }
 
         pub fn contains(&self, index: Ix::EdgeIndex) -> bool {
-            self.bits[index.as_usize()]
+            self.bits[index.to_usize()]
         }
     }
 
@@ -617,7 +617,7 @@ mod matrix {
                 // other. If self.inner confirms that there is an edge at given
                 // index, then the corresponding data are guaranteed to be
                 // initialized.
-                Some(unsafe { self.data[index.as_usize()].assume_init_ref() })
+                Some(unsafe { self.data[index.to_usize()].assume_init_ref() })
             } else {
                 None
             }
@@ -626,7 +626,7 @@ mod matrix {
         pub fn get_mut(&mut self, index: Ix::EdgeIndex) -> Option<&mut E> {
             if self.inner.contains(index) {
                 // SAFETY: See Matrix::get.
-                Some(unsafe { self.data[index.as_usize()].assume_init_mut() })
+                Some(unsafe { self.data[index.to_usize()].assume_init_mut() })
             } else {
                 None
             }
@@ -638,17 +638,17 @@ mod matrix {
                 // leak.
 
                 // SAFETY: See Matrix::get.
-                unsafe { self.data[index.as_usize()].assume_init_drop() };
+                unsafe { self.data[index.to_usize()].assume_init_drop() };
             }
 
             // SAFETY: Initializing value of MaybeUninit.
-            unsafe { self.data[index.as_usize()].as_mut_ptr().write(edge) };
+            unsafe { self.data[index.to_usize()].as_mut_ptr().write(edge) };
         }
 
         pub fn remove(&mut self, index: Ix::EdgeIndex) -> Option<E> {
             if self.inner.contains(index) {
                 self.inner.set(index, false);
-                let slot = &mut self.data[index.as_usize()];
+                let slot = &mut self.data[index.to_usize()];
                 let old = mem::replace(slot, MaybeUninit::uninit());
                 // SAFETY: See Matrix::get.
                 Some(unsafe { old.assume_init() })

@@ -200,8 +200,13 @@ pub trait VerticesMut<V>: Vertices<V> {
 }
 
 pub trait VerticesBaseWeak: GraphBase {
-    fn vertex_count_hint(&self) -> Option<usize>;
-    fn vertex_bound_hint(&self) -> Option<usize>;
+    fn vertex_count_hint(&self) -> Option<usize> {
+        None
+    }
+
+    fn vertex_bound_hint(&self) -> Option<usize> {
+        None
+    }
 }
 
 pub trait VerticesWeak<V>: VerticesBaseWeak {
@@ -283,8 +288,6 @@ pub trait EdgesMut<E, Ty: EdgeType>: Edges<E, Ty> {
 }
 
 pub trait EdgesBaseWeak<Ty: EdgeType>: GraphBase {
-    fn edge_count_hint(&self) -> Option<usize>;
-    fn edge_bound_hint(&self) -> Option<usize>;
     fn endpoints_weak(
         &self,
         index: &Self::EdgeIndex,
@@ -294,6 +297,14 @@ pub trait EdgesBaseWeak<Ty: EdgeType>: GraphBase {
         src: &Self::VertexIndex,
         dst: &Self::VertexIndex,
     ) -> Option<Self::EdgeIndex>;
+
+    fn edge_count_hint(&self) -> Option<usize> {
+        None
+    }
+
+    fn edge_bound_hint(&self) -> Option<usize> {
+        None
+    }
 
     fn is_directed_weak(&self) -> bool {
         Ty::is_directed()

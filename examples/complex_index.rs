@@ -13,7 +13,7 @@ struct Chessboard;
 
 impl GraphBase for Chessboard {
     type VertexIndex = ChessSquare;
-    type EdgeIndex = ();
+    type EdgeIndex = (ChessSquare, ChessSquare);
 }
 
 impl VerticesBaseWeak for Chessboard {
@@ -27,27 +27,19 @@ impl VerticesBaseWeak for Chessboard {
 }
 
 impl EdgesBaseWeak<Undirected> for Chessboard {
-    fn edge_count_hint(&self) -> Option<usize> {
-        None
-    }
-
-    fn edge_bound_hint(&self) -> Option<usize> {
-        None
-    }
-
     fn endpoints_weak(
         &self,
-        _index: &Self::EdgeIndex,
+        &(src, dst): &Self::EdgeIndex,
     ) -> Option<(Self::VertexIndex, Self::VertexIndex)> {
-        None
+        Some((src, dst))
     }
 
     fn edge_index_weak(
         &self,
-        _src: &Self::VertexIndex,
-        _dst: &Self::VertexIndex,
+        src: &Self::VertexIndex,
+        dst: &Self::VertexIndex,
     ) -> Option<Self::EdgeIndex> {
-        None
+        Some((*src, *dst))
     }
 }
 
@@ -58,7 +50,7 @@ impl EdgesWeak<(), Undirected> for Chessboard {
 }
 
 impl Neighbors for Chessboard {
-    type NeighborRef<'a> = (ChessSquare, (), ChessSquare, Direction)
+    type NeighborRef<'a> = (ChessSquare, (ChessSquare, ChessSquare), ChessSquare, Direction)
     where
         Self: 'a;
 
@@ -94,7 +86,12 @@ struct ChessNeighborsIter {
 }
 
 impl Iterator for ChessNeighborsIter {
-    type Item = (ChessSquare, (), ChessSquare, Direction);
+    type Item = (
+        ChessSquare,
+        (ChessSquare, ChessSquare),
+        ChessSquare,
+        Direction,
+    );
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -125,7 +122,8 @@ impl Iterator for ChessNeighborsIter {
                 continue;
             }
 
-            return Some((ChessSquare(x, y), (), self.src, self.dir));
+            let dst = ChessSquare(x, y);
+            return Some((dst, (self.src, dst), self.src, self.dir));
         }
     }
 }

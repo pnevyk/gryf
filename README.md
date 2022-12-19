@@ -74,6 +74,7 @@ fn main() {
 * [graphlib](https://crates.io/crates/graphlib)
 * [graphific](https://crates.io/crates/graphific)
 * [pathfinding](https://crates.io/crates/pathfinding)
+* [graph](https://crates.io/crates/graph)
 
 ## Name
 

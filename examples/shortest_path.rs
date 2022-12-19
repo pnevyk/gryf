@@ -1,4 +1,4 @@
-use gryf::algo::{shortest_paths::identity, ShortestPaths};
+use gryf::algo::ShortestPaths;
 use gryf::prelude::*;
 
 fn main() {
@@ -24,7 +24,7 @@ fn main() {
 
     // As the edge weights are unsigned and there is a specific goal, Dijktra's
     // algorithm is applied. For signed edges, Bellman-Ford would be used.
-    let shortest_paths = ShortestPaths::run(&graph, rome, Some(prague), identity).unwrap();
+    let shortest_paths = ShortestPaths::on(&graph).goal(prague).run(rome).unwrap();
     let distance = shortest_paths.dist(prague).unwrap();
     let path = shortest_paths
         .reconstruct(prague)

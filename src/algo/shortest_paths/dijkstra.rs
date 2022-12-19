@@ -7,7 +7,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use crate::infra::VisitSet;
 use crate::marker::{EdgeType, Outgoing};
 use crate::traits::*;
-use crate::weight::Weighted;
+use crate::weight::{GetEdgeWeight, Weighted};
 
 use super::{Error, ShortestPaths};
 

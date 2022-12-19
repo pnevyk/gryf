@@ -513,44 +513,6 @@ pub trait Weight: Ord + Add<Self, Output = Self> + Clone + Sized {
     fn is_unsigned() -> bool;
 }
 
-pub trait GetEdgeWeight<E, W>
-where
-    W: Weight,
-{
-    fn get(&self, edge: &E) -> W;
-}
-
-impl<F, E, W> GetEdgeWeight<E, W> for F
-where
-    F: Fn(&E) -> W,
-    W: Weight,
-{
-    fn get(&self, edge: &E) -> W {
-        (self)(edge)
-    }
-}
-
-#[derive(Debug)]
-pub struct Identity;
-
-impl<E> GetEdgeWeight<E, E> for Identity
-where
-    E: Clone + Weight,
-{
-    fn get(&self, edge: &E) -> E {
-        edge.clone()
-    }
-}
-
-#[derive(Debug)]
-pub struct Unit;
-
-impl<E> GetEdgeWeight<E, usize> for Unit {
-    fn get(&self, _edge: &E) -> usize {
-        1
-    }
-}
-
 mod imp {
     use super::*;
 

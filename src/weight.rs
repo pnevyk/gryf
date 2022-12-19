@@ -3,6 +3,56 @@ use std::ops::{Add, Deref, DerefMut};
 
 use crate::traits::Weight;
 
+pub trait GetEdgeWeight<E, W>
+where
+    W: Weight,
+{
+    fn get(&self, edge: &E) -> W;
+}
+
+impl<F, E, W> GetEdgeWeight<E, W> for F
+where
+    F: Fn(&E) -> W,
+    W: Weight,
+{
+    fn get(&self, edge: &E) -> W {
+        (self)(edge)
+    }
+}
+
+#[derive(Debug)]
+pub struct Identity;
+
+impl<E> GetEdgeWeight<E, E> for Identity
+where
+    E: Clone + Weight,
+{
+    fn get(&self, edge: &E) -> E {
+        edge.clone()
+    }
+}
+
+#[derive(Debug)]
+pub struct Unit;
+
+impl<E> GetEdgeWeight<E, usize> for Unit {
+    fn get(&self, _edge: &E) -> usize {
+        1
+    }
+}
+
+#[derive(Debug)]
+pub struct FromWeighted;
+
+impl<E, W> GetEdgeWeight<Weighted<E, W>, W> for FromWeighted
+where
+    W: Weight,
+{
+    fn get(&self, edge: &Weighted<E, W>) -> W {
+        edge.1.clone()
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct Weighted<T, W>(pub T, pub W);
 

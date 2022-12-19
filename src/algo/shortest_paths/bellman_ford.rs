@@ -1,5 +1,6 @@
 use crate::index::Virtual;
 use crate::marker::EdgeType;
+use crate::weight::GetEdgeWeight;
 use crate::{traits::*, NumIndexType};
 
 use super::{Error, ShortestPaths};

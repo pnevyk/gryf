@@ -2,6 +2,7 @@ use std::cmp::max;
 use std::marker::PhantomData;
 
 use crate::traits::*;
+use crate::weight::{self, GetEdgeWeight};
 use crate::{index::NumIndexType, marker::EdgeType};
 
 use super::bellman_ford::bellman_ford;
@@ -23,11 +24,11 @@ impl<W, G> ShortestPaths<W, G>
 where
     G: GraphBase,
 {
-    pub fn on(graph: &G) -> ShortestPathsBuilder<'_, W, G, Identity, algo::Any> {
+    pub fn on(graph: &G) -> ShortestPathsBuilder<'_, W, G, weight::Identity, algo::Any> {
         ShortestPathsBuilder {
             graph,
             goal: None,
-            edge_weight: Identity,
+            edge_weight: weight::Identity,
             algo: algo::Any,
             ty: PhantomData,
         }
@@ -73,9 +74,9 @@ impl<'a, W, G, F, A> ShortestPathsBuilder<'a, W, G, F, A>
 where
     G: GraphBase,
 {
-    pub fn unit_weight(self) -> ShortestPathsBuilder<'a, W, G, Unit, A> {
+    pub fn unit_weight(self) -> ShortestPathsBuilder<'a, W, G, weight::Unit, A> {
         ShortestPathsBuilder {
-            edge_weight: Unit,
+            edge_weight: weight::Unit,
             graph: self.graph,
             goal: self.goal,
             algo: self.algo,

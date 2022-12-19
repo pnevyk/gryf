@@ -1,6 +1,6 @@
 #![feature(generic_associated_types)]
 
-use gryf::algo::{shortest_paths::unit, ShortestPaths};
+use gryf::algo::ShortestPaths;
 use gryf::prelude::*;
 use gryf::{marker::Direction, IndexType};
 
@@ -132,7 +132,12 @@ fn main() {
     let start = ChessSquare(0, 0);
     let end = ChessSquare(4, 2);
 
-    let path = ShortestPaths::run_dijkstra(&Chessboard, start, Some(end), unit).unwrap();
+    let path = ShortestPaths::on(&Chessboard)
+        .goal(end)
+        .unit_weight()
+        .dijkstra()
+        .run(start)
+        .unwrap();
 
     println!(
         "{} moves by king to get from {:?} to {:?}",

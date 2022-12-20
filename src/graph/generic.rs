@@ -1,15 +1,34 @@
-use std::borrow::Borrow;
-use std::marker::PhantomData;
-use std::ops::{Deref, DerefMut};
+use std::{
+    borrow::Borrow,
+    marker::PhantomData,
+    ops::{Deref, DerefMut},
+};
 
-use crate::index::{DefaultIndexing, NumIndexType};
-use crate::infra::CompactIndexMap;
-use crate::marker::{Directed, Direction, EdgeType, Undirected};
-use crate::storage::{AdjList, Frozen, Stable};
-use crate::traits::*;
+use crate::core::marker::Direction;
+use crate::core::{
+    Create, Edges, EdgesBase, EdgesMut, GraphBase, MultiEdges, Neighbors, Vertices, VerticesBase,
+    VerticesMut,
+};
+use crate::storage::{Frozen, Stable};
 use crate::{
+    core::{
+        index::DefaultIndexing,
+        marker::{Directed, EdgeType, Undirected},
+        ExtendWithEdges, ExtendWithVertices, IntoEdge,
+    },
+    storage::AdjList,
+};
+
+use crate::derive::{
     Edges, EdgesBase, EdgesBaseWeak, EdgesMut, EdgesWeak, GraphBase, Guarantee, MultiEdges,
     Neighbors, Vertices, VerticesBase, VerticesBaseWeak, VerticesMut, VerticesWeak,
+};
+
+// TODO: Remove these imports once hygiene of procedural macros is fixed.
+use crate::common::CompactIndexMap;
+use crate::core::{
+    index::NumIndexType, EdgesBaseWeak, EdgesWeak, Guarantee, VerticesBaseWeak, VerticesWeak,
+    WeakRef,
 };
 
 #[derive(

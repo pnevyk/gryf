@@ -1,10 +1,21 @@
 use std::collections::BTreeSet;
 
-use crate::index::{EdgeIndex, NumIndexType, VertexIndex};
-use crate::infra::CompactIndexMap;
-use crate::marker::{Direction, EdgeType};
-use crate::traits::*;
-use crate::{EdgesBaseWeak, EdgesWeak, GraphBase, Guarantee, VerticesBaseWeak, VerticesWeak};
+use crate::{
+    common::CompactIndexMap,
+    core::{
+        index::{EdgeIndex, NumIndexType, VertexIndex},
+        marker::{Direction, EdgeType},
+        Create, EdgeRef, Edges, EdgesBase, EdgesMut, GraphBase, NeighborRef, Neighbors, NoReplace,
+        StableIndices, VertexRef, Vertices, VerticesBase, VerticesMut,
+    },
+};
+
+use crate::derive::{
+    EdgesBaseWeak, EdgesWeak, GraphBase, Guarantee, VerticesBaseWeak, VerticesWeak,
+};
+
+// TODO: Remove these imports once hygiene of procedural macros is fixed.
+use crate::core::{EdgesBaseWeak, EdgesWeak, Guarantee, VerticesBaseWeak, VerticesWeak, WeakRef};
 
 #[derive(Debug, GraphBase, VerticesBaseWeak, VerticesWeak, EdgesBaseWeak, EdgesWeak, Guarantee)]
 pub struct Stable<G: GraphBase> {
@@ -455,10 +466,13 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::index::DefaultIndexing;
-    use crate::marker::{Directed, Undirected};
-    use crate::storage::tests::*;
-    use crate::storage::AdjList;
+    use crate::{
+        core::{
+            index::DefaultIndexing,
+            marker::{Directed, Undirected},
+        },
+        storage::{tests::*, AdjList},
+    };
 
     use std::collections::HashSet;
 

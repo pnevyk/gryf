@@ -1,6 +1,8 @@
-use crate::facts;
-use crate::marker::{Direction, EdgeType};
-use crate::traits::*;
+use crate::core::{
+    facts,
+    marker::{Direction, EdgeType},
+    Create,
+};
 
 pub fn create_complete<V, E, Ty: EdgeType, G>(vertex_count: usize) -> G
 where
@@ -99,18 +101,25 @@ pub use random::*;
 
 #[cfg(any(feature = "proptest", feature = "arbitrary"))]
 mod random {
-    use std::fmt;
-    use std::io::Cursor;
-    use std::marker::PhantomData;
+    use std::{fmt, io::Cursor, marker::PhantomData};
 
-    use crate::export::{Dot, Export};
-    use crate::index::NumIndexType;
-    use crate::infra::CompactIndexMap;
-    use crate::marker::{Direction, EdgeType};
-    use crate::traits::*;
     use crate::{
+        core::{
+            index::NumIndexType, marker::EdgeType, Create, Edges, EdgesMut, Vertices, VerticesMut,
+        },
+        infra::export::{Dot, Export},
+    };
+
+    use crate::derive::{
         Edges, EdgesBase, EdgesBaseWeak, EdgesWeak, GraphBase, Guarantee, Neighbors, Vertices,
         VerticesBase, VerticesBaseWeak, VerticesWeak,
+    };
+
+    // TODO: Remove these imports once hygiene of procedural macros is fixed.
+    use crate::common::CompactIndexMap;
+    use crate::core::{
+        marker::Direction, EdgesBase, EdgesBaseWeak, EdgesWeak, GraphBase, Guarantee, Neighbors,
+        VerticesBase, VerticesBaseWeak, VerticesWeak, WeakRef,
     };
 
     #[cfg(feature = "proptest")]

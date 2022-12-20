@@ -1,7 +1,11 @@
 use std::cmp::Ordering;
 use std::ops::{Add, Deref, DerefMut};
 
-use crate::traits::Weight;
+pub trait Weight: Ord + Add<Self, Output = Self> + Clone + Sized {
+    fn zero() -> Self;
+    fn inf() -> Self;
+    fn is_unsigned() -> bool;
+}
 
 pub trait GetEdgeWeight<E, W>
 where
@@ -207,3 +211,32 @@ impl Weight for UFloatWeight {
         true
     }
 }
+
+macro_rules! impl_num_weight {
+    ($ty:ty, $is_unsigned:expr) => {
+        impl Weight for $ty {
+            fn zero() -> Self {
+                0
+            }
+
+            fn inf() -> Self {
+                <$ty>::MAX
+            }
+
+            fn is_unsigned() -> bool {
+                $is_unsigned
+            }
+        }
+    };
+}
+
+impl_num_weight!(i8, false);
+impl_num_weight!(i16, false);
+impl_num_weight!(i32, false);
+impl_num_weight!(i64, false);
+impl_num_weight!(u8, true);
+impl_num_weight!(u16, true);
+impl_num_weight!(u32, true);
+impl_num_weight!(u64, true);
+impl_num_weight!(isize, false);
+impl_num_weight!(usize, true);

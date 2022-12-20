@@ -1,12 +1,22 @@
 use std::marker::PhantomData;
 
+use crate::{
+    common::CompactIndexMap,
+    core::{
+        index::{Indexing, NumIndexType},
+        marker::{Direction, EdgeType},
+        Create, Edges, EdgesBase, EdgesMut, GraphBase, Guarantee, Neighbors, Vertices,
+        VerticesBase, VerticesMut,
+    },
+};
+
+use crate::derive::{EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak};
+
+// TODO: Remove these imports once hygiene of procedural macros is fixed.
+use crate::core::{EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak, WeakRef};
+
 use self::matrix::{BitMatrix, Matrix};
-pub use super::shared::{RangeIndices, VerticesIter};
-use crate::index::{Indexing, NumIndexType};
-use crate::infra::CompactIndexMap;
-use crate::marker::{Direction, EdgeType};
-use crate::traits::*;
-use crate::{EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak};
+pub use super::shared::{RangeIndices as VertexIndices, VerticesIter};
 
 #[derive(Debug, VerticesBaseWeak, VerticesWeak, EdgesBaseWeak, EdgesWeak)]
 pub struct AdjMatrix<V, E, Ty, Ix> {
@@ -48,7 +58,7 @@ impl<V, E, Ty: EdgeType, Ix: Indexing> VerticesBase for AdjMatrix<V, E, Ty, Ix>
 where
     Ix::VertexIndex: NumIndexType,
 {
-    type VertexIndicesIter<'a> = RangeIndices<Ix::VertexIndex>
+    type VertexIndicesIter<'a> = VertexIndices<Ix::VertexIndex>
     where
         Self: 'a;
 
@@ -450,8 +460,8 @@ mod matrix {
 
     use bitvec::prelude::*;
 
-    use crate::index::{Indexing, NumIndexType};
-    use crate::marker::EdgeType;
+    use crate::core::index::{Indexing, NumIndexType};
+    use crate::core::marker::EdgeType;
 
     #[derive(Debug)]
     pub struct BitMatrix<Ty, Ix> {
@@ -699,9 +709,13 @@ mod matrix {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::index::DefaultIndexing;
-    use crate::marker::{Directed, Undirected};
-    use crate::storage::tests::*;
+    use crate::{
+        core::{
+            index::DefaultIndexing,
+            marker::{Directed, Undirected},
+        },
+        storage::tests::*,
+    };
 
     #[test]
     fn basic_undirected() {

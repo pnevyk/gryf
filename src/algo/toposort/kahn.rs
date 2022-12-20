@@ -1,4 +1,9 @@
-use crate::{index::NumIndexType, infra::CompactIndexMap, marker::Direction, traits::*};
+use crate::{
+    common::CompactIndexMap,
+    core::{
+        index::NumIndexType, marker::Direction, GraphBase, NeighborRef, Neighbors, VerticesBase,
+    },
+};
 
 use super::Error;
 

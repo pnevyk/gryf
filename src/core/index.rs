@@ -100,68 +100,64 @@ impl<VIx: IndexType, EIx: IndexType> Indexing for CustomIndexing<VIx, EIx> {
     type EdgeIndex = EIx;
 }
 
-pub trait UseIndex<Ix: Indexing> {
+pub(crate) trait UseIndex<Ix: Indexing> {
     type Index: IndexType;
 }
 
-pub enum UseVertexIndex {}
+pub(crate) enum UseVertexIndex {}
 
 impl<Ix: Indexing> UseIndex<Ix> for UseVertexIndex {
     type Index = Ix::VertexIndex;
 }
 
-pub enum UseEdgeIndex {}
+pub(crate) enum UseEdgeIndex {}
 
 impl<Ix: Indexing> UseIndex<Ix> for UseEdgeIndex {
     type Index = Ix::EdgeIndex;
 }
 
-mod imp {
-    use super::*;
+macro_rules! impl_num_index {
+    ($index_ty:ident, $int_ty:ty) => {
+        impl IndexType for $index_ty<$int_ty> {}
 
-    macro_rules! impl_num_index {
-        ($index_ty:ident, $int_ty:ty) => {
-            impl IndexType for $index_ty<$int_ty> {}
+        impl From<usize> for $index_ty<$int_ty> {
+            fn from(index: usize) -> Self {
+                Self(index.try_into().expect("index type overflow"))
+            }
+        }
 
-            impl From<usize> for $index_ty<$int_ty> {
-                fn from(index: usize) -> Self {
-                    Self(index.try_into().expect("index type overflow"))
-                }
+        impl From<$index_ty<$int_ty>> for usize {
+            fn from(index: $index_ty<$int_ty>) -> Self {
+                index.0.try_into().expect("index type overflow")
+            }
+        }
+
+        impl NumIndexType for $index_ty<$int_ty> {
+            fn to_bits(self) -> u64 {
+                self.0 as u64
             }
 
-            impl From<$index_ty<$int_ty>> for usize {
-                fn from(index: $index_ty<$int_ty>) -> Self {
-                    index.0.try_into().expect("index type overflow")
-                }
+            fn from_bits(bits: u64) -> Self {
+                Self(bits as $int_ty)
             }
 
-            impl NumIndexType for $index_ty<$int_ty> {
-                fn to_bits(self) -> u64 {
-                    self.0 as u64
-                }
-
-                fn from_bits(bits: u64) -> Self {
-                    Self(bits as $int_ty)
-                }
-
-                fn null() -> Self {
-                    Self(<$int_ty>::MAX)
-                }
+            fn null() -> Self {
+                Self(<$int_ty>::MAX)
             }
-        };
-    }
-
-    impl_num_index!(VertexIndex, usize);
-    impl_num_index!(VertexIndex, u64);
-    impl_num_index!(VertexIndex, u32);
-    impl_num_index!(VertexIndex, u16);
-    impl_num_index!(VertexIndex, u8);
-
-    impl_num_index!(EdgeIndex, usize);
-    impl_num_index!(EdgeIndex, u64);
-    impl_num_index!(EdgeIndex, u32);
-    impl_num_index!(EdgeIndex, u16);
-    impl_num_index!(EdgeIndex, u8);
-
-    impl IndexType for () {}
+        }
+    };
 }
+
+impl_num_index!(VertexIndex, usize);
+impl_num_index!(VertexIndex, u64);
+impl_num_index!(VertexIndex, u32);
+impl_num_index!(VertexIndex, u16);
+impl_num_index!(VertexIndex, u8);
+
+impl_num_index!(EdgeIndex, usize);
+impl_num_index!(EdgeIndex, u64);
+impl_num_index!(EdgeIndex, u32);
+impl_num_index!(EdgeIndex, u16);
+impl_num_index!(EdgeIndex, u8);
+
+impl IndexType for () {}

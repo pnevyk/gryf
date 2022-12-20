@@ -1,12 +1,25 @@
-use super::OpOwned;
-use crate::index::{IndexType, NumIndexType};
-use crate::infra::CompactIndexMap;
-use crate::marker::{Directed, Direction, EdgeType};
-use crate::traits::*;
 use crate::{
+    common::CompactIndexMap,
+    core::{
+        index::{IndexType, NumIndexType},
+        marker::{Directed, Direction},
+        EdgeRef, Edges, EdgesBase, EdgesMut, NeighborRef, Neighbors, Stability, StableIndices,
+        VerticesBase, WeakRef,
+    },
+};
+
+use crate::derive::{
     EdgesBaseWeak, EdgesWeak, GraphBase, Guarantee, Vertices, VerticesBase, VerticesBaseWeak,
     VerticesMut, VerticesWeak,
 };
+
+// TODO: Remove these imports once hygiene of procedural macros is fixed.
+use crate::core::{
+    marker::EdgeType, EdgesBaseWeak, EdgesWeak, GraphBase, Guarantee, Vertices, VerticesBaseWeak,
+    VerticesMut, VerticesWeak,
+};
+
+use super::OpOwned;
 
 #[derive(
     Debug,
@@ -222,11 +235,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::index::DefaultIndexing;
-    use crate::marker::{Incoming, Outgoing};
-    use crate::storage::AdjList;
-
     use super::*;
+
+    use crate::{core::index::DefaultIndexing, storage::AdjList};
 
     fn create_graph() -> AdjList<(), i32, Directed, DefaultIndexing> {
         let mut graph = AdjList::new();
@@ -283,16 +294,25 @@ mod tests {
             )
         });
 
-        assert_eq!(neighbors.next(), Some((2.into(), 1.into(), Incoming)));
-        assert_eq!(neighbors.next(), Some((0.into(), 1.into(), Outgoing)));
-        assert_eq!(neighbors.next(), Some((2.into(), 1.into(), Outgoing)));
+        assert_eq!(
+            neighbors.next(),
+            Some((2.into(), 1.into(), Direction::Incoming))
+        );
+        assert_eq!(
+            neighbors.next(),
+            Some((0.into(), 1.into(), Direction::Outgoing))
+        );
+        assert_eq!(
+            neighbors.next(),
+            Some((2.into(), 1.into(), Direction::Outgoing))
+        );
     }
 
     #[test]
     fn neighbors_directed() {
         let graph = Transpose::new(create_graph());
         let mut neighbors = graph
-            .neighbors_directed(&1.into(), Outgoing)
+            .neighbors_directed(&1.into(), Direction::Outgoing)
             .map(|neighbor| {
                 (
                     neighbor.index().into_owned(),
@@ -301,11 +321,17 @@ mod tests {
                 )
             });
 
-        assert_eq!(neighbors.next(), Some((0.into(), 1.into(), Outgoing)));
-        assert_eq!(neighbors.next(), Some((2.into(), 1.into(), Outgoing)));
+        assert_eq!(
+            neighbors.next(),
+            Some((0.into(), 1.into(), Direction::Outgoing))
+        );
+        assert_eq!(
+            neighbors.next(),
+            Some((2.into(), 1.into(), Direction::Outgoing))
+        );
 
         let mut neighbors = graph
-            .neighbors_directed(&1.into(), Incoming)
+            .neighbors_directed(&1.into(), Direction::Incoming)
             .map(|neighbor| {
                 (
                     neighbor.index().into_owned(),
@@ -314,6 +340,9 @@ mod tests {
                 )
             });
 
-        assert_eq!(neighbors.next(), Some((2.into(), 1.into(), Incoming)));
+        assert_eq!(
+            neighbors.next(),
+            Some((2.into(), 1.into(), Direction::Incoming))
+        );
     }
 }

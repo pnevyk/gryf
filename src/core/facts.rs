@@ -1,4 +1,4 @@
-use crate::marker::EdgeType;
+use super::marker::EdgeType;
 
 pub fn complete_graph_edge_count<Ty: EdgeType>(vertex_count: usize) -> usize {
     if Ty::is_directed() {

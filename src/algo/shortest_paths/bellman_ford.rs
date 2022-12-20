@@ -1,7 +1,9 @@
-use crate::index::Virtual;
-use crate::marker::EdgeType;
-use crate::weight::GetEdgeWeight;
-use crate::{traits::*, NumIndexType};
+use crate::core::{
+    index::{NumIndexType, Virtual},
+    marker::EdgeType,
+    weights::GetEdgeWeight,
+    EdgeRef, Edges, VerticesBase, Weight,
+};
 
 use super::{Error, ShortestPaths};
 

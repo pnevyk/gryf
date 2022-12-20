@@ -1,6 +1,6 @@
 use std::cmp::min;
 
-use crate::index::{NumIndexType, Virtual};
+use crate::core::index::{NumIndexType, Virtual};
 
 // For compact storages, the space and time for both directions is constant (use
 // `isomorphic`). For storages with holes, the space is O(|V|), virtual to real
@@ -83,7 +83,8 @@ impl<I: NumIndexType> CompactIndexMap<I> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::index::VertexIndex;
+
+    use crate::core::index::VertexIndex;
 
     #[test]
     fn no_holes() {

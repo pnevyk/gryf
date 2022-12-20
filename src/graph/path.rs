@@ -1,21 +1,30 @@
-use std::borrow::Borrow;
-use std::hash::BuildHasherDefault;
-use std::marker::PhantomData;
-use std::ops::Deref;
+use std::{borrow::Borrow, hash::BuildHasherDefault, marker::PhantomData, ops::Deref};
 
 use rustc_hash::FxHashSet;
 
-use crate::index::{DefaultIndexing, NumIndexType};
-use crate::infra::{CompactIndexMap, VisitSet};
-use crate::marker::{Directed, Direction, EdgeType, Undirected};
-use crate::storage::{AdjList, Frozen, Stable};
-use crate::traits::*;
 use crate::{
+    common::VisitSet,
+    core::{
+        index::DefaultIndexing,
+        marker::{Directed, Direction, EdgeType, Undirected},
+        Constrained, Create, Edges, EdgesBase, EdgesMut, GraphBase, Guarantee, NeighborRef,
+        Neighbors, Vertices, VerticesBase, VerticesMut,
+    },
+    storage::{AdjList, Frozen, Stable},
+};
+
+use crate::derive::{
     Edges, EdgesBase, EdgesBaseWeak, EdgesWeak, GraphBase, Neighbors, Vertices, VerticesBase,
     VerticesBaseWeak, VerticesWeak,
 };
 
-use super::Graph;
+// TODO: Remove these imports once hygiene of procedural macros is fixed.
+use crate::common::CompactIndexMap;
+use crate::core::{
+    index::NumIndexType, EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak, WeakRef,
+};
+
+use super::generic::Graph;
 
 #[derive(
     Debug,
@@ -609,11 +618,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::assert_matches::assert_matches;
-
-    use crate::{index::VertexIndex, storage::AdjList};
+    use crate::core::index::VertexIndex;
 
     use super::*;
+
+    use std::assert_matches::assert_matches;
 
     #[test]
     fn check_empty() {
@@ -889,10 +898,8 @@ mod tests {
 
         let mut path = Path::<(), (), Undirected, _>::constrain(graph).unwrap();
 
-        let u = VertexIndex::from(42);
-
         assert_matches!(
-            path.try_add_vertex((), None, &u),
+            path.try_add_vertex((), None, &42.into()),
             Err(PathError::Disconnected)
         );
     }

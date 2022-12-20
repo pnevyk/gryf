@@ -1,9 +1,13 @@
-use crate::{index::NumIndexType, marker::Directed, traits::*, visit};
+use crate::{
+    core::{index::NumIndexType, marker::Directed, EdgesBase, Neighbors, VerticesBase},
+    visit,
+};
 
 mod builder;
 mod dfs;
 mod kahn;
 
+pub use builder::TopoSortBuilder;
 pub use dfs::DfsVisit;
 use kahn::KahnIter;
 
@@ -37,16 +41,16 @@ mod algo {
     use super::Algo;
 
     #[derive(Debug)]
-    pub struct Any;
+    pub struct AnyAlgo;
+
+    #[derive(Debug)]
+    pub struct SpecificAlgo(pub Option<Algo>);
 
     #[derive(Debug)]
     pub struct Dfs;
 
     #[derive(Debug)]
     pub struct Kahn;
-
-    #[derive(Debug)]
-    pub struct Specific(pub Option<Algo>);
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -82,7 +86,7 @@ mod tests {
     use super::*;
 
     use crate::{
-        index::DefaultIndexing,
+        core::{index::DefaultIndexing, EdgesBaseWeak, EdgesMut, VerticesBaseWeak, VerticesMut},
         storage::AdjList,
         visit::{DfsEvent, DfsEvents, Visitor},
     };

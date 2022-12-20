@@ -13,8 +13,10 @@ pub use stable::Stable;
 
 #[cfg(test)]
 mod tests {
-    use crate::marker::{Direction, EdgeType};
-    use crate::traits::*;
+    use crate::core::{
+        marker::{Direction, EdgeType},
+        Create, MultiEdges, Neighbors,
+    };
 
     pub fn test_basic<Ty: EdgeType, G>()
     where

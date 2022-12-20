@@ -1,12 +1,22 @@
 use std::ops::Deref;
 
-use crate::index::{EdgeIndex, NumIndexType, VertexIndex};
-use crate::infra::CompactIndexMap;
-use crate::marker::{Direction, EdgeType};
-use crate::traits::*;
-use crate::{
+use crate::core::{
+    index::{EdgeIndex, VertexIndex},
+    Stability, StableIndices,
+};
+
+use crate::derive::{
     Edges, EdgesBase, EdgesBaseWeak, EdgesWeak, GraphBase, Guarantee, Neighbors, Vertices,
     VerticesBase, VerticesBaseWeak, VerticesWeak,
+};
+
+// TODO: Remove these imports once hygiene of procedural macros is fixed.
+use crate::common::CompactIndexMap;
+use crate::core::{
+    index::NumIndexType,
+    marker::{Direction, EdgeType},
+    Edges, EdgesBase, EdgesBaseWeak, EdgesWeak, GraphBase, Guarantee, Neighbors, Vertices,
+    VerticesBase, VerticesBaseWeak, VerticesWeak, WeakRef,
 };
 
 #[derive(

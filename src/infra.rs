@@ -1,8 +1,8 @@
-mod compact_index_map;
-mod typed_bit_set;
-mod union_find;
-mod visit_set;
+pub mod export;
+pub mod testing;
 
-pub use compact_index_map::CompactIndexMap;
-pub use typed_bit_set::TypedBitSet;
-pub use visit_set::VisitSet;
+#[cfg(feature = "arbitrary")]
+pub mod arbitrary;
+
+#[cfg(feature = "proptest")]
+pub mod proptest;

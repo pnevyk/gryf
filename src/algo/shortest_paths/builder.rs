@@ -1,13 +1,13 @@
-use std::cmp::max;
-use std::marker::PhantomData;
+use std::{cmp::max, marker::PhantomData};
 
-use crate::traits::*;
-use crate::weight::{self, GetEdgeWeight};
-use crate::{index::NumIndexType, marker::EdgeType};
+use crate::core::{
+    index::NumIndexType,
+    marker::EdgeType,
+    weights::{self, GetEdgeWeight},
+    Edges, EdgesWeak, GraphBase, Neighbors, VerticesBase, VerticesBaseWeak, Weight,
+};
 
-use super::bellman_ford::bellman_ford;
-use super::dijkstra::dijkstra;
-use super::{algo, Algo, Error, ShortestPaths};
+use super::{algo, bellman_ford::bellman_ford, dijkstra::dijkstra, Algo, Error, ShortestPaths};
 
 pub struct ShortestPathsBuilder<'a, W, G, F, A>
 where
@@ -24,12 +24,12 @@ impl<W, G> ShortestPaths<W, G>
 where
     G: GraphBase,
 {
-    pub fn on(graph: &G) -> ShortestPathsBuilder<'_, W, G, weight::Identity, algo::Any> {
+    pub fn on(graph: &G) -> ShortestPathsBuilder<'_, W, G, weights::Identity, algo::AnyAlgo> {
         ShortestPathsBuilder {
             graph,
             goal: None,
-            edge_weight: weight::Identity,
-            algo: algo::Any,
+            edge_weight: weights::Identity,
+            algo: algo::AnyAlgo,
             ty: PhantomData,
         }
     }
@@ -74,9 +74,9 @@ impl<'a, W, G, F, A> ShortestPathsBuilder<'a, W, G, F, A>
 where
     G: GraphBase,
 {
-    pub fn unit_weight(self) -> ShortestPathsBuilder<'a, W, G, weight::Unit, A> {
+    pub fn unit_weight(self) -> ShortestPathsBuilder<'a, W, G, weights::Unit, A> {
         ShortestPathsBuilder {
-            edge_weight: weight::Unit,
+            edge_weight: weights::Unit,
             graph: self.graph,
             goal: self.goal,
             algo: self.algo,
@@ -131,7 +131,7 @@ where
     pub fn with<E, Ty: EdgeType>(
         self,
         algo: Algo,
-    ) -> ShortestPathsBuilder<'a, W, G, F, algo::Specific>
+    ) -> ShortestPathsBuilder<'a, W, G, F, algo::SpecificAlgo>
     where
         G: VerticesBase + Edges<E, Ty> + VerticesBaseWeak + EdgesWeak<E, Ty> + Neighbors,
         G::VertexIndex: NumIndexType,
@@ -140,7 +140,7 @@ where
             graph: self.graph,
             goal: self.goal,
             edge_weight: self.edge_weight,
-            algo: algo::Specific(Some(algo)),
+            algo: algo::SpecificAlgo(Some(algo)),
             ty: PhantomData,
         }
     }
@@ -148,7 +148,7 @@ where
     pub fn with_opt<E, Ty: EdgeType>(
         self,
         algo: Option<Algo>,
-    ) -> ShortestPathsBuilder<'a, W, G, F, algo::Specific>
+    ) -> ShortestPathsBuilder<'a, W, G, F, algo::SpecificAlgo>
     where
         G: VerticesBase + Edges<E, Ty> + VerticesBaseWeak + EdgesWeak<E, Ty> + Neighbors,
         G::VertexIndex: NumIndexType,
@@ -157,13 +157,13 @@ where
             graph: self.graph,
             goal: self.goal,
             edge_weight: self.edge_weight,
-            algo: algo::Specific(algo),
+            algo: algo::SpecificAlgo(algo),
             ty: PhantomData,
         }
     }
 }
 
-impl<'a, W, G, F> ShortestPathsBuilder<'a, W, G, F, algo::Any>
+impl<'a, W, G, F> ShortestPathsBuilder<'a, W, G, F, algo::AnyAlgo>
 where
     G: GraphBase,
 {
@@ -229,7 +229,7 @@ where
     }
 }
 
-impl<'a, W, G, F> ShortestPathsBuilder<'a, W, G, F, algo::Specific>
+impl<'a, W, G, F> ShortestPathsBuilder<'a, W, G, F, algo::SpecificAlgo>
 where
     G: GraphBase,
 {

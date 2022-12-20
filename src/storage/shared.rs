@@ -1,9 +1,11 @@
-use std::iter::{Enumerate, Zip};
-use std::marker::PhantomData;
-use std::ops::Range;
-use std::slice::Iter;
+use std::{
+    iter::{Enumerate, Zip},
+    marker::PhantomData,
+    ops::Range,
+    slice::Iter,
+};
 
-use crate::index::{Indexing, NumIndexType};
+use crate::core::index::{Indexing, NumIndexType};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AdjVertex<Ix: Indexing, V> {

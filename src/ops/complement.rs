@@ -1,12 +1,19 @@
 use rustc_hash::FxHashSet;
 
+use crate::core::{
+    facts,
+    index::NumIndexType,
+    marker::{Direction, Undirected},
+    Create, Edges, EdgesBase, EdgesMut, Neighbors, Vertices, VerticesBase, VerticesMut, WeakRef,
+};
+
+use crate::derive::{GraphBase, Vertices, VerticesBase, VerticesMut};
+
+// TODO: Remove these imports once hygiene of procedural macros is fixed.
+use crate::common::CompactIndexMap;
+use crate::core::{GraphBase, NeighborRef, VertexRef};
+
 use super::{OpMut, OpOwned};
-use crate::facts;
-use crate::index::NumIndexType;
-use crate::infra::CompactIndexMap;
-use crate::marker::{Direction, Outgoing, Undirected};
-use crate::traits::*;
-use crate::{GraphBase, Vertices, VerticesBase, VerticesMut};
 
 #[derive(Debug, GraphBase, VerticesBase, Vertices, VerticesMut)]
 pub struct Complement<E, G> {
@@ -102,7 +109,7 @@ where
     fn neighbors(&self, src: &G::VertexIndex) -> Self::NeighborsIter<'_> {
         NeighborsIter {
             src: src.clone(),
-            dir: Outgoing,
+            dir: Direction::Outgoing,
             neighbors: self
                 .graph
                 .neighbors(src)
@@ -156,14 +163,14 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
-
     use crate::{
-        index::{DefaultIndexing, VertexIndex},
+        core::index::{DefaultIndexing, VertexIndex},
         storage::{AdjList, Stable},
     };
 
     use super::*;
+
+    use std::collections::HashSet;
 
     #[test]
     fn edge_count() {

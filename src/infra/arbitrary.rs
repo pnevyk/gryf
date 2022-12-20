@@ -2,14 +2,20 @@ use std::{fmt, marker::PhantomData};
 
 use arbitrary::{Arbitrary, Unstructured};
 
-use crate::index::NumIndexType;
-use crate::infra::CompactIndexMap;
-use crate::marker::{Direction, EdgeType};
-use crate::testing::{Applier, ApplyMutOps, MutOp};
-use crate::traits::*;
-use crate::{
+use crate::core::{index::NumIndexType, marker::EdgeType, EdgesMut, VerticesMut};
+
+use super::testing::{Applier, ApplyMutOps, MutOp};
+
+use crate::derive::{
     Edges, EdgesBase, EdgesBaseWeak, EdgesMut, EdgesWeak, GraphBase, Guarantee, Neighbors,
     Vertices, VerticesBase, VerticesBaseWeak, VerticesMut, VerticesWeak,
+};
+
+// TODO: Remove these imports once hygiene of procedural macros is fixed.
+use crate::common::CompactIndexMap;
+use crate::core::{
+    marker::Direction, Edges, EdgesBase, EdgesBaseWeak, EdgesWeak, GraphBase, Guarantee, Neighbors,
+    Vertices, VerticesBase, VerticesBaseWeak, VerticesWeak, WeakRef,
 };
 
 #[derive(
@@ -103,9 +109,10 @@ impl<V, E, Ty: EdgeType, G> ArbitraryGraph<V, E, Ty, G> {
 mod tests {
     use super::*;
 
-    use crate::index::DefaultIndexing;
-    use crate::marker::Undirected;
-    use crate::storage::AdjList;
+    use crate::{
+        core::{index::DefaultIndexing, marker::Undirected},
+        storage::AdjList,
+    };
 
     #[test]
     fn is_arbitrary() {

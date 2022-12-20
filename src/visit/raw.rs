@@ -7,10 +7,12 @@ use std::{
 use rustc_hash::FxHashSet;
 
 use crate::{
-    index::{IndexType, Indexing, UseIndex, UseVertexIndex},
-    infra::VisitSet,
-    marker::Outgoing,
-    traits::*,
+    common::VisitSet,
+    core::{
+        index::{IndexType, Indexing, UseIndex, UseVertexIndex},
+        marker::Direction,
+        GraphBase, NeighborRef, Neighbors,
+    },
 };
 
 pub trait TraversalCollection<T>: Default {
@@ -87,7 +89,7 @@ impl<T> TraversalCollection<T> for Single<T> {
     }
 }
 
-pub trait RawAlgo<Ix: Indexing, U: UseIndex<Ix>> {
+pub(crate) trait RawAlgo<Ix: Indexing, U: UseIndex<Ix>> {
     type Item;
     type Collection: TraversalCollection<Self::Item>;
 
@@ -96,7 +98,7 @@ pub trait RawAlgo<Ix: Indexing, U: UseIndex<Ix>> {
     fn visit_on_start() -> bool;
 }
 
-pub struct RawVisit<Ix: Indexing, U: UseIndex<Ix>, A: RawAlgo<Ix, U>> {
+pub(crate) struct RawVisit<Ix: Indexing, U: UseIndex<Ix>, A: RawAlgo<Ix, U>> {
     pub collection: A::Collection,
     // FixedBitSet cannot be used because there can be vertex additions/removals
     // during the visiting since the Visitors are detached from the graph.
@@ -172,7 +174,7 @@ where
     }
 }
 
-pub struct RawVisitMulti<Ix, U, A, S> {
+pub(crate) struct RawVisitMulti<Ix, U, A, S> {
     pub starts: S,
     ty: PhantomData<(Ix, U, A)>,
 }
@@ -265,7 +267,7 @@ impl<G: GraphBase> RawVisit<G, UseVertexIndex, RawBfs> {
             return Some(v);
         }
 
-        for n in graph.neighbors_directed(&v, Outgoing) {
+        for n in graph.neighbors_directed(&v, Direction::Outgoing) {
             let u = n.index().into_owned();
             if self.visited.visit(u.clone()) {
                 let event = RawEvent::Push {
@@ -320,7 +322,7 @@ impl<G: GraphBase> RawVisit<G, UseVertexIndex, RawDfs> {
                     return Some(v);
                 }
 
-                for n in graph.neighbors_directed(&v, Outgoing) {
+                for n in graph.neighbors_directed(&v, Direction::Outgoing) {
                     let u = n.index().into_owned();
                     if !self.visited.is_visited(&u) {
                         let event = RawEvent::Push {
@@ -383,7 +385,7 @@ impl<Ix: Indexing> RawDfsExtraItem<Ix> {
         self.neighbors.clear();
         self.neighbors.extend(
             graph
-                .neighbors_directed(&self.vertex, Outgoing)
+                .neighbors_directed(&self.vertex, Direction::Outgoing)
                 .map(|n| (n.index().into_owned(), n.edge().into_owned())),
         );
     }
@@ -393,7 +395,7 @@ impl<Ix: Indexing> RawDfsExtraItem<Ix> {
         G: Neighbors<VertexIndex = Ix::VertexIndex, EdgeIndex = Ix::EdgeIndex>,
     {
         let neighbors = graph
-            .neighbors_directed(&vertex, Outgoing)
+            .neighbors_directed(&vertex, Direction::Outgoing)
             .map(|n| (n.index().into_owned(), n.edge().into_owned()))
             .collect();
 
@@ -528,7 +530,7 @@ impl<G: GraphBase> RawVisit<G, UseVertexIndex, RawDfsNoBacktrack> {
 
         let mut neighbor_chosen = false;
 
-        for n in graph.neighbors_directed(&v, Outgoing) {
+        for n in graph.neighbors_directed(&v, Direction::Outgoing) {
             let u = n.index().into_owned();
             if !neighbor_chosen && self.visited.visit(u.clone()) {
                 let event = RawEvent::Push {

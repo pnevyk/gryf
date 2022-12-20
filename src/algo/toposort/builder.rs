@@ -1,8 +1,14 @@
-use crate::{index::NumIndexType, marker::Directed, traits::*, visit::Visitor};
+use crate::{
+    core::{index::NumIndexType, marker::Directed, EdgesBase, GraphBase, Neighbors, VerticesBase},
+    visit::Visitor,
+};
 
-use super::dfs::{dfs_visit, DfsVisit};
-use super::kahn::kahn;
-use super::{algo, Algo, TopoSort, TopoSortInner};
+use super::{
+    algo,
+    dfs::{dfs_visit, DfsVisit},
+    kahn::kahn,
+    Algo, TopoSort, TopoSortInner,
+};
 
 pub struct TopoSortBuilder<'a, G, A> {
     graph: &'a G,
@@ -13,10 +19,10 @@ impl<G> TopoSort<'_, G>
 where
     G: VerticesBase + EdgesBase<Directed>,
 {
-    pub fn on(graph: &G) -> TopoSortBuilder<'_, G, algo::Any> {
+    pub fn on(graph: &G) -> TopoSortBuilder<'_, G, algo::AnyAlgo> {
         TopoSortBuilder {
             graph,
-            algo: algo::Any,
+            algo: algo::AnyAlgo,
         }
     }
 }
@@ -47,28 +53,28 @@ impl<'a, G, A> TopoSortBuilder<'a, G, A>
 where
     G: GraphBase,
 {
-    pub fn with(self, algo: Algo) -> TopoSortBuilder<'a, G, algo::Specific>
+    pub fn with(self, algo: Algo) -> TopoSortBuilder<'a, G, algo::SpecificAlgo>
     where
         G::VertexIndex: NumIndexType,
     {
         TopoSortBuilder {
             graph: self.graph,
-            algo: algo::Specific(Some(algo)),
+            algo: algo::SpecificAlgo(Some(algo)),
         }
     }
 
-    pub fn with_opt(self, algo: Option<Algo>) -> TopoSortBuilder<'a, G, algo::Specific>
+    pub fn with_opt(self, algo: Option<Algo>) -> TopoSortBuilder<'a, G, algo::SpecificAlgo>
     where
         G::VertexIndex: NumIndexType,
     {
         TopoSortBuilder {
             graph: self.graph,
-            algo: algo::Specific(algo),
+            algo: algo::SpecificAlgo(algo),
         }
     }
 }
 
-impl<'a, G> TopoSortBuilder<'a, G, algo::Any>
+impl<'a, G> TopoSortBuilder<'a, G, algo::AnyAlgo>
 where
     G: VerticesBase + EdgesBase<Directed>,
 {
@@ -106,7 +112,7 @@ where
     }
 }
 
-impl<'a, G> TopoSortBuilder<'a, G, algo::Specific>
+impl<'a, G> TopoSortBuilder<'a, G, algo::SpecificAlgo>
 where
     G: VerticesBase + EdgesBase<Directed>,
 {

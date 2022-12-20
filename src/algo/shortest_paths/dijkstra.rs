@@ -1,13 +1,19 @@
-use std::cmp::Reverse;
-use std::collections::{hash_map::Entry, BinaryHeap, HashSet};
-use std::hash::BuildHasherDefault;
+use std::{
+    cmp::Reverse,
+    collections::{hash_map::Entry, BinaryHeap, HashSet},
+    hash::BuildHasherDefault,
+};
 
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::infra::VisitSet;
-use crate::marker::{EdgeType, Outgoing};
-use crate::traits::*;
-use crate::weight::{GetEdgeWeight, Weighted};
+use crate::{
+    common::VisitSet,
+    core::{
+        marker::{Direction, EdgeType},
+        weights::{GetEdgeWeight, Weighted},
+        EdgesWeak, NeighborRef, Neighbors, VerticesBaseWeak, Weight,
+    },
+};
 
 use super::{Error, ShortestPaths};
 
@@ -49,7 +55,7 @@ where
             break;
         }
 
-        for neighbor in graph.neighbors_directed(&vertex, Outgoing) {
+        for neighbor in graph.neighbors_directed(&vertex, Direction::Outgoing) {
             let edge = graph
                 .edge_weak(&neighbor.edge())
                 .ok_or(Error::EdgeNotAvailable)?;

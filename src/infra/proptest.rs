@@ -5,12 +5,9 @@ use proptest::{
     strategy::Strategy,
 };
 
-use crate::{
-    index::NumIndexType,
-    marker::EdgeType,
-    testing::{Applier, ApplyMutOps, ApplyOptions, MutOp},
-    traits::Create,
-};
+use crate::core::{index::NumIndexType, marker::EdgeType, Create};
+
+use super::testing::{Applier, ApplyMutOps, ApplyOptions, MutOp};
 
 // For testing correctness of storages.
 pub fn graph_ops_strategy<V, E, Ty: EdgeType, G>() -> impl Strategy<Value = G>

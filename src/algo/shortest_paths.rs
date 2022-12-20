@@ -2,11 +2,13 @@ use std::borrow::Borrow;
 
 use rustc_hash::FxHashMap;
 
-use crate::traits::*;
+use crate::core::{GraphBase, Weight};
 
 mod bellman_ford;
 mod builder;
 mod dijkstra;
+
+pub use builder::ShortestPathsBuilder;
 
 #[derive(Debug)]
 pub struct ShortestPaths<W, G: GraphBase> {
@@ -53,16 +55,16 @@ mod algo {
     use super::Algo;
 
     #[derive(Debug)]
-    pub struct Any;
+    pub struct AnyAlgo;
+
+    #[derive(Debug)]
+    pub struct SpecificAlgo(pub Option<Algo>);
 
     #[derive(Debug)]
     pub struct Dijkstra;
 
     #[derive(Debug)]
     pub struct BellmanFord;
-
-    #[derive(Debug)]
-    pub struct Specific(pub Option<Algo>);
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -88,12 +90,18 @@ impl<'a, G: GraphBase> Iterator for PathReconstruction<'a, G> {
 
 #[cfg(test)]
 mod tests {
-    use std::assert_matches::assert_matches;
+    use crate::{
+        core::{
+            index::DefaultIndexing,
+            marker::{Directed, Undirected},
+            EdgesMut, VerticesMut,
+        },
+        storage::AdjList,
+    };
 
     use super::*;
-    use crate::index::DefaultIndexing;
-    use crate::marker::{Directed, Undirected};
-    use crate::storage::AdjList;
+
+    use std::assert_matches::assert_matches;
 
     fn create_basic_graph() -> AdjList<(), i32, Undirected, DefaultIndexing> {
         let mut graph = AdjList::default();

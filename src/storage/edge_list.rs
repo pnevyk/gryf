@@ -1,13 +1,21 @@
-use std::iter::Enumerate;
-use std::marker::PhantomData;
-use std::slice;
+use std::{iter::Enumerate, marker::PhantomData, slice};
 
-use super::shared::{EdgesIter, RangeIndices, VerticesIter};
-use crate::index::{Indexing, NumIndexType};
-use crate::infra::CompactIndexMap;
-use crate::marker::{Direction, EdgeType};
-use crate::traits::*;
-use crate::{EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak};
+use crate::common::CompactIndexMap;
+use crate::core::index::{Indexing, NumIndexType};
+use crate::core::marker::{Direction, EdgeType};
+use crate::core::{
+    Create, Edges, EdgesBase, EdgesMut, GraphBase, Guarantee, MultiEdges, Neighbors, Vertices,
+    VerticesBase, VerticesMut,
+};
+
+use crate::derive::{EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak};
+
+// TODO: Remove these imports once hygiene of procedural macros is fixed.
+use crate::core::{EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak, WeakRef};
+
+pub use super::shared::{
+    EdgesIter, RangeIndices as VertexIndices, RangeIndices as EdgeIndices, VerticesIter,
+};
 
 #[derive(Debug, VerticesBaseWeak, VerticesWeak, EdgesBaseWeak, EdgesWeak)]
 pub struct EdgeList<V, E, Ty, Ix: Indexing> {
@@ -58,7 +66,7 @@ impl<V, E, Ty: EdgeType, Ix: Indexing> VerticesBase for EdgeList<V, E, Ty, Ix>
 where
     Ix::VertexIndex: NumIndexType,
 {
-    type VertexIndicesIter<'a> = RangeIndices<Ix::VertexIndex>
+    type VertexIndicesIter<'a> = VertexIndices<Ix::VertexIndex>
     where
         Self: 'a;
 
@@ -156,7 +164,7 @@ where
     Ix::VertexIndex: NumIndexType,
     Ix::EdgeIndex: NumIndexType,
 {
-    type EdgeIndicesIter<'a> = RangeIndices<Ix::EdgeIndex>
+    type EdgeIndicesIter<'a> = EdgeIndices<Ix::EdgeIndex>
     where
         Self: 'a;
 
@@ -435,9 +443,13 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::index::DefaultIndexing;
-    use crate::marker::{Directed, Undirected};
-    use crate::storage::tests::*;
+    use crate::{
+        core::{
+            index::DefaultIndexing,
+            marker::{Directed, Undirected},
+        },
+        storage::tests::*,
+    };
 
     #[test]
     fn basic_undirected() {

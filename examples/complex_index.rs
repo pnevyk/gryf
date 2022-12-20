@@ -1,8 +1,13 @@
 #![feature(generic_associated_types)]
 
-use gryf::algo::ShortestPaths;
 use gryf::prelude::*;
-use gryf::{marker::Direction, IndexType};
+use gryf::{
+    algo::ShortestPaths,
+    core::{
+        marker::{Direction, Undirected},
+        EdgesBaseWeak, EdgesWeak, GraphBase, Neighbors, VerticesBaseWeak, WeakRef,
+    },
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct ChessSquare(pub usize, pub usize);
@@ -62,7 +67,7 @@ impl Neighbors for Chessboard {
         ChessNeighborsIter {
             src: *src,
             index: 0,
-            dir: Outgoing,
+            dir: Direction::Outgoing,
         }
     }
 

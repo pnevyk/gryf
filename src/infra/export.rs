@@ -1,11 +1,11 @@
-use std::collections::HashMap;
-use std::fmt::Display;
-use std::io::{self, Write};
-use std::marker::PhantomData;
+use std::{
+    collections::HashMap,
+    fmt::Display,
+    io::{self, Write},
+    marker::PhantomData,
+};
 
-use crate::index::IndexType;
-use crate::marker::EdgeType;
-use crate::traits::*;
+use crate::core::{index::IndexType, marker::EdgeType, EdgeRef, Edges, VertexRef, Vertices};
 
 pub trait Export<G> {
     fn export<W: Write>(&self, graph: &G, out: &mut W) -> io::Result<()>;

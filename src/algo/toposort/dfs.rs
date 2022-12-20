@@ -3,12 +3,13 @@ use std::hash::BuildHasherDefault;
 use rustc_hash::FxHashSet;
 
 use crate::{
-    index::UseVertexIndex,
-    infra::VisitSet,
-    marker::Directed,
-    operator::Transpose,
-    traits::*,
-    visit::{raw::*, VisitAll, Visitor},
+    common::VisitSet,
+    core::{index::UseVertexIndex, marker::Directed, EdgesBase, Neighbors, VerticesBase},
+    ops::Transpose,
+    visit::{
+        raw::{RawDfsExtra, RawDfsExtraEvent, RawEvent, RawVisit, RawVisitMulti},
+        VisitAll, Visitor,
+    },
 };
 
 use super::Error;

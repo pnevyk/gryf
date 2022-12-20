@@ -1,4 +1,4 @@
-pub mod raw;
+pub(crate) mod raw;
 
 use std::{
     collections::{HashSet, VecDeque},
@@ -7,11 +7,15 @@ use std::{
 
 use rustc_hash::FxHashSet;
 
-use crate::marker::EdgeType;
-use crate::traits::*;
-use crate::{index::UseVertexIndex, infra::VisitSet};
-
 use raw::*;
+
+use crate::{
+    common::VisitSet,
+    core::{
+        index::UseVertexIndex, marker::EdgeType, EdgesBaseWeak, GraphBase, Neighbors, VerticesBase,
+        VerticesBaseWeak,
+    },
+};
 
 pub trait Visitor<G> {
     type Item;
@@ -810,8 +814,11 @@ where
 #[cfg(test)]
 mod tests {
     use crate::{
-        index::DefaultIndexing,
-        marker::{Directed, Undirected},
+        core::{
+            index::DefaultIndexing,
+            marker::{Directed, Undirected},
+            EdgesMut, VerticesMut,
+        },
         storage::{AdjList, Stable},
     };
 

@@ -4,41 +4,22 @@
 #![feature(try_blocks)]
 
 pub mod algo;
-pub mod export;
-pub mod facts;
+pub mod common;
+pub mod core;
 pub mod graph;
-mod index;
 pub mod infra;
-pub mod marker;
-pub mod operator;
+pub mod ops;
 pub mod storage;
-pub mod traits;
-mod util;
 pub mod visit;
-pub mod weight;
 
-pub use macros::{
-    Edges, EdgesBase, EdgesBaseWeak, EdgesMut, EdgesWeak, GraphBase, Guarantee, MultiEdges,
-    Neighbors, Vertices, VerticesBase, VerticesBaseWeak, VerticesMut, VerticesWeak,
-};
-
-#[cfg(feature = "arbitrary")]
-pub mod arbitrary;
-
-#[cfg(feature = "proptest")]
-pub mod proptest;
-
-pub mod testing;
-
-pub use index::{
-    DefaultIndexing, EdgeIndex, IndexType, Indexing, NumIndexType, VertexIndex, Virtual,
-};
+pub use self::graph::Graph;
 
 pub mod prelude {
+    pub use crate::core::index::{IndexType, NumIndexType};
     pub use crate::graph::Graph;
-    pub use crate::marker::{Directed, EdgeType, Incoming, Outgoing, Undirected};
-    pub use crate::storage::AdjList;
-    pub use crate::traits::*;
     pub use crate::visit::Visitor;
-    pub use crate::{EdgeIndex, VertexIndex};
+}
+
+pub mod derive {
+    pub use macros::*;
 }

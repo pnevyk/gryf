@@ -1,14 +1,13 @@
 use std::{
     collections::{BTreeSet, HashSet},
     hash::BuildHasher,
+    marker::PhantomData,
+    ops::{Deref, DerefMut},
 };
 
 use fixedbitset::FixedBitSet;
 
-use crate::{
-    index::{IndexType, NumIndexType},
-    infra::TypedBitSet,
-};
+use crate::core::index::{IndexType, NumIndexType};
 
 pub trait VisitSet<I: IndexType> {
     fn visit(&mut self, index: I) -> bool;
@@ -89,5 +88,46 @@ impl<I: NumIndexType> VisitSet<I> for TypedBitSet<I> {
 
     fn reset_visited(&mut self) {
         VisitSet::<I>::reset_visited(&mut **self)
+    }
+}
+
+pub struct TypedBitSet<T> {
+    inner: FixedBitSet,
+    ty: PhantomData<T>,
+}
+
+impl<T> TypedBitSet<T> {
+    pub fn new() -> Self {
+        Self {
+            inner: FixedBitSet::new(),
+            ty: PhantomData,
+        }
+    }
+
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self {
+            inner: FixedBitSet::with_capacity(capacity),
+            ty: PhantomData,
+        }
+    }
+}
+
+impl<T> Default for TypedBitSet<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<T> Deref for TypedBitSet<T> {
+    type Target = FixedBitSet;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl<T> DerefMut for TypedBitSet<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }

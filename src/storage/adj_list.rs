@@ -1,12 +1,24 @@
 use std::marker::PhantomData;
 
-use super::shared::AdjVertex as Vertex;
-pub use super::shared::{AdjVerticesIter as VerticesIter, EdgesIter, RangeIndices};
-use crate::index::{Indexing, NumIndexType};
-use crate::infra::CompactIndexMap;
-use crate::marker::{Direction, EdgeType};
-use crate::traits::*;
-use crate::{EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak};
+use crate::{
+    common::CompactIndexMap,
+    core::{
+        index::{Indexing, NumIndexType},
+        marker::{Direction, EdgeType},
+        Create, Edges, EdgesBase, EdgesMut, GraphBase, Guarantee, MultiEdges, Neighbors, Vertices,
+        VerticesBase, VerticesMut,
+    },
+};
+
+use crate::derive::{EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak};
+
+// TODO: Remove these imports once hygiene of procedural macros is fixed.
+use crate::core::{EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak, WeakRef};
+
+pub use super::shared::{
+    AdjVertex as Vertex, AdjVerticesIter as VerticesIter, EdgesIter, RangeIndices as EdgeIndices,
+    RangeIndices as VertexIndices,
+};
 
 #[derive(Debug, VerticesBaseWeak, VerticesWeak, EdgesBaseWeak, EdgesWeak, Clone, PartialEq, Eq)]
 pub struct AdjList<V, E, Ty, Ix: Indexing> {
@@ -138,7 +150,7 @@ impl<V, E, Ty: EdgeType, Ix: Indexing> VerticesBase for AdjList<V, E, Ty, Ix>
 where
     Ix::VertexIndex: NumIndexType,
 {
-    type VertexIndicesIter<'a> = RangeIndices<Self::VertexIndex>
+    type VertexIndicesIter<'a> = VertexIndices<Self::VertexIndex>
     where
         Self: 'a;
 
@@ -242,7 +254,7 @@ where
     Ix::VertexIndex: NumIndexType,
     Ix::EdgeIndex: NumIndexType,
 {
-    type EdgeIndicesIter<'a> = RangeIndices<Self::EdgeIndex>
+    type EdgeIndicesIter<'a> = EdgeIndices<Self::EdgeIndex>
     where
         Self: 'a;
 
@@ -536,9 +548,13 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::index::DefaultIndexing;
-    use crate::marker::{Directed, Undirected};
-    use crate::storage::tests::*;
+    use crate::{
+        core::{
+            index::DefaultIndexing,
+            marker::{Directed, Undirected},
+        },
+        storage::tests::*,
+    };
 
     #[test]
     fn basic_undirected() {

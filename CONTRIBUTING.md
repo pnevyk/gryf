@@ -37,10 +37,8 @@ Currently, the core traits are `VerticesBase`, `Vertices<V>`, `VerticesMut<V>`,
 `EdgesBase<Ty>`, `Edges<E, Ty>`, `EdgesMut<E, Ty>` and `Neighbors`. There are
 also "weak" variants `VerticesBaseWeak`, `VerticesWeak<V>`, `EdgesBaseWeak<Ty>`
 and `EdgesWeak<E, Ty>`, which relax on some requirements of their non-weak
-counterparts. The question whether there should be `NeighborsWeak` remains
-[open](https://github.com/pnevyk/gryf/issues/3). All these traits (among others)
-reside in [`traits.rs`](src/traits.rs) (this file should be split into multiple
-submodules).
+counterparts. All these traits (among others) reside in [`core`](src/core.rs)
+module.
 
 An idea is to require the smallest set of functionality that makes sense for the
 trait and add default implementations for functions that can be expressed in the

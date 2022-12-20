@@ -45,12 +45,7 @@ where
             ..self
         }
     }
-}
 
-impl<'a, W, G, F, A> ShortestPathsBuilder<'a, W, G, F, A>
-where
-    G: GraphBase,
-{
     pub fn edge_weight<F2, E, Ty: EdgeType>(
         self,
         edge_weight: F2,
@@ -68,12 +63,7 @@ where
             ty: PhantomData,
         }
     }
-}
 
-impl<'a, W, G, F, A> ShortestPathsBuilder<'a, W, G, F, A>
-where
-    G: GraphBase,
-{
     pub fn unit_weight(self) -> ShortestPathsBuilder<'a, W, G, weights::Unit, A> {
         ShortestPathsBuilder {
             edge_weight: weights::Unit,
@@ -83,12 +73,7 @@ where
             ty: PhantomData,
         }
     }
-}
 
-impl<'a, W, G, F, A> ShortestPathsBuilder<'a, W, G, F, A>
-where
-    G: GraphBase,
-{
     pub fn dijkstra<E, Ty: EdgeType>(self) -> ShortestPathsBuilder<'a, W, G, F, algo::Dijkstra>
     where
         G: VerticesBaseWeak + EdgesWeak<E, Ty> + Neighbors,
@@ -101,12 +86,7 @@ where
             ty: PhantomData,
         }
     }
-}
 
-impl<'a, W, G, F, A> ShortestPathsBuilder<'a, W, G, F, A>
-where
-    G: GraphBase,
-{
     pub fn bellman_ford<E, Ty: EdgeType>(
         self,
     ) -> ShortestPathsBuilder<'a, W, G, F, algo::BellmanFord>
@@ -122,12 +102,7 @@ where
             ty: PhantomData,
         }
     }
-}
 
-impl<'a, W, G, F, A> ShortestPathsBuilder<'a, W, G, F, A>
-where
-    G: GraphBase,
-{
     pub fn with<E, Ty: EdgeType>(
         self,
         algo: Algo,

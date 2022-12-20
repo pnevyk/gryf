@@ -34,9 +34,7 @@ impl<'a, G, A> TopoSortBuilder<'a, G, A> {
             algo: algo::Dfs,
         }
     }
-}
 
-impl<'a, G, A> TopoSortBuilder<'a, G, A> {
     pub fn kahn(self) -> TopoSortBuilder<'a, G, algo::Kahn>
     where
         G: GraphBase,
@@ -47,14 +45,10 @@ impl<'a, G, A> TopoSortBuilder<'a, G, A> {
             algo: algo::Kahn,
         }
     }
-}
 
-impl<'a, G, A> TopoSortBuilder<'a, G, A>
-where
-    G: GraphBase,
-{
     pub fn with(self, algo: Algo) -> TopoSortBuilder<'a, G, algo::SpecificAlgo>
     where
+        G: GraphBase,
         G::VertexIndex: NumIndexType,
     {
         TopoSortBuilder {
@@ -65,6 +59,7 @@ where
 
     pub fn with_opt(self, algo: Option<Algo>) -> TopoSortBuilder<'a, G, algo::SpecificAlgo>
     where
+        G: GraphBase,
         G::VertexIndex: NumIndexType,
     {
         TopoSortBuilder {

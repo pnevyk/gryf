@@ -1,9 +1,8 @@
 # gryf
 
-An *experimental* graph library written in Rust. Requires unstable nightly-only
-features and is not released to crates.io yet. **It is incomplete, lacks
-documentation and contains bugs. Breaking changes are inevitable.** Design ideas
-contributions are very welcome!
+An *experimental* graph library written in Rust, not released to crates.io yet.
+**It is incomplete, lacks documentation and contains bugs. Breaking changes are
+inevitable.** Design ideas contributions are very welcome!
 
 ## Usage
 

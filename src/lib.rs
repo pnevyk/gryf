@@ -1,8 +1,3 @@
-#![feature(generic_associated_types)]
-#![feature(assert_matches)]
-#![feature(int_log)]
-#![feature(try_blocks)]
-
 pub mod algo;
 pub mod common;
 pub mod core;

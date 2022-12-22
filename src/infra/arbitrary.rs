@@ -59,7 +59,7 @@ where
         let mut graph = G::default();
         let mut applier = Applier::new(&mut graph);
 
-        let _: Result<(), arbitrary::Error> = try {
+        let _: Result<(), arbitrary::Error> = (|| {
             loop {
                 // Choose a kind of operation with different weights.
                 let kind = u.choose(&[
@@ -84,7 +84,7 @@ where
 
                 applier.apply_one(op);
             }
-        };
+        })();
 
         Ok(Self {
             graph,

@@ -145,20 +145,20 @@ mod random {
     {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             match self {
-                Self::AddVertex(vertex) => write!(f, "add vertex {:?}", vertex),
-                Self::RemoveVertex(index) => write!(f, "remove vertex v{}", index),
+                Self::AddVertex(vertex) => write!(f, "add vertex {vertex:?}"),
+                Self::RemoveVertex(index) => write!(f, "remove vertex v{index}"),
                 Self::AddEdge(src, dst, edge, _) => {
                     if Ty::is_directed() {
-                        write!(f, "add edge v{} -> v{} {:?}", src, dst, edge)
+                        write!(f, "add edge v{src} -> v{dst} {edge:?}")
                     } else {
-                        write!(f, "add edge v{} -- v{} {:?}", src, dst, edge)
+                        write!(f, "add edge v{src} -- v{dst} {edge:?}")
                     }
                 }
                 Self::RemoveEdge(src, dst) => {
                     if Ty::is_directed() {
-                        write!(f, "remove edge v{} -> v{}", src, dst)
+                        write!(f, "remove edge v{src} -> v{dst}")
                     } else {
-                        write!(f, "remove edge v{} -- v{}", src, dst)
+                        write!(f, "remove edge v{src} -- v{dst}")
                     }
                 }
             }
@@ -315,7 +315,7 @@ mod random {
         pub fn new(graph: G) -> Self {
             Self {
                 graph,
-                dot: Dot::new(None, |v| format!("{:?}", v), |e| format!("{:?}", e)),
+                dot: Dot::new(None, |v| format!("{v:?}"), |e| format!("{e:?}")),
                 history: Vec::new(),
             }
         }

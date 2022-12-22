@@ -119,25 +119,20 @@ mod tests {
                         .copied()
                         .enumerate()
                         .find_map(|(k, v)| (v == src).then_some(Some(k)))
-                        .unwrap_or_else(|| panic!("algorithm omitted vertex {:?}", src));
+                        .unwrap_or_else(|| panic!("algorithm omitted vertex {src:?}"));
 
                     let j = sorted
                         .iter()
                         .copied()
                         .enumerate()
                         .find_map(|(k, v)| (v == dst).then_some(Some(k)))
-                        .unwrap_or_else(|| panic!("algorithm omitted vertex {:?}", dst));
+                        .unwrap_or_else(|| panic!("algorithm omitted vertex {dst:?}"));
 
-                    assert!(
-                        i < j,
-                        "invalid topological order for {:?} -> {:?}",
-                        src,
-                        dst
-                    );
+                    assert!(i < j, "invalid topological order for {src:?} -> {dst:?}",);
                 }
             }
-            (Ok(_), Some(error)) => panic!("algorithm did not detect error: {:?}", error),
-            (Err(error), None) => panic!("algorithm incorrectly returned error: {:?}", error),
+            (Ok(_), Some(error)) => panic!("algorithm did not detect error: {error:?}"),
+            (Err(error), None) => panic!("algorithm incorrectly returned error: {error:?}"),
             (Err(_), Some(_)) => {}
         }
     }

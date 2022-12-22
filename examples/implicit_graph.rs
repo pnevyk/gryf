@@ -93,5 +93,5 @@ fn main() {
         .iter(&collatz)
         .map(|v| *collatz.vertex_weak(&v).unwrap())
         .collect::<Vec<_>>();
-    println!("A Collatz sequence: {:?}", sequence);
+    println!("A Collatz sequence: {sequence:?}");
 }

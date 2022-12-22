@@ -47,7 +47,7 @@ fn main() {
         .collect::<Vec<_>>()
         .join(" - ");
 
-    println!("{} km from Prague through {}", distance, path);
+    println!("{distance} km from Prague through {path}");
     // 1387 km from Prague through Nuremberg - Munich - Florence - Rome
 }
 ```

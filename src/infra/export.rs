@@ -35,7 +35,7 @@ impl<V, E, Ty: EdgeType> Dot<V, E, Ty> {
 
 impl<V: Display, E: Display, Ty: EdgeType> Dot<V, E, Ty> {
     pub fn with_display(name: Option<String>) -> Self {
-        Self::new(name, |v| format!("{}", v), |e| format!("{}", e))
+        Self::new(name, |v| format!("{v}"), |e| format!("{e}"))
     }
 }
 

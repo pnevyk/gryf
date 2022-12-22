@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 fixedbitset = "0.4"
-bitvec = "0.22"
+bitvec = "1"
 rustc-hash = "1"
 
 macros = { path = "macros" }

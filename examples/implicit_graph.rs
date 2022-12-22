@@ -1,5 +1,3 @@
-#![feature(generic_associated_types)]
-
 use std::iter;
 
 use gryf::prelude::*;

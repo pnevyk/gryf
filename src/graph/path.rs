@@ -622,7 +622,7 @@ mod tests {
 
     use super::*;
 
-    use std::assert_matches::assert_matches;
+    use assert_matches::assert_matches;
 
     #[test]
     fn check_empty() {

@@ -101,7 +101,7 @@ mod tests {
 
     use super::*;
 
-    use std::assert_matches::assert_matches;
+    use assert_matches::assert_matches;
 
     fn create_basic_graph() -> AdjList<(), i32, Undirected, DefaultIndexing> {
         let mut graph = AdjList::default();

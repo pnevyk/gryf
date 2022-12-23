@@ -29,16 +29,16 @@ where
         &self.start
     }
 
-    pub fn dist<VI>(&self, from: VI) -> Option<&W>
+    pub fn dist<VI>(&self, to: VI) -> Option<&W>
     where
         VI: Borrow<G::VertexIndex>,
     {
-        self.dist.get(from.borrow())
+        self.dist.get(to.borrow())
     }
 
-    pub fn reconstruct(&self, from: G::VertexIndex) -> PathReconstruction<'_, G> {
+    pub fn reconstruct(&self, to: G::VertexIndex) -> PathReconstruction<'_, G> {
         PathReconstruction {
-            curr: from,
+            curr: to,
             pred: &self.pred,
         }
     }

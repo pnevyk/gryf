@@ -1,7 +1,7 @@
 use crate::core::{
     index::{NumIndexType, Virtual},
     marker::EdgeType,
-    weights::GetEdgeWeight,
+    weights::GetWeight,
     EdgeRef, Edges, VerticesBase, Weight,
 };
 
@@ -16,7 +16,7 @@ where
     G: VerticesBase + Edges<E, Ty>,
     G::VertexIndex: NumIndexType,
     W: Weight,
-    F: GetEdgeWeight<E, W>,
+    F: GetWeight<E, W>,
 {
     let vertex_map = graph.vertex_index_map();
 

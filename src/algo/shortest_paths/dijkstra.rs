@@ -10,7 +10,7 @@ use crate::{
     common::VisitSet,
     core::{
         marker::{Direction, EdgeType},
-        weights::{GetEdgeWeight, Weighted},
+        weights::{GetWeight, Weighted},
         EdgesWeak, NeighborRef, Neighbors, VerticesBaseWeak, Weight,
     },
 };
@@ -26,7 +26,7 @@ pub fn dijkstra<E, Ty: EdgeType, G, W, F>(
 where
     G: VerticesBaseWeak + EdgesWeak<E, Ty> + Neighbors,
     W: Weight,
-    F: GetEdgeWeight<E, W>,
+    F: GetWeight<E, W>,
 {
     // Not using FixedBitSet with CompactIndexMap because the algorithm supports
     // early termination when reaching given goal. It is likely that reaching
@@ -42,9 +42,11 @@ where
     let mut queue = BinaryHeap::new();
 
     dist.insert(start.clone(), W::zero());
-    queue.push(Reverse(Weighted(start.clone(), W::zero())));
+    queue.push(Reverse(Weighted(start.clone(), W::Ord::from(W::zero()))));
 
     while let Some(Reverse(Weighted(vertex, vertex_dist))) = queue.pop() {
+        let vertex_dist = vertex_dist.into();
+
         // This can happen due to duplication of vertices when doing relaxation
         // in our implementation.
         if visited.is_visited(&vertex) {
@@ -86,13 +88,13 @@ where
                         // priority of `next`. Adding it as a new item causes
                         // duplicities which is unfortunate for dense graphs,
                         // but should be fine in practice.
-                        queue.push(Reverse(Weighted(next.clone(), next_dist)));
+                        queue.push(Reverse(Weighted(next.clone(), next_dist.into())));
                         pred.insert(next, vertex.clone());
                     }
                 }
                 Entry::Vacant(slot) => {
                     slot.insert(next_dist.clone());
-                    queue.push(Reverse(Weighted(next.clone(), next_dist)));
+                    queue.push(Reverse(Weighted(next.clone(), next_dist.into())));
                     pred.insert(next, vertex.clone());
                 }
             }

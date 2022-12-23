@@ -1,8 +1,8 @@
-use std::borrow::Borrow;
+use std::{borrow::Borrow, ops::Index};
 
 use rustc_hash::FxHashMap;
 
-use crate::core::{GraphBase, Weight};
+use crate::core::GraphBase;
 
 mod bellman_ford;
 mod builder;
@@ -22,7 +22,6 @@ pub struct ShortestPaths<W, G: GraphBase> {
 
 impl<W, G> ShortestPaths<W, G>
 where
-    W: Weight,
     G: GraphBase,
 {
     pub fn start(&self) -> &G::VertexIndex {
@@ -41,6 +40,18 @@ where
             curr: to,
             pred: &self.pred,
         }
+    }
+}
+
+impl<W, G, VI> Index<VI> for ShortestPaths<W, G>
+where
+    G: GraphBase,
+    VI: Borrow<G::VertexIndex>,
+{
+    type Output = W;
+
+    fn index(&self, index: VI) -> &Self::Output {
+        self.dist(index).unwrap()
     }
 }
 

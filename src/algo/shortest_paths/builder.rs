@@ -3,7 +3,7 @@ use std::{cmp::max, marker::PhantomData};
 use crate::core::{
     index::NumIndexType,
     marker::EdgeType,
-    weights::{self, GetEdgeWeight},
+    weights::{self, GetWeight},
     Edges, EdgesWeak, GraphBase, Neighbors, VerticesBase, VerticesBaseWeak, Weight,
 };
 
@@ -52,7 +52,7 @@ where
     ) -> ShortestPathsBuilder<'a, W, G, F2, A>
     where
         G: Edges<E, Ty>,
-        F2: GetEdgeWeight<E, W>,
+        F2: GetWeight<E, W>,
         W: Weight,
     {
         ShortestPathsBuilder {
@@ -146,7 +146,7 @@ where
     where
         G: VerticesBase + Edges<E, Ty> + VerticesBaseWeak + EdgesWeak<E, Ty> + Neighbors,
         G::VertexIndex: NumIndexType,
-        F: GetEdgeWeight<E, W>,
+        F: GetWeight<E, W>,
         W: Weight,
     {
         let algo = self.choose_algo();
@@ -171,7 +171,7 @@ where
     pub fn run<E, Ty: EdgeType>(self, start: G::VertexIndex) -> Result<ShortestPaths<W, G>, Error>
     where
         G: VerticesBaseWeak + EdgesWeak<E, Ty> + Neighbors,
-        F: GetEdgeWeight<E, W>,
+        F: GetWeight<E, W>,
         W: Weight,
     {
         let ShortestPathsBuilder {
@@ -193,7 +193,7 @@ where
     where
         G: VerticesBase + Edges<E, Ty>,
         G::VertexIndex: NumIndexType,
-        F: GetEdgeWeight<E, W>,
+        F: GetWeight<E, W>,
         W: Weight,
     {
         let ShortestPathsBuilder {
@@ -212,7 +212,7 @@ where
     where
         G: VerticesBase + Edges<E, Ty> + VerticesBaseWeak + EdgesWeak<E, Ty> + Neighbors,
         G::VertexIndex: NumIndexType,
-        F: GetEdgeWeight<E, W>,
+        F: GetWeight<E, W>,
         W: Weight,
     {
         let algo = self.algo.0.unwrap_or_else(|| self.choose_algo());
@@ -238,7 +238,7 @@ where
     where
         G: VerticesBase + Edges<E, Ty> + VerticesBaseWeak + EdgesWeak<E, Ty> + Neighbors,
         G::VertexIndex: NumIndexType,
-        F: GetEdgeWeight<E, W>,
+        F: GetWeight<E, W>,
         W: Weight,
     {
         let ShortestPathsBuilder { graph, goal, .. } = self;

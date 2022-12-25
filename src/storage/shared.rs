@@ -5,7 +5,10 @@ use std::{
     slice::Iter,
 };
 
-use crate::core::index::{Indexing, NumIndexType};
+use crate::core::{
+    index::{Indexing, NumIndexType},
+    marker::EdgeType,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AdjVertex<Ix: Indexing, V> {
@@ -126,5 +129,15 @@ where
                 endpoints[1],
             )
         })
+    }
+}
+
+pub fn connect_vertices<Ty: EdgeType>(vertex_count: usize, mut connect: impl FnMut(usize, usize)) {
+    for i in 0..vertex_count {
+        // Self-loops are considered too.
+        let begin = if Ty::is_directed() { 0 } else { i };
+        for j in begin..vertex_count {
+            connect(i, j);
+        }
     }
 }

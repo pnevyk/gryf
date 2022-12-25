@@ -5,8 +5,8 @@ use crate::{
     core::{
         index::{Indexing, NumIndexType},
         marker::{Direction, EdgeType},
-        Create, Edges, EdgesBase, EdgesMut, GraphBase, Guarantee, Neighbors, Vertices,
-        VerticesBase, VerticesMut,
+        ConnectVertices, Create, Edges, EdgesBase, EdgesMut, GraphBase, Guarantee, Neighbors,
+        Vertices, VerticesBase, VerticesMut,
     },
 };
 
@@ -16,6 +16,7 @@ use crate::derive::{EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak};
 use crate::core::{EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak, WeakRef};
 
 use self::matrix::{BitMatrix, Matrix};
+use super::shared;
 pub use super::shared::{RangeIndices as VertexIndices, VerticesIter};
 
 #[derive(Debug, VerticesBaseWeak, VerticesWeak, EdgesBaseWeak, EdgesWeak)]
@@ -336,6 +337,29 @@ where
             vertices: Vec::with_capacity(vertex_count),
             n_edges: 0,
         }
+    }
+}
+
+impl<V, E, Ty: EdgeType, Ix: Indexing> ConnectVertices<V, E, Ty> for AdjMatrix<V, E, Ty, Ix>
+where
+    Ix::VertexIndex: NumIndexType,
+    Ix::EdgeIndex: NumIndexType,
+{
+    fn connect_vertices<F>(&mut self, mut connect: F)
+    where
+        F: FnMut(&V, &V) -> Option<E>,
+    {
+        shared::connect_vertices::<Ty>(self.vertices.len(), |i, j| {
+            let src = &self.vertices[i];
+            let dst = &self.vertices[j];
+
+            if let Some(edge) = connect(src, dst) {
+                let src = Ix::VertexIndex::from_usize(i);
+                let dst = Ix::VertexIndex::from_usize(j);
+
+                self.add_edge(&src, &dst, edge);
+            }
+        })
     }
 }
 
@@ -725,5 +749,15 @@ mod tests {
     #[test]
     fn basic_directed() {
         test_basic::<Directed, AdjMatrix<_, _, _, DefaultIndexing>>();
+    }
+
+    #[test]
+    fn connect_vertices_undirected() {
+        test_connect_vertices::<Undirected, AdjMatrix<_, _, _, DefaultIndexing>>();
+    }
+
+    #[test]
+    fn connect_vertices_directed() {
+        test_connect_vertices::<Directed, AdjMatrix<_, _, _, DefaultIndexing>>();
     }
 }

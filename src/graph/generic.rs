@@ -4,7 +4,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use crate::core::marker::Direction;
+use crate::core::{marker::Direction, ConnectVertices};
 use crate::core::{
     Create, Edges, EdgesBase, EdgesMut, GraphBase, MultiEdges, Neighbors, Vertices, VerticesBase,
     VerticesMut,
@@ -364,6 +364,14 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
 
     pub fn freeze(self) -> Graph<V, E, Ty, Frozen<G>> {
         Graph::with_storage(Frozen::new(self.graph))
+    }
+
+    pub fn connect_vertices<F>(&mut self, connect: F)
+    where
+        G: ConnectVertices<V, E, Ty>,
+        F: FnMut(&V, &V) -> Option<E>,
+    {
+        self.graph.connect_vertices(connect);
     }
 }
 

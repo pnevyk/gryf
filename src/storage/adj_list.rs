@@ -5,8 +5,8 @@ use crate::{
     core::{
         index::{Indexing, NumIndexType},
         marker::{Direction, EdgeType},
-        Create, Edges, EdgesBase, EdgesMut, GraphBase, Guarantee, MultiEdges, Neighbors, Vertices,
-        VerticesBase, VerticesMut,
+        ConnectVertices, Create, Edges, EdgesBase, EdgesMut, GraphBase, Guarantee, MultiEdges,
+        Neighbors, Vertices, VerticesBase, VerticesMut,
     },
 };
 
@@ -15,6 +15,7 @@ use crate::derive::{EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak};
 // TODO: Remove these imports once hygiene of procedural macros is fixed.
 use crate::core::{EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak, WeakRef};
 
+use super::shared;
 pub use super::shared::{
     AdjVertex as Vertex, AdjVerticesIter as VerticesIter, EdgesIter, RangeIndices as EdgeIndices,
     RangeIndices as VertexIndices,
@@ -470,6 +471,29 @@ where
     }
 }
 
+impl<V, E, Ty: EdgeType, Ix: Indexing> ConnectVertices<V, E, Ty> for AdjList<V, E, Ty, Ix>
+where
+    Ix::VertexIndex: NumIndexType,
+    Ix::EdgeIndex: NumIndexType,
+{
+    fn connect_vertices<F>(&mut self, mut connect: F)
+    where
+        F: FnMut(&V, &V) -> Option<E>,
+    {
+        shared::connect_vertices::<Ty>(self.vertices.len(), |i, j| {
+            let src = &self.vertices[i].data;
+            let dst = &self.vertices[j].data;
+
+            if let Some(edge) = connect(src, dst) {
+                let src = Ix::VertexIndex::from_usize(i);
+                let dst = Ix::VertexIndex::from_usize(j);
+
+                self.add_edge(&src, &dst, edge);
+            }
+        })
+    }
+}
+
 impl<V, E, Ty: EdgeType, Ix: Indexing> Guarantee for AdjList<V, E, Ty, Ix> {}
 
 pub struct MultiEdgeIndicesIter<'a, Ix: Indexing> {
@@ -574,5 +598,15 @@ mod tests {
     #[test]
     fn multi_directed() {
         test_multi::<Directed, AdjList<_, _, _, DefaultIndexing>>();
+    }
+
+    #[test]
+    fn connect_vertices_undirected() {
+        test_connect_vertices::<Undirected, AdjList<_, _, _, DefaultIndexing>>();
+    }
+
+    #[test]
+    fn connect_vertices_directed() {
+        test_connect_vertices::<Directed, AdjList<_, _, _, DefaultIndexing>>();
     }
 }

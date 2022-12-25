@@ -4,8 +4,8 @@ use crate::common::CompactIndexMap;
 use crate::core::index::{Indexing, NumIndexType};
 use crate::core::marker::{Direction, EdgeType};
 use crate::core::{
-    Create, Edges, EdgesBase, EdgesMut, GraphBase, Guarantee, MultiEdges, Neighbors, Vertices,
-    VerticesBase, VerticesMut,
+    ConnectVertices, Create, Edges, EdgesBase, EdgesMut, GraphBase, Guarantee, MultiEdges,
+    Neighbors, Vertices, VerticesBase, VerticesMut,
 };
 
 use crate::derive::{EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak};
@@ -13,6 +13,7 @@ use crate::derive::{EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak};
 // TODO: Remove these imports once hygiene of procedural macros is fixed.
 use crate::core::{EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak, WeakRef};
 
+use super::shared;
 pub use super::shared::{
     EdgesIter, RangeIndices as VertexIndices, RangeIndices as EdgeIndices, VerticesIter,
 };
@@ -346,6 +347,29 @@ where
             endpoints: Vec::with_capacity(edge_count),
             ty: PhantomData,
         }
+    }
+}
+
+impl<V, E, Ty: EdgeType, Ix: Indexing> ConnectVertices<V, E, Ty> for EdgeList<V, E, Ty, Ix>
+where
+    Ix::VertexIndex: NumIndexType,
+    Ix::EdgeIndex: NumIndexType,
+{
+    fn connect_vertices<F>(&mut self, mut connect: F)
+    where
+        F: FnMut(&V, &V) -> Option<E>,
+    {
+        shared::connect_vertices::<Ty>(self.vertices.len(), |i, j| {
+            let src = &self.vertices[i];
+            let dst = &self.vertices[j];
+
+            if let Some(edge) = connect(src, dst) {
+                let src = Ix::VertexIndex::from_usize(i);
+                let dst = Ix::VertexIndex::from_usize(j);
+
+                self.add_edge(&src, &dst, edge);
+            }
+        })
     }
 }
 

@@ -14,8 +14,9 @@ pub use stable::Stable;
 #[cfg(test)]
 mod tests {
     use crate::core::{
+        facts,
         marker::{Direction, EdgeType},
-        Create, MultiEdges, Neighbors,
+        ConnectVertices, Create, MultiEdges, Neighbors,
     };
 
     pub fn test_basic<Ty: EdgeType, G>()
@@ -121,5 +122,33 @@ mod tests {
 
         assert_eq!(e01, vec![Some(&0), Some(&2)]);
         assert_eq!(e02, vec![Some(&1)]);
+    }
+
+    pub fn test_connect_vertices<Ty: EdgeType, G>()
+    where
+        G: Create<i32, (), Ty> + ConnectVertices<i32, (), Ty>,
+    {
+        let mut graph = G::default();
+
+        graph.add_vertex(1);
+        graph.add_vertex(2);
+        graph.add_vertex(3);
+
+        graph.connect_vertices(|_, _| Some(()));
+
+        let n = graph.vertex_count();
+
+        // Number of edges should be complete graph + all self-loops.
+        assert_eq!(
+            graph.edge_count(),
+            facts::complete_graph_edge_count::<Ty>(n) + n
+        );
+
+        graph.clear_edges();
+
+        graph.connect_vertices(|a, b| (a + b == 4 && b >= a).then_some(()));
+
+        // 1 -> 3, 2 -> 2
+        assert_eq!(graph.edge_count(), 2);
     }
 }

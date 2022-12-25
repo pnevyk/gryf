@@ -5,8 +5,8 @@ use crate::{
     core::{
         index::{EdgeIndex, NumIndexType, VertexIndex},
         marker::{Direction, EdgeType},
-        Create, EdgeRef, Edges, EdgesBase, EdgesMut, GraphBase, NeighborRef, Neighbors, NoReplace,
-        StableIndices, VertexRef, Vertices, VerticesBase, VerticesMut,
+        ConnectVertices, Create, EdgeRef, Edges, EdgesBase, EdgesMut, GraphBase, NeighborRef,
+        Neighbors, NoReplace, StableIndices, VertexRef, Vertices, VerticesBase, VerticesMut,
     },
 };
 
@@ -371,6 +371,20 @@ where
 {
     fn with_capacity(vertex_count: usize, edge_count: usize) -> Self {
         Self::new(G::with_capacity(vertex_count, edge_count))
+    }
+}
+
+impl<V, E, Ty: EdgeType, G> ConnectVertices<V, E, Ty> for Stable<G>
+where
+    G: ConnectVertices<V, E, Ty> + Neighbors,
+    V: Clone,
+    E: Clone,
+{
+    fn connect_vertices<F>(&mut self, connect: F)
+    where
+        F: FnMut(&V, &V) -> Option<E>,
+    {
+        self.inner.connect_vertices(connect);
     }
 }
 

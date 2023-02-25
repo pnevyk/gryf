@@ -107,7 +107,7 @@ impl<'a, G: GraphBase> Iterator for PathReconstruction<'a, G> {
 mod tests {
     use crate::{
         core::{
-            index::DefaultIndexing,
+            index::{DefaultIndexing, EdgeIndex, VertexIndex},
             marker::{Directed, Undirected},
             EdgesMut, VerticesMut,
         },
@@ -140,44 +140,52 @@ mod tests {
         graph
     }
 
+    fn v(index: usize) -> VertexIndex {
+        index.into()
+    }
+
+    fn e(index: usize) -> EdgeIndex {
+        index.into()
+    }
+
     #[test]
     fn dijkstra_basic() {
         let graph = create_basic_graph();
         let shortest_paths = ShortestPaths::on(&graph)
             .with(Algo::Dijkstra)
-            .run(0.into())
+            .run(v(0))
             .unwrap();
 
-        assert_eq!(shortest_paths.dist(&4.into()), Some(&8));
+        assert_eq!(shortest_paths.dist(v(4)), Some(&8));
         assert_eq!(
-            shortest_paths.reconstruct(4.into()).collect::<Vec<_>>(),
-            vec![3.into(), 1.into(), 0.into()]
+            shortest_paths.reconstruct(v(4)).collect::<Vec<_>>(),
+            vec![v(3), v(1), v(0)]
         );
 
-        assert_eq!(shortest_paths.dist(&2.into()), Some(&2));
+        assert_eq!(shortest_paths.dist(v(2)), Some(&2));
     }
 
     #[test]
     fn dijkstra_early_termination() {
         let graph = create_basic_graph();
         let shortest_paths = ShortestPaths::on(&graph)
-            .goal(4.into())
+            .goal(v(4))
             .with(Algo::Dijkstra)
-            .run(0.into())
+            .run(v(0))
             .unwrap();
 
-        assert!(shortest_paths.dist(&5.into()).is_none());
+        assert!(shortest_paths.dist(v(5)).is_none());
     }
 
     #[test]
     fn dijkstra_negative_edge() {
         let mut graph = create_basic_graph();
-        graph.replace_edge(&2.into(), -1);
+        graph.replace_edge(&e(2), -1);
 
         let shortest_paths = ShortestPaths::on(&graph)
-            .goal(4.into())
+            .goal(v(4))
             .with(Algo::Dijkstra)
-            .run(0.into());
+            .run(v(0));
 
         assert_matches!(shortest_paths, Err(Error::NegativeWeight));
     }
@@ -187,35 +195,35 @@ mod tests {
         let graph = create_basic_graph();
         let shortest_paths = ShortestPaths::on(&graph)
             .with(Algo::BellmanFord)
-            .run(0.into())
+            .run(v(0))
             .unwrap();
 
-        assert_eq!(shortest_paths.dist(&4.into()), Some(&8));
+        assert_eq!(shortest_paths.dist(v(4)), Some(&8));
         assert_eq!(
-            shortest_paths.reconstruct(4.into()).collect::<Vec<_>>(),
-            vec![3.into(), 1.into(), 0.into()]
+            shortest_paths.reconstruct(v(4)).collect::<Vec<_>>(),
+            vec![v(3), v(1), v(0)]
         );
 
-        assert_eq!(shortest_paths.dist(&2.into()), Some(&2));
+        assert_eq!(shortest_paths.dist(v(2)), Some(&2));
     }
 
     #[test]
     fn bellman_ford_negative_edge() {
         let mut graph = create_basic_graph();
-        graph.replace_edge(&2.into(), -1);
+        graph.replace_edge(&e(2), -1);
 
         let shortest_paths = ShortestPaths::on(&graph)
             .with(Algo::BellmanFord)
-            .run(0.into())
+            .run(v(0))
             .unwrap();
 
-        assert_eq!(shortest_paths.dist(&4.into()), Some(&8));
+        assert_eq!(shortest_paths.dist(v(4)), Some(&8));
         assert_eq!(
-            shortest_paths.reconstruct(4.into()).collect::<Vec<_>>(),
-            vec![3.into(), 1.into(), 0.into()]
+            shortest_paths.reconstruct(v(4)).collect::<Vec<_>>(),
+            vec![v(3), v(1), v(0)]
         );
 
-        assert_eq!(shortest_paths.dist(&2.into()), Some(&2));
+        assert_eq!(shortest_paths.dist(v(2)), Some(&2));
     }
 
     #[test]
@@ -234,9 +242,7 @@ mod tests {
         graph.add_edge(&v2, &v1, -2);
         graph.add_edge(&v2, &v4, 3);
 
-        let shortest_paths = ShortestPaths::on(&graph)
-            .with(Algo::BellmanFord)
-            .run(0.into());
+        let shortest_paths = ShortestPaths::on(&graph).with(Algo::BellmanFord).run(v(0));
 
         assert_matches!(shortest_paths, Err(Error::NegativeCycle));
     }

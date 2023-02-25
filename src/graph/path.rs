@@ -668,6 +668,10 @@ mod tests {
 
     use assert_matches::assert_matches;
 
+    fn v(index: usize) -> VertexIndex {
+        index.into()
+    }
+
     #[test]
     fn check_empty() {
         let graph: AdjList<(), (), Undirected, DefaultIndexing> = AdjList::new();
@@ -924,7 +928,7 @@ mod tests {
         let mut path = Path::<(), (), Undirected, _>::constrain(graph).unwrap();
 
         assert_matches!(
-            path.try_add_vertex((), None, &v1),
+            path.try_add_vertex((), None, v1),
             Err(PathError::HigherDegree)
         );
     }
@@ -943,7 +947,7 @@ mod tests {
         let mut path = Path::<(), (), Undirected, _>::constrain(graph).unwrap();
 
         assert_matches!(
-            path.try_add_vertex((), None, &42.into()),
+            path.try_add_vertex((), None, v(42)),
             Err(PathError::Disconnected)
         );
     }
@@ -957,7 +961,7 @@ mod tests {
         let mut path = Path::<(), (), Undirected, _>::constrain(graph).unwrap();
 
         assert_matches!(
-            path.try_add_vertex((), None, &v0),
+            path.try_add_vertex((), None, v0),
             Err(PathError::Disconnected)
         );
     }
@@ -966,7 +970,7 @@ mod tests {
     fn try_add_vertex_empty() {
         let mut path = Path::<(), (), Undirected, _>::new();
 
-        let result = path.try_add_vertex((), None, &VertexIndex::null());
+        let result = path.try_add_vertex((), None, VertexIndex::null());
         assert!(result.is_ok());
 
         let v = result.unwrap();
@@ -981,7 +985,7 @@ mod tests {
 
         let mut path = Path::<(), (), Undirected, _>::constrain(graph).unwrap();
 
-        let result = path.try_add_vertex((), Some(()), &v0);
+        let result = path.try_add_vertex((), Some(()), v0);
         assert!(result.is_ok());
 
         let v = result.unwrap();
@@ -1003,7 +1007,7 @@ mod tests {
 
         let [v0, v1] = *path.ends().unwrap();
 
-        let result = path.try_add_vertex((), Some(()), &v1);
+        let result = path.try_add_vertex((), Some(()), v1);
         assert!(result.is_ok());
 
         let v = result.unwrap();

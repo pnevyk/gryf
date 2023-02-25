@@ -1,6 +1,7 @@
 use std::{borrow::Borrow, ops::Index};
 
 use rustc_hash::FxHashMap;
+use thiserror::Error;
 
 use crate::core::GraphBase;
 
@@ -78,10 +79,13 @@ mod algo {
     pub struct BellmanFord;
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum Error {
+    #[error("edge with negative weight encountered")]
     NegativeWeight,
+    #[error("negative cycle encountered")]
     NegativeCycle,
+    #[error("edge not available")]
     EdgeNotAvailable,
 }
 

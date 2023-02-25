@@ -1,3 +1,5 @@
+use thiserror::Error;
+
 use crate::{
     core::{index::NumIndexType, marker::Directed, EdgesBase, Neighbors, VerticesBase},
     visit,
@@ -53,8 +55,9 @@ mod algo {
     pub struct Kahn;
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum Error {
+    #[error("the graph contains cycle")]
     Cycle,
 }
 
@@ -128,7 +131,7 @@ mod tests {
                         .find_map(|(k, v)| (v == dst).then_some(Some(k)))
                         .unwrap_or_else(|| panic!("algorithm omitted vertex {dst:?}"));
 
-                    assert!(i < j, "invalid topological order for {src:?} -> {dst:?}",);
+                    assert!(i < j, "invalid topological order for {src:?} -> {dst:?}");
                 }
             }
             (Ok(_), Some(error)) => panic!("algorithm did not detect error: {error:?}"),

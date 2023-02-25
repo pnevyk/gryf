@@ -383,16 +383,19 @@ where
         src: &Self::VertexIndex,
         dst: &Self::VertexIndex,
     ) -> Self::MultiEdgeIndicesIter<'_> {
-        let vertex = self
-            .vertices
-            .get(src.to_usize())
-            .expect("vertex does not exist");
-
-        MultiEdgeIndicesIter {
-            src: *src,
-            dst: *dst,
-            edges: &vertex.edges[0],
-            endpoints: self.endpoints.as_slice(),
+        match self.vertices.get(src.to_usize()) {
+            Some(vertex) => MultiEdgeIndicesIter {
+                src: *src,
+                dst: *dst,
+                edges: &vertex.edges[0],
+                endpoints: self.endpoints.as_slice(),
+            },
+            None => MultiEdgeIndicesIter {
+                src: *src,
+                dst: *dst,
+                edges: &[],
+                endpoints: &[],
+            },
         }
     }
 }

@@ -4,7 +4,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use crate::core::{marker::Direction, ConnectVertices};
+use crate::core::{marker::Direction, ConnectVertices, ReplaceEdgeError, ReplaceVertexError};
 use crate::core::{
     Create, Edges, EdgesBase, EdgesMut, GraphBase, MultiEdges, Neighbors, Vertices, VerticesBase,
     VerticesMut,
@@ -14,7 +14,7 @@ use crate::{
     core::{
         index::DefaultIndexing,
         marker::{Directed, EdgeType, Undirected},
-        ExtendWithEdges, ExtendWithVertices, IntoEdge,
+        AddEdgeError, AddVertexError, ExtendWithEdges, ExtendWithVertices, IntoEdge,
     },
     storage::AdjList,
 };
@@ -186,6 +186,13 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         self.graph.add_vertex(vertex)
     }
 
+    pub fn try_add_vertex(&mut self, vertex: V) -> Result<G::VertexIndex, AddVertexError<V>>
+    where
+        G: VerticesMut<V>,
+    {
+        self.graph.try_add_vertex(vertex)
+    }
+
     pub fn remove_vertex<VI>(&mut self, index: VI) -> Option<V>
     where
         G: VerticesMut<V>,
@@ -200,6 +207,18 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         VI: Borrow<G::VertexIndex>,
     {
         self.graph.replace_vertex(index.borrow(), vertex)
+    }
+
+    pub fn try_replace_vertex<VI>(
+        &mut self,
+        index: VI,
+        vertex: V,
+    ) -> Result<V, ReplaceVertexError<V>>
+    where
+        G: VerticesMut<V>,
+        VI: Borrow<G::VertexIndex>,
+    {
+        self.graph.try_replace_vertex(index.borrow(), vertex)
     }
 
     pub fn clear(&mut self)
@@ -292,6 +311,19 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         self.graph.add_edge(src.borrow(), dst.borrow(), edge)
     }
 
+    pub fn try_add_edge<VI>(
+        &mut self,
+        src: VI,
+        dst: VI,
+        edge: E,
+    ) -> Result<G::EdgeIndex, AddEdgeError<E>>
+    where
+        G: EdgesMut<E, Ty>,
+        VI: Borrow<G::VertexIndex>,
+    {
+        self.graph.try_add_edge(src.borrow(), dst.borrow(), edge)
+    }
+
     pub fn remove_edge<EI>(&mut self, index: EI) -> Option<E>
     where
         G: EdgesMut<E, Ty>,
@@ -306,6 +338,14 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         EI: Borrow<G::EdgeIndex>,
     {
         self.graph.replace_edge(index.borrow(), edge)
+    }
+
+    pub fn try_replace_edge<EI>(&mut self, index: EI, edge: E) -> Result<E, ReplaceEdgeError<E>>
+    where
+        G: EdgesMut<E, Ty>,
+        EI: Borrow<G::EdgeIndex>,
+    {
+        self.graph.try_replace_edge(index.borrow(), edge)
     }
 
     pub fn clear_edges(&mut self)

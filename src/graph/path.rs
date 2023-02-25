@@ -1,14 +1,16 @@
 use std::{borrow::Borrow, hash::BuildHasherDefault, marker::PhantomData, ops::Deref};
 
 use rustc_hash::FxHashSet;
+use thiserror::Error;
 
 use crate::{
     common::VisitSet,
     core::{
         index::DefaultIndexing,
         marker::{Directed, Direction, EdgeType, Undirected},
-        Constrained, Create, Edges, EdgesBase, EdgesMut, GraphBase, Guarantee, NeighborRef,
-        Neighbors, Vertices, VerticesBase, VerticesMut,
+        AddEdgeError, AddVertexError, Constrained, Create, Edges, EdgesBase, EdgesMut, GraphBase,
+        Guarantee, NeighborRef, Neighbors, ReplaceEdgeError, ReplaceVertexError, Vertices,
+        VerticesBase, VerticesMut,
     },
     storage::{AdjList, Frozen, Stable},
 };
@@ -49,12 +51,32 @@ where
     ty: PhantomData<(V, E, Ty)>,
 }
 
-#[derive(Debug)]
-pub enum PathError {
+#[derive(Debug, Error)]
+pub enum PathError<V, E> {
+    #[error("the graph has higher degree than valid")]
     HigherDegree,
+    #[error("the graph contains cycle")]
     Cycle,
+    #[error("the graph is not connected")]
     Disconnected,
+    #[error("the path has mixed direction")]
     Direction,
+    #[error("{0}")]
+    AddVertex(AddVertexError<V>),
+    #[error("{0}")]
+    AddEdge(AddEdgeError<E>),
+}
+
+impl<V, E> From<AddVertexError<V>> for PathError<V, E> {
+    fn from(error: AddVertexError<V>) -> Self {
+        PathError::AddVertex(error)
+    }
+}
+
+impl<V, E> From<AddEdgeError<E>> for PathError<V, E> {
+    fn from(error: AddEdgeError<E>) -> Self {
+        PathError::AddEdge(error)
+    }
 }
 
 impl<V, E, Ty: EdgeType> Path<V, E, Ty, AdjList<V, E, Ty, DefaultIndexing>> {
@@ -100,7 +122,7 @@ where
         }
     }
 
-    fn check_runtime(graph: &G) -> Result<Option<[G::VertexIndex; 2]>, PathError>
+    fn check_runtime(graph: &G) -> Result<Option<[G::VertexIndex; 2]>, PathError<V, E>>
     where
         G: Vertices<V> + Neighbors,
     {
@@ -119,7 +141,7 @@ where
 
         let mut check_segment = |mut v: G::VertexIndex,
                                  mut prev: G::VertexIndex|
-         -> Result<G::VertexIndex, PathError> {
+         -> Result<G::VertexIndex, PathError<V, E>> {
             visited.visit(v.clone());
 
             loop {
@@ -254,7 +276,7 @@ where
         vertex: V,
         edge: Option<E>,
         end: VI,
-    ) -> Result<G::VertexIndex, PathError>
+    ) -> Result<G::VertexIndex, PathError<V, E>>
     where
         G: VerticesMut<V> + EdgesMut<E, Ty> + Neighbors,
         VI: Borrow<G::VertexIndex>,
@@ -282,7 +304,7 @@ where
                 let edge = edge.ok_or(PathError::Disconnected)?;
 
                 let u = end.clone();
-                let v = self.graph.add_vertex(vertex);
+                let v = self.graph.try_add_vertex(vertex)?;
                 *end = v.clone();
 
                 let (u, v) = if Ty::is_directed() {
@@ -297,12 +319,12 @@ where
                     (u, v)
                 };
 
-                self.graph.add_edge(&u, &v, edge);
+                self.graph.try_add_edge(&u, &v, edge)?;
 
                 Ok(v)
             }
             None => {
-                let v = self.graph.add_vertex(vertex);
+                let v = self.graph.try_add_vertex(vertex)?;
                 self.ends = Some([v.clone(), v.clone()]);
                 Ok(v)
             }
@@ -330,9 +352,11 @@ where
         };
 
         // We made sure that we provide all necessary, correct inputs so that
-        // `try_add_vertex` cannot fail.
-        self.try_add_vertex(vertex, Some(E::default()), &end)
-            .unwrap()
+        // `try_add_vertex` cannot fail (unless underlying storage fails).
+        match self.try_add_vertex(vertex, Some(E::default()), &end) {
+            Ok(index) => index,
+            Err(error) => panic!("{error}"),
+        }
     }
 
     pub fn remove_vertex<VI>(&mut self, index: VI, edge: Option<E>) -> Option<V>
@@ -418,6 +442,18 @@ where
         VI: Borrow<G::VertexIndex>,
     {
         self.graph.replace_vertex(index.borrow(), vertex)
+    }
+
+    pub fn try_replace_vertex<VI>(
+        &mut self,
+        index: VI,
+        vertex: V,
+    ) -> Result<V, ReplaceVertexError<V>>
+    where
+        G: VerticesMut<V>,
+        VI: Borrow<G::VertexIndex>,
+    {
+        self.graph.try_replace_vertex(index.borrow(), vertex)
     }
 
     pub fn clear(&mut self)
@@ -511,6 +547,14 @@ where
         self.graph.replace_edge(index.borrow(), edge)
     }
 
+    pub fn try_replace_edge<EI>(&mut self, index: EI, edge: E) -> Result<E, ReplaceEdgeError<E>>
+    where
+        G: EdgesMut<E, Ty>,
+        EI: Borrow<G::EdgeIndex>,
+    {
+        self.graph.try_replace_edge(index.borrow(), edge)
+    }
+
     pub fn neighbors<VI>(&self, src: VI) -> G::NeighborsIter<'_>
     where
         G: Neighbors,
@@ -569,7 +613,7 @@ impl<V, E, Ty: EdgeType, G> Constrained<G> for Path<V, E, Ty, G>
 where
     G: Vertices<V> + Neighbors + Guarantee,
 {
-    type Error = PathError;
+    type Error = PathError<V, E>;
 
     fn check(graph: &G) -> Result<(), Self::Error> {
         // Statically guaranteed.

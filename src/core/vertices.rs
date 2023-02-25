@@ -1,4 +1,6 @@
-use std::mem;
+use std::{fmt, mem};
+
+use thiserror::Error;
 
 use crate::common::CompactIndexMap;
 
@@ -49,14 +51,68 @@ pub trait Vertices<V>: VerticesBase {
     fn vertices(&self) -> Self::VerticesIter<'_>;
 }
 
+#[derive(Debug, Error)]
+#[error("adding vertex failed: {kind}")]
+pub struct AddVertexError<V> {
+    pub data: V,
+    pub kind: AddVertexErrorKind,
+}
+
+impl<V> AddVertexError<V> {
+    pub fn new(data: V) -> Self {
+        Self {
+            data,
+            kind: AddVertexErrorKind::CapacityOverflow,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum AddVertexErrorKind {
+    CapacityOverflow,
+}
+
+impl fmt::Display for AddVertexErrorKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let reason = match self {
+            AddVertexErrorKind::CapacityOverflow => "the graph has exhausted its capacity",
+        };
+        f.write_str(reason)
+    }
+}
+
+#[derive(Debug, Error)]
+#[error("vertex does not exist")]
+pub struct ReplaceVertexError<V>(pub V);
+
 pub trait VerticesMut<V>: Vertices<V> {
     fn vertex_mut(&mut self, index: &Self::VertexIndex) -> Option<&mut V>;
-    fn add_vertex(&mut self, vertex: V) -> Self::VertexIndex;
+    fn try_add_vertex(&mut self, vertex: V) -> Result<Self::VertexIndex, AddVertexError<V>>;
     fn remove_vertex(&mut self, index: &Self::VertexIndex) -> Option<V>;
 
+    fn add_vertex(&mut self, vertex: V) -> Self::VertexIndex {
+        match self.try_add_vertex(vertex) {
+            Ok(index) => index,
+            Err(error) => panic!("{error}"),
+        }
+    }
+
+    fn try_replace_vertex(
+        &mut self,
+        index: &Self::VertexIndex,
+        vertex: V,
+    ) -> Result<V, ReplaceVertexError<V>> {
+        match self.vertex_mut(index) {
+            Some(slot) => Ok(mem::replace(slot, vertex)),
+            None => Err(ReplaceVertexError(vertex)),
+        }
+    }
+
     fn replace_vertex(&mut self, index: &Self::VertexIndex, vertex: V) -> V {
-        let slot = self.vertex_mut(index).expect("vertex does not exist");
-        mem::replace(slot, vertex)
+        match self.try_replace_vertex(index, vertex) {
+            Ok(original) => original,
+            Err(error) => panic!("{error}"),
+        }
     }
 
     fn clear(&mut self) {
@@ -172,8 +228,8 @@ where
         (**self).vertex_mut(index)
     }
 
-    fn add_vertex(&mut self, vertex: V) -> Self::VertexIndex {
-        (**self).add_vertex(vertex)
+    fn try_add_vertex(&mut self, vertex: V) -> Result<Self::VertexIndex, AddVertexError<V>> {
+        (**self).try_add_vertex(vertex)
     }
 
     fn remove_vertex(&mut self, index: &Self::VertexIndex) -> Option<V> {

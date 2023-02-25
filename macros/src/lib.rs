@@ -144,8 +144,8 @@ pub fn vertices_mut(tokens: TokenStream) -> TokenStream {
                 <#field_type as VerticesMut<V>>::vertex_mut(&mut self.#field_name, index)
             }
 
-            fn add_vertex(&mut self, vertex: V) -> Self::VertexIndex {
-                <#field_type as VerticesMut<V>>::add_vertex(&mut self.#field_name, vertex)
+            fn try_add_vertex(&mut self, vertex: V) -> Result<Self::VertexIndex, AddVertexError<V>> {
+                <#field_type as VerticesMut<V>>::try_add_vertex(&mut self.#field_name, vertex)
             }
 
             fn remove_vertex(&mut self, index: &Self::VertexIndex) -> Option<V> {
@@ -361,8 +361,13 @@ pub fn edges_mut(tokens: TokenStream) -> TokenStream {
                 <#field_type as EdgesMut<E, Ty>>::edge_mut(&mut self.#field_name, index)
             }
 
-            fn add_edge(&mut self, src: &Self::VertexIndex, dst: &Self::VertexIndex, edge: E) -> Self::EdgeIndex {
-                <#field_type as EdgesMut<E, Ty>>::add_edge(&mut self.#field_name, src, dst, edge)
+            fn try_add_edge(
+                &mut self,
+                src: &Self::VertexIndex,
+                dst: &Self::VertexIndex,
+                edge: E,
+            ) -> Result<Self::EdgeIndex, AddEdgeError<E>> {
+                <#field_type as EdgesMut<E, Ty>>::try_add_edge(&mut self.#field_name, src, dst, edge)
             }
 
             fn remove_edge(&mut self, index: &Self::EdgeIndex) -> Option<E> {

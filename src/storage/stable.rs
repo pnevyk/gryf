@@ -5,8 +5,9 @@ use crate::{
     core::{
         index::{EdgeIndex, NumIndexType, VertexIndex},
         marker::{Direction, EdgeType},
-        ConnectVertices, Create, EdgeRef, Edges, EdgesBase, EdgesMut, GraphBase, NeighborRef,
-        Neighbors, NoReplace, StableIndices, VertexRef, Vertices, VerticesBase, VerticesMut,
+        AddEdgeError, AddVertexError, ConnectVertices, Create, EdgeRef, Edges, EdgesBase, EdgesMut,
+        GraphBase, NeighborRef, Neighbors, NoReplace, StableIndices, VertexRef, Vertices,
+        VerticesBase, VerticesMut,
     },
 };
 
@@ -165,8 +166,8 @@ where
         }
     }
 
-    fn add_vertex(&mut self, vertex: V) -> G::VertexIndex {
-        self.inner.add_vertex(vertex)
+    fn try_add_vertex(&mut self, vertex: V) -> Result<G::VertexIndex, AddVertexError<V>> {
+        self.inner.try_add_vertex(vertex)
     }
 
     fn remove_vertex(&mut self, index: &G::VertexIndex) -> Option<V> {
@@ -315,8 +316,13 @@ where
         }
     }
 
-    fn add_edge(&mut self, src: &G::VertexIndex, dst: &G::VertexIndex, edge: E) -> G::EdgeIndex {
-        self.inner.add_edge(src, dst, edge)
+    fn try_add_edge(
+        &mut self,
+        src: &G::VertexIndex,
+        dst: &G::VertexIndex,
+        edge: E,
+    ) -> Result<G::EdgeIndex, AddEdgeError<E>> {
+        self.inner.try_add_edge(src, dst, edge)
     }
 
     fn remove_edge(&mut self, index: &G::EdgeIndex) -> Option<E> {

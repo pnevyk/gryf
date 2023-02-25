@@ -5,8 +5,8 @@ use crate::{
     core::{
         index::{Indexing, NumIndexType},
         marker::{Direction, EdgeType},
-        ConnectVertices, Create, Edges, EdgesBase, EdgesMut, GraphBase, Guarantee, MultiEdges,
-        Neighbors, Vertices, VerticesBase, VerticesMut,
+        AddEdgeError, AddEdgeErrorKind, AddVertexError, ConnectVertices, Create, Edges, EdgesBase,
+        EdgesMut, GraphBase, Guarantee, MultiEdges, Neighbors, Vertices, VerticesBase, VerticesMut,
     },
 };
 
@@ -209,10 +209,10 @@ where
             .map(|vertex| &mut vertex.data)
     }
 
-    fn add_vertex(&mut self, vertex: V) -> Self::VertexIndex {
+    fn try_add_vertex(&mut self, vertex: V) -> Result<Self::VertexIndex, AddVertexError<V>> {
         let index = self.vertices.len();
         self.vertices.push(Vertex::new(vertex));
-        index.into()
+        Ok(index.into())
     }
 
     fn remove_vertex(&mut self, index: &Self::VertexIndex) -> Option<V> {
@@ -334,20 +334,19 @@ where
         self.edges.get_mut(index.to_usize())
     }
 
-    fn add_edge(
+    fn try_add_edge(
         &mut self,
         src: &Self::VertexIndex,
         dst: &Self::VertexIndex,
         edge: E,
-    ) -> Self::EdgeIndex {
-        assert!(
-            src.to_usize() < self.vertices.len(),
-            "src vertex does not exist"
-        );
-        assert!(
-            dst.to_usize() < self.vertices.len(),
-            "dst vertex does not exist"
-        );
+    ) -> Result<Self::EdgeIndex, AddEdgeError<E>> {
+        if src.to_usize() >= self.vertices.len() {
+            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::SourceAbsent));
+        }
+
+        if dst.to_usize() >= self.vertices.len() {
+            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::DestinationAbsent));
+        }
 
         let index = NumIndexType::from_usize(self.edges.len());
         self.edges.push(edge);
@@ -357,7 +356,7 @@ where
         self.vertices[src.to_usize()].edges[directions[0].index()].push(index);
         self.vertices[dst.to_usize()].edges[directions[1].index()].push(index);
 
-        index
+        Ok(index)
     }
 
     fn remove_edge(&mut self, index: &Self::EdgeIndex) -> Option<E> {

@@ -287,11 +287,9 @@ where
 
     fn multi_edge_index(
         &self,
-        src: &Ix::VertexIndex,
-        dst: &Ix::VertexIndex,
+        src: &Self::VertexIndex,
+        dst: &Self::VertexIndex,
     ) -> Self::MultiEdgeIndicesIter<'_> {
-        self.vertex(src).expect("vertex does not exist");
-
         MultiEdgeIndicesIter {
             src: *src,
             dst: *dst,

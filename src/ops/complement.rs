@@ -11,7 +11,7 @@ use crate::derive::{GraphBase, Vertices, VerticesBase, VerticesMut};
 
 // TODO: Remove these imports once hygiene of procedural macros is fixed.
 use crate::common::CompactIndexMap;
-use crate::core::{GraphBase, NeighborRef, VertexRef};
+use crate::core::{AddVertexError, GraphBase, NeighborRef, VertexRef};
 
 use super::{OpMut, OpOwned};
 

@@ -5,8 +5,8 @@ use crate::{
     core::{
         index::{Indexing, NumIndexType},
         marker::{Direction, EdgeType},
-        ConnectVertices, Create, Edges, EdgesBase, EdgesMut, GraphBase, Guarantee, Neighbors,
-        Vertices, VerticesBase, VerticesMut,
+        AddEdgeError, AddEdgeErrorKind, AddVertexError, ConnectVertices, Create, Edges, EdgesBase,
+        EdgesMut, GraphBase, Guarantee, Neighbors, Vertices, VerticesBase, VerticesMut,
     },
 };
 
@@ -115,12 +115,12 @@ where
         self.vertices.get_mut(index.to_usize())
     }
 
-    fn add_vertex(&mut self, vertex: V) -> Ix::VertexIndex {
+    fn try_add_vertex(&mut self, vertex: V) -> Result<Self::VertexIndex, AddVertexError<V>> {
         self.matrix.ensure_capacity(self.vertex_count() + 1);
 
         let index = self.vertices.len();
         self.vertices.push(vertex);
-        Ix::VertexIndex::from_usize(index)
+        Ok(index.into())
     }
 
     fn remove_vertex(&mut self, index: &Ix::VertexIndex) -> Option<V> {
@@ -260,11 +260,30 @@ where
         self.matrix.get_mut(*index)
     }
 
-    fn add_edge(&mut self, src: &Ix::VertexIndex, dst: &Ix::VertexIndex, edge: E) -> Ix::EdgeIndex {
+    fn try_add_edge(
+        &mut self,
+        src: &Self::VertexIndex,
+        dst: &Self::VertexIndex,
+        edge: E,
+    ) -> Result<Self::EdgeIndex, AddEdgeError<E>> {
+        if src.to_usize() >= self.vertices.len() {
+            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::SourceAbsent));
+        }
+
+        if dst.to_usize() >= self.vertices.len() {
+            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::DestinationAbsent));
+        }
+
         let index = self.matrix.index(src.to_usize(), dst.to_usize());
+
+        if self.matrix.contains(index) {
+            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::MultiEdge));
+        }
+
         self.matrix.insert(index, edge);
         self.n_edges += 1;
-        index
+
+        Ok(index)
     }
 
     fn remove_edge(&mut self, index: &Ix::EdgeIndex) -> Option<E> {

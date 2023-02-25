@@ -1,4 +1,6 @@
-use std::mem;
+use std::{fmt, mem};
+
+use thiserror::Error;
 
 use crate::common::CompactIndexMap;
 
@@ -62,19 +64,83 @@ pub trait Edges<E, Ty: EdgeType>: EdgesBase<Ty> {
     fn edges(&self) -> Self::EdgesIter<'_>;
 }
 
+#[derive(Debug, Error)]
+#[error("adding edge failed: {kind}")]
+pub struct AddEdgeError<E> {
+    pub data: E,
+    pub kind: AddEdgeErrorKind,
+}
+
+impl<E> AddEdgeError<E> {
+    pub fn new(data: E, kind: AddEdgeErrorKind) -> Self {
+        Self { data, kind }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum AddEdgeErrorKind {
+    SourceAbsent,
+    DestinationAbsent,
+    MultiEdge,
+    CapacityOverflow,
+}
+
+impl fmt::Display for AddEdgeErrorKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let reason = match self {
+            AddEdgeErrorKind::SourceAbsent => "source does not exist",
+            AddEdgeErrorKind::DestinationAbsent => "destination does not exist",
+            AddEdgeErrorKind::MultiEdge => {
+                "an edge already exists and the graph does not allow multi edges"
+            }
+            AddEdgeErrorKind::CapacityOverflow => "the graph has exhausted its capacity",
+        };
+        f.write_str(reason)
+    }
+}
+
+#[derive(Debug, Error)]
+#[error("edge does not exist")]
+pub struct ReplaceEdgeError<E>(pub E);
+
 pub trait EdgesMut<E, Ty: EdgeType>: Edges<E, Ty> {
     fn edge_mut(&mut self, index: &Self::EdgeIndex) -> Option<&mut E>;
+    fn try_add_edge(
+        &mut self,
+        src: &Self::VertexIndex,
+        dst: &Self::VertexIndex,
+        edge: E,
+    ) -> Result<Self::EdgeIndex, AddEdgeError<E>>;
+    fn remove_edge(&mut self, index: &Self::EdgeIndex) -> Option<E>;
+
     fn add_edge(
         &mut self,
         src: &Self::VertexIndex,
         dst: &Self::VertexIndex,
         edge: E,
-    ) -> Self::EdgeIndex;
-    fn remove_edge(&mut self, index: &Self::EdgeIndex) -> Option<E>;
+    ) -> Self::EdgeIndex {
+        match self.try_add_edge(src, dst, edge) {
+            Ok(index) => index,
+            Err(error) => panic!("{error}"),
+        }
+    }
+
+    fn try_replace_edge(
+        &mut self,
+        index: &Self::EdgeIndex,
+        edge: E,
+    ) -> Result<E, ReplaceEdgeError<E>> {
+        match self.edge_mut(index) {
+            Some(slot) => Ok(mem::replace(slot, edge)),
+            None => Err(ReplaceEdgeError(edge)),
+        }
+    }
 
     fn replace_edge(&mut self, index: &Self::EdgeIndex, edge: E) -> E {
-        let slot = self.edge_mut(index).expect("edge does not exist");
-        mem::replace(slot, edge)
+        match self.try_replace_edge(index, edge) {
+            Ok(original) => original,
+            Err(error) => panic!("{error}"),
+        }
     }
 
     fn clear_edges(&mut self) {
@@ -270,13 +336,13 @@ where
         (**self).edge_mut(index)
     }
 
-    fn add_edge(
+    fn try_add_edge(
         &mut self,
         src: &Self::VertexIndex,
         dst: &Self::VertexIndex,
         edge: E,
-    ) -> Self::EdgeIndex {
-        (**self).add_edge(src, dst, edge)
+    ) -> Result<Self::EdgeIndex, AddEdgeError<E>> {
+        (**self).try_add_edge(src, dst, edge)
     }
 
     fn remove_edge(&mut self, index: &Self::EdgeIndex) -> Option<E> {

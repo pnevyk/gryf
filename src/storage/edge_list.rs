@@ -4,8 +4,8 @@ use crate::common::CompactIndexMap;
 use crate::core::index::{Indexing, NumIndexType};
 use crate::core::marker::{Direction, EdgeType};
 use crate::core::{
-    ConnectVertices, Create, Edges, EdgesBase, EdgesMut, GraphBase, Guarantee, MultiEdges,
-    Neighbors, Vertices, VerticesBase, VerticesMut,
+    AddEdgeError, AddEdgeErrorKind, AddVertexError, ConnectVertices, Create, Edges, EdgesBase,
+    EdgesMut, GraphBase, Guarantee, MultiEdges, Neighbors, Vertices, VerticesBase, VerticesMut,
 };
 
 use crate::derive::{EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak};
@@ -122,10 +122,10 @@ where
         self.vertices.get_mut(index.to_usize())
     }
 
-    fn add_vertex(&mut self, vertex: V) -> Ix::VertexIndex {
+    fn try_add_vertex(&mut self, vertex: V) -> Result<Self::VertexIndex, AddVertexError<V>> {
         let index = self.vertices.len();
         self.vertices.push(vertex);
-        Ix::VertexIndex::from_usize(index)
+        Ok(index.into())
     }
 
     fn remove_vertex(&mut self, index: &Ix::VertexIndex) -> Option<V> {
@@ -244,20 +244,24 @@ where
         self.edges.get_mut(index.to_usize())
     }
 
-    fn add_edge(&mut self, src: &Ix::VertexIndex, dst: &Ix::VertexIndex, edge: E) -> Ix::EdgeIndex {
-        assert!(
-            src.to_usize() < self.vertices.len(),
-            "src vertex does not exist"
-        );
-        assert!(
-            dst.to_usize() < self.vertices.len(),
-            "dst vertex does not exist"
-        );
+    fn try_add_edge(
+        &mut self,
+        src: &Self::VertexIndex,
+        dst: &Self::VertexIndex,
+        edge: E,
+    ) -> Result<Self::EdgeIndex, AddEdgeError<E>> {
+        if src.to_usize() >= self.vertices.len() {
+            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::SourceAbsent));
+        }
+
+        if dst.to_usize() >= self.vertices.len() {
+            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::DestinationAbsent));
+        }
 
         self.endpoints.push([*src, *dst]);
         let index = self.edges.len();
         self.edges.push(edge);
-        Ix::EdgeIndex::from_usize(index)
+        Ok(index.into())
     }
 
     fn remove_edge(&mut self, index: &Ix::EdgeIndex) -> Option<E> {

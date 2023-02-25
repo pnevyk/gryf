@@ -105,7 +105,8 @@ mod random {
 
     use crate::{
         core::{
-            index::NumIndexType, marker::EdgeType, Create, Edges, EdgesMut, Vertices, VerticesMut,
+            index::NumIndexType, marker::EdgeType, AddEdgeError, AddVertexError, Create, Edges,
+            EdgesMut, Vertices, VerticesMut,
         },
         infra::export::{Dot, Export},
     };
@@ -354,18 +355,20 @@ mod random {
             self.graph.vertex_mut(index)
         }
 
-        fn add_vertex(&mut self, vertex: V) -> Self::VertexIndex {
+        fn try_add_vertex(&mut self, vertex: V) -> Result<Self::VertexIndex, AddVertexError<V>> {
             self.history.push(MutOp::AddVertex(vertex.clone()));
-            self.graph.add_vertex(vertex)
+            let result = self.graph.try_add_vertex(vertex);
+
+            if result.is_err() {
+                self.history.pop();
+            }
+
+            result
         }
 
         fn remove_vertex(&mut self, index: &Self::VertexIndex) -> Option<V> {
             self.history.push(MutOp::RemoveVertex(index.to_usize()));
             self.graph.remove_vertex(index)
-        }
-
-        fn replace_vertex(&mut self, index: &Self::VertexIndex, vertex: V) -> V {
-            self.graph.replace_vertex(index, vertex)
         }
     }
 
@@ -379,19 +382,25 @@ mod random {
             self.graph.edge_mut(index)
         }
 
-        fn add_edge(
+        fn try_add_edge(
             &mut self,
             src: &Self::VertexIndex,
             dst: &Self::VertexIndex,
             edge: E,
-        ) -> Self::EdgeIndex {
+        ) -> Result<Self::EdgeIndex, AddEdgeError<E>> {
             self.history.push(MutOp::AddEdge(
                 src.to_usize(),
                 dst.to_usize(),
                 edge.clone(),
                 PhantomData,
             ));
-            self.graph.add_edge(src, dst, edge)
+            let result = self.graph.try_add_edge(src, dst, edge);
+
+            if result.is_err() {
+                self.history.pop();
+            }
+
+            result
         }
 
         fn remove_edge(&mut self, index: &Self::EdgeIndex) -> Option<E> {
@@ -400,10 +409,6 @@ mod random {
                     .push(MutOp::RemoveEdge(src.to_usize(), dst.to_usize()));
             }
             self.graph.remove_edge(index)
-        }
-
-        fn replace_edge(&mut self, index: &Self::EdgeIndex, edge: E) -> E {
-            self.graph.replace_edge(index, edge)
         }
     }
 

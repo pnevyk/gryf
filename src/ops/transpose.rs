@@ -15,8 +15,8 @@ use crate::derive::{
 
 // TODO: Remove these imports once hygiene of procedural macros is fixed.
 use crate::core::{
-    marker::EdgeType, EdgesBaseWeak, EdgesWeak, GraphBase, Guarantee, Vertices, VerticesBaseWeak,
-    VerticesMut, VerticesWeak,
+    marker::EdgeType, AddVertexError, EdgesBaseWeak, EdgesWeak, GraphBase, Guarantee, Vertices,
+    VerticesBaseWeak, VerticesMut, VerticesWeak,
 };
 
 use super::OpOwned;

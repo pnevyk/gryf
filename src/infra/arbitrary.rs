@@ -14,8 +14,9 @@ use crate::derive::{
 // TODO: Remove these imports once hygiene of procedural macros is fixed.
 use crate::common::CompactIndexMap;
 use crate::core::{
-    marker::Direction, Edges, EdgesBase, EdgesBaseWeak, EdgesWeak, GraphBase, Guarantee, Neighbors,
-    Vertices, VerticesBase, VerticesBaseWeak, VerticesWeak, WeakRef,
+    marker::Direction, AddEdgeError, AddVertexError, Edges, EdgesBase, EdgesBaseWeak, EdgesWeak,
+    GraphBase, Guarantee, Neighbors, Vertices, VerticesBase, VerticesBaseWeak, VerticesWeak,
+    WeakRef,
 };
 
 #[derive(

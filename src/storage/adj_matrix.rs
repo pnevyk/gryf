@@ -59,7 +59,7 @@ impl<V, E, Ty: EdgeType, Ix: Indexing> VerticesBase for AdjMatrix<V, E, Ty, Ix>
 where
     Ix::VertexIndex: NumIndexType,
 {
-    type VertexIndicesIter<'a> = VertexIndices<Ix::VertexIndex>
+    type VertexIndicesIter<'a> = VertexIndices<Self::VertexIndex>
     where
         Self: 'a;
 
@@ -75,7 +75,7 @@ where
         (0..self.vertex_bound()).into()
     }
 
-    fn vertex_index_map(&self) -> CompactIndexMap<Ix::VertexIndex>
+    fn vertex_index_map(&self) -> CompactIndexMap<Self::VertexIndex>
     where
         Ix::VertexIndex: NumIndexType,
     {
@@ -87,7 +87,7 @@ impl<V, E, Ty: EdgeType, Ix: Indexing> Vertices<V> for AdjMatrix<V, E, Ty, Ix>
 where
     Ix::VertexIndex: NumIndexType,
 {
-    type VertexRef<'a> = (Ix::VertexIndex, &'a V)
+    type VertexRef<'a> = (Self::VertexIndex, &'a V)
     where
         Self: 'a,
         V: 'a;
@@ -97,7 +97,7 @@ where
         Self: 'a,
         V: 'a;
 
-    fn vertex(&self, index: &Ix::VertexIndex) -> Option<&V> {
+    fn vertex(&self, index: &Self::VertexIndex) -> Option<&V> {
         self.vertices.get(index.to_usize())
     }
 
@@ -111,7 +111,7 @@ where
     Ix::VertexIndex: NumIndexType,
     Ix::EdgeIndex: NumIndexType,
 {
-    fn vertex_mut(&mut self, index: &Ix::VertexIndex) -> Option<&mut V> {
+    fn vertex_mut(&mut self, index: &Self::VertexIndex) -> Option<&mut V> {
         self.vertices.get_mut(index.to_usize())
     }
 
@@ -123,7 +123,7 @@ where
         Ok(index.into())
     }
 
-    fn remove_vertex(&mut self, index: &Ix::VertexIndex) -> Option<V> {
+    fn remove_vertex(&mut self, index: &Self::VertexIndex) -> Option<V> {
         self.vertex(index)?;
 
         // Remove incident edges.
@@ -195,19 +195,20 @@ where
         self.matrix.index(self.vertex_count(), 0).to_usize()
     }
 
-    fn endpoints(&self, index: &Ix::EdgeIndex) -> Option<(Ix::VertexIndex, Ix::VertexIndex)> {
+    fn endpoints(&self, index: &Self::EdgeIndex) -> Option<(Self::VertexIndex, Self::VertexIndex)> {
         let (row, col) = self.matrix.coords(*index);
         if row < self.vertex_count() {
-            Some((
-                Ix::VertexIndex::from_usize(row),
-                Ix::VertexIndex::from_usize(col),
-            ))
+            Some((row.into(), col.into()))
         } else {
             None
         }
     }
 
-    fn edge_index(&self, src: &Ix::VertexIndex, dst: &Ix::VertexIndex) -> Option<Ix::EdgeIndex> {
+    fn edge_index(
+        &self,
+        src: &Self::VertexIndex,
+        dst: &Self::VertexIndex,
+    ) -> Option<Self::EdgeIndex> {
         let index = self.matrix.index(src.to_usize(), dst.to_usize());
         self.matrix.get(index).map(|_| index)
     }
@@ -227,7 +228,7 @@ where
     Ix::VertexIndex: NumIndexType,
     Ix::EdgeIndex: NumIndexType,
 {
-    type EdgeRef<'a> = (Ix::EdgeIndex, &'a E, Ix::VertexIndex, Ix::VertexIndex)
+    type EdgeRef<'a> = (Self::EdgeIndex, &'a E, Self::VertexIndex, Self::VertexIndex)
     where
         Self: 'a,
         E: 'a;
@@ -237,7 +238,7 @@ where
         Self: 'a,
         E:'a;
 
-    fn edge(&self, index: &Ix::EdgeIndex) -> Option<&E> {
+    fn edge(&self, index: &Self::EdgeIndex) -> Option<&E> {
         self.matrix.get(*index)
     }
 
@@ -286,7 +287,7 @@ where
         Ok(index)
     }
 
-    fn remove_edge(&mut self, index: &Ix::EdgeIndex) -> Option<E> {
+    fn remove_edge(&mut self, index: &Self::EdgeIndex) -> Option<E> {
         match self.matrix.remove(*index) {
             Some(edge) => {
                 self.n_edges -= 1;
@@ -307,7 +308,7 @@ where
     Ix::VertexIndex: NumIndexType,
     Ix::EdgeIndex: NumIndexType,
 {
-    type NeighborRef<'a> = (Ix::VertexIndex, Ix::EdgeIndex, Ix::VertexIndex, Direction)
+    type NeighborRef<'a> = (Self::VertexIndex, Self::EdgeIndex, Self::VertexIndex, Direction)
     where
         Self: 'a;
 
@@ -315,7 +316,7 @@ where
     where
         Self: 'a;
 
-    fn neighbors(&self, src: &Ix::VertexIndex) -> Self::NeighborsIter<'_> {
+    fn neighbors(&self, src: &Self::VertexIndex) -> Self::NeighborsIter<'_> {
         let filter = if Ty::is_directed() {
             None
         } else {
@@ -333,7 +334,11 @@ where
         }
     }
 
-    fn neighbors_directed(&self, src: &Ix::VertexIndex, dir: Direction) -> Self::NeighborsIter<'_> {
+    fn neighbors_directed(
+        &self,
+        src: &Self::VertexIndex,
+        dir: Direction,
+    ) -> Self::NeighborsIter<'_> {
         NeighborsIter {
             matrix: self.matrix.detach(),
             src: *src,
@@ -438,12 +443,7 @@ where
 
             if let Some(edge) = self.matrix.get(index) {
                 let (row, col) = self.matrix.coords(index);
-                return Some((
-                    index,
-                    edge,
-                    Ix::VertexIndex::from_usize(row),
-                    Ix::VertexIndex::from_usize(col),
-                ));
+                return Some((index, edge, row.into(), col.into()));
             }
         }
     }

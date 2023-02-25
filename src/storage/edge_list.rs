@@ -67,7 +67,7 @@ impl<V, E, Ty: EdgeType, Ix: Indexing> VerticesBase for EdgeList<V, E, Ty, Ix>
 where
     Ix::VertexIndex: NumIndexType,
 {
-    type VertexIndicesIter<'a> = VertexIndices<Ix::VertexIndex>
+    type VertexIndicesIter<'a> = VertexIndices<Self::VertexIndex>
     where
         Self: 'a;
 
@@ -83,7 +83,7 @@ where
         (0..self.vertex_bound()).into()
     }
 
-    fn vertex_index_map(&self) -> CompactIndexMap<Ix::VertexIndex>
+    fn vertex_index_map(&self) -> CompactIndexMap<Self::VertexIndex>
     where
         Ix::VertexIndex: NumIndexType,
     {
@@ -95,7 +95,7 @@ impl<V, E, Ty: EdgeType, Ix: Indexing> Vertices<V> for EdgeList<V, E, Ty, Ix>
 where
     Ix::VertexIndex: NumIndexType,
 {
-    type VertexRef<'a> = (Ix::VertexIndex, &'a V)
+    type VertexRef<'a> = (Self::VertexIndex, &'a V)
     where
         Self: 'a,
         V: 'a;
@@ -105,7 +105,7 @@ where
         Self: 'a,
         V: 'a;
 
-    fn vertex(&self, index: &Ix::VertexIndex) -> Option<&V> {
+    fn vertex(&self, index: &Self::VertexIndex) -> Option<&V> {
         self.vertices.get(index.to_usize())
     }
 
@@ -118,7 +118,7 @@ impl<V, E, Ty: EdgeType, Ix: Indexing> VerticesMut<V> for EdgeList<V, E, Ty, Ix>
 where
     Ix::VertexIndex: NumIndexType,
 {
-    fn vertex_mut(&mut self, index: &Ix::VertexIndex) -> Option<&mut V> {
+    fn vertex_mut(&mut self, index: &Self::VertexIndex) -> Option<&mut V> {
         self.vertices.get_mut(index.to_usize())
     }
 
@@ -128,7 +128,7 @@ where
         Ok(index.into())
     }
 
-    fn remove_vertex(&mut self, index: &Ix::VertexIndex) -> Option<V> {
+    fn remove_vertex(&mut self, index: &Self::VertexIndex) -> Option<V> {
         // Remove all edges connected to this vertex in any direction.
         let mut i = 0;
         while i < self.endpoints.len() {
@@ -165,7 +165,7 @@ where
     Ix::VertexIndex: NumIndexType,
     Ix::EdgeIndex: NumIndexType,
 {
-    type EdgeIndicesIter<'a> = EdgeIndices<Ix::EdgeIndex>
+    type EdgeIndicesIter<'a> = EdgeIndices<Self::EdgeIndex>
     where
         Self: 'a;
 
@@ -177,22 +177,26 @@ where
         self.edge_count()
     }
 
-    fn endpoints(&self, index: &Ix::EdgeIndex) -> Option<(Ix::VertexIndex, Ix::VertexIndex)> {
+    fn endpoints(&self, index: &Ix::EdgeIndex) -> Option<(Self::VertexIndex, Self::VertexIndex)> {
         self.endpoints
             .get(index.to_usize())
             .map(|endpoints| (endpoints[0], endpoints[1]))
     }
 
-    fn edge_index(&self, src: &Ix::VertexIndex, dst: &Ix::VertexIndex) -> Option<Ix::EdgeIndex> {
+    fn edge_index(
+        &self,
+        src: &Self::VertexIndex,
+        dst: &Self::VertexIndex,
+    ) -> Option<Self::EdgeIndex> {
         self.endpoints
             .iter()
             .enumerate()
             .find_map(|(i, endpoints)| {
                 #[allow(clippy::if_same_then_else)]
                 if &endpoints[0] == src && &endpoints[1] == dst {
-                    Some(Ix::EdgeIndex::from_usize(i))
+                    Some(i.into())
                 } else if !Ty::is_directed() && &endpoints[1] == src && &endpoints[0] == dst {
-                    Some(Ix::EdgeIndex::from_usize(i))
+                    Some(i.into())
                 } else {
                     None
                 }
@@ -203,7 +207,7 @@ where
         (0..self.edge_bound()).into()
     }
 
-    fn edge_index_map(&self) -> CompactIndexMap<Ix::EdgeIndex>
+    fn edge_index_map(&self) -> CompactIndexMap<Self::EdgeIndex>
     where
         Ix::EdgeIndex: NumIndexType,
     {
@@ -216,7 +220,7 @@ where
     Ix::VertexIndex: NumIndexType,
     Ix::EdgeIndex: NumIndexType,
 {
-    type EdgeRef<'a> = (Ix::EdgeIndex, &'a E, Ix::VertexIndex, Ix::VertexIndex)
+    type EdgeRef<'a> = (Self::EdgeIndex, &'a E, Self::VertexIndex, Self::VertexIndex)
     where
         Self: 'a,
         E: 'a;
@@ -226,7 +230,7 @@ where
         Self: 'a,
         E: 'a;
 
-    fn edge(&self, index: &Ix::EdgeIndex) -> Option<&E> {
+    fn edge(&self, index: &Self::EdgeIndex) -> Option<&E> {
         self.edges.get(index.to_usize())
     }
 
@@ -240,7 +244,7 @@ where
     Ix::VertexIndex: NumIndexType,
     Ix::EdgeIndex: NumIndexType,
 {
-    fn edge_mut(&mut self, index: &Ix::EdgeIndex) -> Option<&mut E> {
+    fn edge_mut(&mut self, index: &Self::EdgeIndex) -> Option<&mut E> {
         self.edges.get_mut(index.to_usize())
     }
 
@@ -264,7 +268,7 @@ where
         Ok(index.into())
     }
 
-    fn remove_edge(&mut self, index: &Ix::EdgeIndex) -> Option<E> {
+    fn remove_edge(&mut self, index: &Self::EdgeIndex) -> Option<E> {
         self.edge(index)?;
         self.endpoints.swap_remove(index.to_usize());
         Some(self.edges.swap_remove(index.to_usize()))

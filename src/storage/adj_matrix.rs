@@ -15,13 +15,12 @@ use crate::derive::{EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak};
 // TODO: Remove these imports once hygiene of procedural macros is fixed.
 use crate::core::{EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak, WeakRef};
 
-use self::matrix::{DetachedMatrix, Matrix};
 use super::shared;
 pub use super::shared::{RangeIndices as VertexIndices, VerticesIter};
 
 #[derive(Debug, VerticesBaseWeak, VerticesWeak, EdgesBaseWeak, EdgesWeak)]
 pub struct AdjMatrix<V, E, Ty, Ix> {
-    matrix: Matrix<E, Ty, Ix>,
+    matrix: raw::Matrix<E, Ty, Ix>,
     vertices: Vec<V>,
     n_edges: usize,
 }
@@ -33,7 +32,7 @@ where
 {
     pub fn new() -> Self {
         Self {
-            matrix: Matrix::with_capacity(8),
+            matrix: raw::Matrix::with_capacity(8),
             vertices: Vec::new(),
             n_edges: 0,
         }
@@ -357,7 +356,7 @@ where
 {
     fn with_capacity(vertex_count: usize, _edge_count: usize) -> Self {
         Self {
-            matrix: Matrix::with_capacity(vertex_count),
+            matrix: raw::Matrix::with_capacity(vertex_count),
             vertices: Vec::with_capacity(vertex_count),
             n_edges: 0,
         }
@@ -390,7 +389,7 @@ where
 impl<V, E, Ty: EdgeType, Ix: Indexing> Guarantee for AdjMatrix<V, E, Ty, Ix> {}
 
 pub struct EdgeIndicesIter<'a, Ty, Ix> {
-    matrix: DetachedMatrix<'a, Ty, Ix>,
+    matrix: raw::DetachedMatrix<'a, Ty, Ix>,
     index: usize,
     edge_bound: usize,
     ty: PhantomData<fn() -> Ix>,
@@ -419,7 +418,7 @@ where
 }
 
 pub struct EdgesIter<'a, E, Ty, Ix> {
-    matrix: &'a Matrix<E, Ty, Ix>,
+    matrix: &'a raw::Matrix<E, Ty, Ix>,
     index: usize,
     edge_bound: usize,
     ty: PhantomData<fn() -> Ix>,
@@ -450,7 +449,7 @@ where
 }
 
 pub struct NeighborsIter<'a, Ty, Ix: Indexing> {
-    matrix: DetachedMatrix<'a, Ty, Ix>,
+    matrix: raw::DetachedMatrix<'a, Ty, Ix>,
     src: Ix::VertexIndex,
     other: usize,
     vertex_count: usize,
@@ -496,82 +495,18 @@ where
     }
 }
 
-mod matrix {
+mod raw {
     use std::marker::PhantomData;
     use std::mem::{self, MaybeUninit};
 
     use bitvec::prelude::*;
 
+    use crate::common::matrix::*;
     use crate::core::index::{Indexing, NumIndexType};
     use crate::core::marker::EdgeType;
 
-    fn size_of<Ty: EdgeType>(capacity: usize) -> usize {
-        if Ty::is_directed() {
-            capacity * capacity
-        } else {
-            capacity * (capacity + 1) / 2
-        }
-    }
-
-    fn resize<E, Ty: EdgeType>(prev: &mut FlaggedVec<E>) {
-        let prev_len = prev.len();
-        let len = size_of::<Ty>(2 * prev_len);
-
-        if Ty::is_directed() {
-            let mut next = FlaggedVec::with_capacity(len);
-
-            // Add the top-right corner.
-            for (i, value) in mem::take(prev).into_iter().enumerate() {
-                next.push(value);
-
-                // Are we on the right edge of the original square?
-                if (i + 1) % prev_len == 0 {
-                    // New elements into top-right corner.
-                    next.resize(i + prev_len);
-                }
-            }
-
-            // Add the bottom rectangle.
-            next.resize(len);
-            *prev = next;
-        } else {
-            // Just continue the lower triangle.
-            prev.resize(len);
-        }
-    }
-
-    pub fn index<Ty: EdgeType>(row: usize, col: usize, capacity: usize) -> usize {
-        if Ty::is_directed() {
-            row * capacity + col
-        } else {
-            // Make sure that the coordinates are in the lower triangle.
-            let (row, col) = if row >= col { (row, col) } else { (col, row) };
-            // The rows are 1 + 2 + 3 + ... + n = n (n + 1) / 2.
-            row * (row + 1) / 2 + col
-        }
-    }
-
-    pub fn coords<Ty: EdgeType>(index: usize, capacity: usize) -> (usize, usize) {
-        if Ty::is_directed() {
-            let col = index % capacity;
-            let row = index / capacity;
-            (row, col)
-        } else {
-            // index = row * (row + 1) / 2 + col => 2 * (index - col) = row^2 + row
-            //
-            // Quadratic equation for row. We don't know col so we use just
-            // index => discriminant is generally not an integer, we need to
-            // round down. The difference between index and start of the row is
-            // the column.
-            let d = (1. + 8. * index as f64).sqrt().floor() as usize;
-            let row = (d - 1) / 2;
-            let col = index - row * (row + 1) / 2;
-            (row, col)
-        }
-    }
-
     #[derive(Debug)]
-    pub struct FlaggedVec<T> {
+    struct FlaggedVec<T> {
         flags: BitVec,
         data: Vec<MaybeUninit<T>>,
     }
@@ -676,23 +611,6 @@ mod matrix {
             &self.flags
         }
 
-        pub fn into_iter(mut self) -> impl Iterator<Item = Option<T>> {
-            let flags = mem::take(&mut self.flags);
-            let data = mem::take(&mut self.data);
-
-            flags
-                .into_iter()
-                .zip(data.into_iter())
-                .map(|(flag, value)| {
-                    if flag {
-                        // SAFETY: See FlaggedVec::get.
-                        Some(unsafe { value.assume_init() })
-                    } else {
-                        None
-                    }
-                })
-        }
-
         fn fetch_set(&mut self, index: usize, value: bool) -> bool {
             let mut flag = self.flags.get_mut(index).unwrap();
             flag.replace(value)
@@ -716,6 +634,60 @@ mod matrix {
                 flags: Default::default(),
                 data: Default::default(),
             }
+        }
+    }
+
+    struct FlaggedIter<T> {
+        inner: std::iter::Zip<
+            <BitVec as IntoIterator>::IntoIter,
+            <Vec<MaybeUninit<T>> as IntoIterator>::IntoIter,
+        >,
+    }
+
+    impl<T> Iterator for FlaggedIter<T> {
+        type Item = Option<T>;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            self.inner.next().map(|(flag, value)| {
+                if flag {
+                    // SAFETY: See FlaggedVec::get.
+                    Some(unsafe { value.assume_init() })
+                } else {
+                    None
+                }
+            })
+        }
+    }
+
+    impl<T> IntoIterator for FlaggedVec<T> {
+        type Item = Option<T>;
+        type IntoIter = FlaggedIter<T>;
+
+        fn into_iter(mut self) -> Self::IntoIter {
+            let flags = mem::take(&mut self.flags);
+            let data = mem::take(&mut self.data);
+
+            FlaggedIter {
+                inner: flags.into_iter().zip(data.into_iter()),
+            }
+        }
+    }
+
+    impl<E> MatrixResize<E> for FlaggedVec<E> {
+        fn with_capacity(capacity: usize) -> Self {
+            Self::with_capacity(capacity)
+        }
+
+        fn resize_with_none(&mut self, new_len: usize) {
+            self.resize(new_len)
+        }
+
+        fn push(&mut self, value: Option<E>) {
+            self.push(value)
+        }
+
+        fn len(&self) -> usize {
+            self.len()
         }
     }
 
@@ -751,7 +723,7 @@ mod matrix {
 
         pub fn ensure_capacity(&mut self, capacity: usize) {
             if self.capacity < capacity {
-                resize::<E, Ty>(&mut self.data);
+                resize::<E, Ty, _>(&mut self.data);
             }
         }
 

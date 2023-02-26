@@ -15,7 +15,7 @@ use crate::derive::{EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak};
 // TODO: Remove these imports once hygiene of procedural macros is fixed.
 use crate::core::{EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak, WeakRef};
 
-use self::matrix::{BitMatrix, Matrix};
+use self::matrix::{DetachedMatrix, Matrix};
 use super::shared;
 pub use super::shared::{RangeIndices as VertexIndices, VerticesIter};
 
@@ -215,7 +215,7 @@ where
 
     fn edge_indices(&self) -> Self::EdgeIndicesIter<'_> {
         EdgeIndicesIter {
-            matrix: &self.matrix,
+            matrix: self.matrix.detach(),
             index: 0,
             edge_bound: self.edge_bound(),
             ty: PhantomData,
@@ -298,7 +298,7 @@ where
     }
 
     fn clear_edges(&mut self) {
-        self.matrix.clear_edges();
+        self.matrix.clear();
         self.n_edges = 0;
     }
 }
@@ -390,7 +390,7 @@ where
 impl<V, E, Ty: EdgeType, Ix: Indexing> Guarantee for AdjMatrix<V, E, Ty, Ix> {}
 
 pub struct EdgeIndicesIter<'a, Ty, Ix> {
-    matrix: &'a BitMatrix<Ty, Ix>,
+    matrix: DetachedMatrix<'a, Ty, Ix>,
     index: usize,
     edge_bound: usize,
     ty: PhantomData<fn() -> Ix>,
@@ -450,7 +450,7 @@ where
 }
 
 pub struct NeighborsIter<'a, Ty, Ix: Indexing> {
-    matrix: &'a BitMatrix<Ty, Ix>,
+    matrix: DetachedMatrix<'a, Ty, Ix>,
     src: Ix::VertexIndex,
     other: usize,
     vertex_count: usize,
@@ -499,31 +499,11 @@ where
 mod matrix {
     use std::marker::PhantomData;
     use std::mem::{self, MaybeUninit};
-    use std::ops::Deref;
 
     use bitvec::prelude::*;
 
     use crate::core::index::{Indexing, NumIndexType};
     use crate::core::marker::EdgeType;
-
-    #[derive(Debug)]
-    pub struct BitMatrix<Ty, Ix> {
-        bits: BitVec,
-        capacity: usize,
-        ty: PhantomData<(Ty, Ix)>,
-    }
-
-    // The matrix could be implemented safely as Vec<Option<E>>. However, that
-    // ties generic type E to any usage of the matrix, which causes lifetime
-    // troubles in some of the traits (namely Neighbors). Having the possibility
-    // to detach the information of the edges presence from the data solves this
-    // problem. Unfortunately, it brings unsafe code and a bit more logic
-    // complexity.
-    #[derive(Debug)]
-    pub struct Matrix<E, Ty, Ix> {
-        inner: BitMatrix<Ty, Ix>,
-        data: Vec<MaybeUninit<E>>,
-    }
 
     fn size_of<Ty: EdgeType>(capacity: usize) -> usize {
         if Ty::is_directed() {
@@ -533,52 +513,31 @@ mod matrix {
         }
     }
 
-    fn resize<E, Ty: EdgeType>(
-        bits: &mut BitVec,
-        data: &mut Vec<MaybeUninit<E>>,
-        old_capacity: usize,
-    ) -> usize {
-        let new_capacity = 2 * old_capacity;
-        let size = size_of::<Ty>(new_capacity);
+    fn resize<E, Ty: EdgeType>(prev: &mut FlaggedVec<E>) {
+        let prev_len = prev.len();
+        let len = size_of::<Ty>(2 * prev_len);
 
         if Ty::is_directed() {
-            let mut new_bits = BitVec::with_capacity(size);
-            let mut new_data = Vec::with_capacity(size);
+            let mut next = FlaggedVec::with_capacity(len);
 
             // Add the top-right corner.
-            for (i, bit) in bits.iter().enumerate() {
-                new_bits.push(*bit);
-
-                if *bit {
-                    // Take the edge from the original matrix.
-                    let edge = mem::replace(&mut data[i], MaybeUninit::uninit());
-                    new_data.push(edge);
-                } else {
-                    new_data.push(MaybeUninit::uninit());
-                }
+            for (i, value) in mem::take(prev).into_iter().enumerate() {
+                next.push(value);
 
                 // Are we on the right edge of the original square?
-                if (i + 1) % old_capacity == 0 {
+                if (i + 1) % prev_len == 0 {
                     // New elements into top-right corner.
-                    let extended_size = new_bits.len() + old_capacity;
-                    new_bits.resize(extended_size, false);
-                    new_data.resize_with(extended_size, || MaybeUninit::uninit());
+                    next.resize(i + prev_len);
                 }
             }
 
             // Add the bottom rectangle.
-            new_bits.resize(size, false);
-            new_data.resize_with(size, || MaybeUninit::uninit());
-
-            *bits = new_bits;
-            *data = new_data;
+            next.resize(len);
+            *prev = next;
         } else {
             // Just continue the lower triangle.
-            bits.resize(size, false);
-            data.resize_with(size, || MaybeUninit::uninit());
+            prev.resize(len);
         }
-
-        new_capacity
     }
 
     pub fn index<Ty: EdgeType>(row: usize, col: usize, capacity: usize) -> usize {
@@ -611,16 +570,209 @@ mod matrix {
         }
     }
 
-    impl<Ty: EdgeType, Ix: Indexing> BitMatrix<Ty, Ix>
+    #[derive(Debug)]
+    pub struct FlaggedVec<T> {
+        flags: BitVec,
+        data: Vec<MaybeUninit<T>>,
+    }
+
+    impl<T> FlaggedVec<T> {
+        pub fn with_capacity(capacity: usize) -> Self {
+            Self {
+                flags: BitVec::with_capacity(capacity),
+                data: Vec::with_capacity(capacity),
+            }
+        }
+
+        pub fn resize(&mut self, new_len: usize) {
+            self.flags.resize(new_len, false);
+            self.data.resize_with(new_len, || MaybeUninit::uninit());
+        }
+
+        pub fn len(&self) -> usize {
+            self.data.len()
+        }
+
+        pub fn contains(&self, index: usize) -> bool {
+            self.flags[index]
+        }
+
+        pub fn get(&self, index: usize) -> Option<&T> {
+            if self.flags[index] {
+                // SAFETY: self.flags and self.data are consistent with each
+                // other. If self.flags confirms that there is an item at given
+                // index, then the corresponding data are guaranteed to be
+                // initialized.
+                Some(unsafe { self.data[index].assume_init_ref() })
+            } else {
+                None
+            }
+        }
+
+        pub fn get_mut(&mut self, index: usize) -> Option<&mut T> {
+            if self.flags[index] {
+                // SAFETY: See FlaggedVec::get.
+                Some(unsafe { self.data[index].assume_init_mut() })
+            } else {
+                None
+            }
+        }
+
+        pub fn push(&mut self, value: Option<T>) {
+            match value {
+                Some(value) => {
+                    self.flags.push(true);
+                    self.data.push(MaybeUninit::new(value));
+                }
+                None => {
+                    self.flags.push(false);
+                    self.data.push(MaybeUninit::uninit());
+                }
+            }
+        }
+
+        pub fn insert(&mut self, index: usize, value: T) -> Option<T> {
+            let prev = if self.fetch_set(index, true) {
+                // There was already an item, we return it.
+
+                let slot = &mut self.data[index];
+                let prev = mem::replace(slot, MaybeUninit::uninit());
+                // SAFETY: See FlaggedVec::get.
+                Some(unsafe { prev.assume_init() })
+            } else {
+                None
+            };
+
+            // SAFETY: Initializing value of MaybeUninit.
+            unsafe { self.data[index].as_mut_ptr().write(value) };
+
+            prev
+        }
+
+        pub fn remove(&mut self, index: usize) -> Option<T> {
+            if self.fetch_set(index, false) {
+                let slot = &mut self.data[index];
+                let prev = mem::replace(slot, MaybeUninit::uninit());
+                // SAFETY: See FlaggedVec::get.
+                Some(unsafe { prev.assume_init() })
+            } else {
+                None
+            }
+        }
+
+        pub fn clear(&mut self) {
+            // Just clear all items, but do not shrink the vectors.
+
+            for i in self.flags.iter_ones() {
+                // SAFETY: See FlaggedVec::get.
+                unsafe { self.data[i].assume_init_drop() };
+            }
+
+            self.flags.clear();
+            self.flags.resize(self.data.len(), false);
+        }
+
+        pub fn detach(&self) -> &BitVec {
+            &self.flags
+        }
+
+        pub fn into_iter(mut self) -> impl Iterator<Item = Option<T>> {
+            let flags = mem::take(&mut self.flags);
+            let data = mem::take(&mut self.data);
+
+            flags
+                .into_iter()
+                .zip(data.into_iter())
+                .map(|(flag, value)| {
+                    if flag {
+                        // SAFETY: See FlaggedVec::get.
+                        Some(unsafe { value.assume_init() })
+                    } else {
+                        None
+                    }
+                })
+        }
+
+        fn fetch_set(&mut self, index: usize, value: bool) -> bool {
+            let mut flag = self.flags.get_mut(index).unwrap();
+            flag.replace(value)
+        }
+    }
+
+    impl<T> Drop for FlaggedVec<T> {
+        fn drop(&mut self) {
+            for (flag, value) in self.flags.iter().by_vals().zip(self.data.iter_mut()) {
+                if flag {
+                    // SAFETY: See FlaggedVec::get.
+                    unsafe { MaybeUninit::assume_init_drop(value) };
+                }
+            }
+        }
+    }
+
+    impl<T> Default for FlaggedVec<T> {
+        fn default() -> Self {
+            Self {
+                flags: Default::default(),
+                data: Default::default(),
+            }
+        }
+    }
+
+    // The matrix could be implemented safely as Vec<Option<E>>. However, that
+    // ties generic type E to any usage of the matrix, which causes lifetime
+    // troubles in some of the traits (namely Neighbors). Having the possibility
+    // to detach the information of the edges presence from the data solves this
+    // problem. Unfortunately, it brings unsafe code and a bit more logic
+    // complexity. We hide this unsafe code behind FlaggedVec abstraction.
+    #[derive(Debug)]
+    pub struct Matrix<E, Ty, Ix> {
+        data: FlaggedVec<E>,
+        capacity: usize,
+        ty: PhantomData<(Ty, Ix)>,
+    }
+
+    impl<E, Ty: EdgeType, Ix: Indexing> Matrix<E, Ty, Ix>
     where
         Ix::EdgeIndex: NumIndexType,
     {
-        fn with_capacity(capacity: usize) -> Self {
+        pub fn with_capacity(capacity: usize) -> Self {
+            let capacity = capacity.next_power_of_two();
+            let len = size_of::<Ty>(capacity);
+            let mut data = FlaggedVec::with_capacity(len);
+            data.resize(len);
+
             Self {
-                bits: bitvec![0; size_of::<Ty>(capacity)],
+                data,
                 capacity,
                 ty: PhantomData,
             }
+        }
+
+        pub fn ensure_capacity(&mut self, capacity: usize) {
+            if self.capacity < capacity {
+                resize::<E, Ty>(&mut self.data);
+            }
+        }
+
+        pub fn contains(&self, index: Ix::EdgeIndex) -> bool {
+            self.data.contains(index.to_usize())
+        }
+
+        pub fn get(&self, index: Ix::EdgeIndex) -> Option<&E> {
+            self.data.get(index.to_usize())
+        }
+
+        pub fn get_mut(&mut self, index: Ix::EdgeIndex) -> Option<&mut E> {
+            self.data.get_mut(index.to_usize())
+        }
+
+        pub fn insert(&mut self, index: Ix::EdgeIndex, edge: E) {
+            self.data.insert(index.to_usize(), edge);
+        }
+
+        pub fn remove(&mut self, index: Ix::EdgeIndex) -> Option<E> {
+            self.data.remove(index.to_usize())
         }
 
         pub fn index(&self, row: usize, col: usize) -> Ix::EdgeIndex {
@@ -631,120 +783,42 @@ mod matrix {
             coords::<Ty>(index.to_usize(), self.capacity)
         }
 
-        pub fn set(&mut self, index: Ix::EdgeIndex, value: bool) -> bool {
-            let mut bit = self.bits.get_mut(index.to_usize()).unwrap();
-            bit.replace(value)
-        }
-
-        pub fn contains(&self, index: Ix::EdgeIndex) -> bool {
-            self.bits[index.to_usize()]
+        pub fn detach(&self) -> DetachedMatrix<'_, Ty, Ix> {
+            DetachedMatrix {
+                data: self.data.detach(),
+                capacity: self.capacity,
+                ty: PhantomData,
+            }
         }
     }
 
-    impl<E, Ty: EdgeType, Ix: Indexing> Matrix<E, Ty, Ix>
+    impl<E, Ty: EdgeType, Ix: Indexing> Matrix<E, Ty, Ix> {
+        pub fn clear(&mut self) {
+            self.data.clear();
+        }
+    }
+
+    pub struct DetachedMatrix<'a, Ty, Ix> {
+        data: &'a BitVec,
+        capacity: usize,
+        ty: PhantomData<(Ty, Ix)>,
+    }
+
+    impl<Ty: EdgeType, Ix: Indexing> DetachedMatrix<'_, Ty, Ix>
     where
         Ix::EdgeIndex: NumIndexType,
     {
-        pub fn with_capacity(capacity: usize) -> Self {
-            let capacity = capacity.next_power_of_two();
-            let inner = BitMatrix::with_capacity(capacity);
-
-            let size = size_of::<Ty>(capacity);
-            let mut data = Vec::with_capacity(size);
-            data.resize_with(size, || MaybeUninit::uninit());
-
-            Self { inner, data }
+        pub fn contains(&self, index: Ix::EdgeIndex) -> bool {
+            self.data[index.to_usize()]
         }
 
-        pub fn ensure_capacity(&mut self, capacity: usize) {
-            if self.inner.capacity < capacity {
-                let capacity = self.capacity;
-                let capacity = resize::<E, Ty>(&mut self.inner.bits, &mut self.data, capacity);
-                self.inner.capacity = capacity;
-            }
+        pub fn index(&self, row: usize, col: usize) -> Ix::EdgeIndex {
+            Ix::EdgeIndex::from_usize(index::<Ty>(row, col, self.capacity))
         }
 
-        pub fn get(&self, index: Ix::EdgeIndex) -> Option<&E> {
-            if self.inner.contains(index) {
-                // SAFETY: self.inner and self.data are consistent with each
-                // other. If self.inner confirms that there is an edge at given
-                // index, then the corresponding data are guaranteed to be
-                // initialized.
-                Some(unsafe { self.data[index.to_usize()].assume_init_ref() })
-            } else {
-                None
-            }
-        }
-
-        pub fn get_mut(&mut self, index: Ix::EdgeIndex) -> Option<&mut E> {
-            if self.inner.contains(index) {
-                // SAFETY: See Matrix::get.
-                Some(unsafe { self.data[index.to_usize()].assume_init_mut() })
-            } else {
-                None
-            }
-        }
-
-        pub fn insert(&mut self, index: Ix::EdgeIndex, edge: E) {
-            if self.inner.set(index, true) {
-                // There was already an edge, that we must drop so it does not
-                // leak.
-
-                // SAFETY: See Matrix::get.
-                unsafe { self.data[index.to_usize()].assume_init_drop() };
-            }
-
-            // SAFETY: Initializing value of MaybeUninit.
-            unsafe { self.data[index.to_usize()].as_mut_ptr().write(edge) };
-        }
-
-        pub fn remove(&mut self, index: Ix::EdgeIndex) -> Option<E> {
-            if self.inner.contains(index) {
-                self.inner.set(index, false);
-                let slot = &mut self.data[index.to_usize()];
-                let old = mem::replace(slot, MaybeUninit::uninit());
-                // SAFETY: See Matrix::get.
-                Some(unsafe { old.assume_init() })
-            } else {
-                None
-            }
-        }
-
-        pub fn detach(&self) -> &BitMatrix<Ty, Ix> {
-            &self.inner
-        }
-    }
-
-    impl<E, Ty, Ix> Matrix<E, Ty, Ix> {
-        pub fn clear(&mut self) {
-            self.clear_edges();
-            self.inner.bits.clear();
-            self.data.clear();
-        }
-
-        pub fn clear_edges(&mut self) {
-            for (mut bit, edge) in self.inner.bits.iter_mut().zip(self.data.iter_mut()) {
-                if *bit {
-                    *bit = false;
-
-                    // SAFETY: See Matrix::get.
-                    unsafe { edge.assume_init_drop() };
-                }
-            }
-        }
-    }
-
-    impl<E, Ty, Ix> Drop for Matrix<E, Ty, Ix> {
-        fn drop(&mut self) {
-            self.clear_edges()
-        }
-    }
-
-    impl<E, Ty: EdgeType, Ix> Deref for Matrix<E, Ty, Ix> {
-        type Target = BitMatrix<Ty, Ix>;
-
-        fn deref(&self) -> &Self::Target {
-            &self.inner
+        #[allow(unused)]
+        pub fn coords(&self, index: Ix::EdgeIndex) -> (usize, usize) {
+            coords::<Ty>(index.to_usize(), self.capacity)
         }
     }
 }

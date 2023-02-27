@@ -6,6 +6,7 @@ use thiserror::Error;
 use crate::core::GraphBase;
 
 mod bellman_ford;
+mod bfs;
 mod builder;
 mod dijkstra;
 
@@ -77,6 +78,9 @@ mod algo {
 
     #[derive(Debug)]
     pub struct BellmanFord;
+
+    #[derive(Debug)]
+    pub struct Bfs;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
@@ -245,5 +249,36 @@ mod tests {
         let shortest_paths = ShortestPaths::on(&graph).with(Algo::BellmanFord).run(v(0));
 
         assert_matches!(shortest_paths, Err(Error::NegativeCycle));
+    }
+
+    #[test]
+    fn bfs_basic() {
+        let graph = create_basic_graph();
+        let shortest_paths = ShortestPaths::on(&graph)
+            .unit_weight()
+            .bfs()
+            .run(v(0))
+            .unwrap();
+
+        assert_eq!(shortest_paths.dist(v(4)), Some(&2));
+        assert_eq!(
+            shortest_paths.reconstruct(v(4)).collect::<Vec<_>>(),
+            vec![v(1), v(0)]
+        );
+
+        assert_eq!(shortest_paths.dist(v(2)), Some(&1));
+    }
+
+    #[test]
+    fn bfs_early_termination() {
+        let graph = create_basic_graph();
+        let shortest_paths = ShortestPaths::on(&graph)
+            .goal(v(4))
+            .unit_weight()
+            .bfs()
+            .run(v(0))
+            .unwrap();
+
+        assert!(shortest_paths.dist(v(5)).is_none());
     }
 }

@@ -138,7 +138,7 @@ fn main() {
     let path = ShortestPaths::on(&Chessboard)
         .goal(end)
         .unit_weight()
-        .dijkstra()
+        .bfs()
         .run(start)
         .unwrap();
 

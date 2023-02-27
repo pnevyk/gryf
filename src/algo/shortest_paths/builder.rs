@@ -3,11 +3,18 @@ use std::{cmp::max, marker::PhantomData};
 use crate::core::{
     index::NumIndexType,
     marker::EdgeType,
-    weights::{self, GetWeight},
+    weights::{self, GetWeight, IsConstWeight},
     Edges, EdgesWeak, GraphBase, Neighbors, VerticesBase, VerticesBaseWeak, Weight,
 };
 
-use super::{algo, bellman_ford::bellman_ford, dijkstra::dijkstra, Algo, Error, ShortestPaths};
+use super::{
+    algo, bellman_ford::bellman_ford, bfs::bfs, dijkstra::dijkstra, Algo, Error, ShortestPaths,
+};
+
+enum AlgoExt {
+    Algo(Algo),
+    Bfs,
+}
 
 pub struct ShortestPathsBuilder<'a, W, G, F, A>
 where
@@ -103,6 +110,20 @@ where
         }
     }
 
+    pub fn bfs(self) -> ShortestPathsBuilder<'a, W, G, F, algo::Bfs>
+    where
+        G: VerticesBaseWeak + Neighbors,
+        F: IsConstWeight,
+    {
+        ShortestPathsBuilder {
+            graph: self.graph,
+            goal: self.goal,
+            edge_weight: self.edge_weight,
+            algo: algo::Bfs,
+            ty: PhantomData,
+        }
+    }
+
     pub fn with<E, Ty: EdgeType>(
         self,
         algo: Algo,
@@ -158,8 +179,9 @@ where
         } = self;
 
         match algo {
-            Algo::Dijkstra => dijkstra(graph, start, goal, edge_weight),
-            Algo::BellmanFord => bellman_ford(graph, start, edge_weight),
+            AlgoExt::Algo(Algo::Dijkstra) => dijkstra(graph, start, goal, edge_weight),
+            AlgoExt::Algo(Algo::BellmanFord) => bellman_ford(graph, start, edge_weight),
+            AlgoExt::Bfs => bfs(graph, start, goal, edge_weight.get_const().unwrap()),
         }
     }
 }
@@ -204,6 +226,26 @@ where
     }
 }
 
+impl<'a, W, G, F> ShortestPathsBuilder<'a, W, G, F, algo::Bfs>
+where
+    G: GraphBase,
+{
+    pub fn run(self, start: G::VertexIndex) -> Result<ShortestPaths<W, G>, Error>
+    where
+        G: VerticesBaseWeak + Neighbors,
+        F: GetWeight<(), W>,
+        W: Weight,
+    {
+        let ShortestPathsBuilder {
+            graph,
+            goal,
+            edge_weight,
+            ..
+        } = self;
+        bfs(graph, start, goal, edge_weight.get_const().unwrap())
+    }
+}
+
 impl<'a, W, G, F> ShortestPathsBuilder<'a, W, G, F, algo::SpecificAlgo>
 where
     G: GraphBase,
@@ -215,7 +257,11 @@ where
         F: GetWeight<E, W>,
         W: Weight,
     {
-        let algo = self.algo.0.unwrap_or_else(|| self.choose_algo());
+        let algo = self
+            .algo
+            .0
+            .map(AlgoExt::Algo)
+            .unwrap_or_else(|| self.choose_algo());
         let ShortestPathsBuilder {
             graph,
             goal,
@@ -224,8 +270,9 @@ where
         } = self;
 
         match algo {
-            Algo::Dijkstra => dijkstra(graph, start, goal, edge_weight),
-            Algo::BellmanFord => bellman_ford(graph, start, edge_weight),
+            AlgoExt::Algo(Algo::Dijkstra) => dijkstra(graph, start, goal, edge_weight),
+            AlgoExt::Algo(Algo::BellmanFord) => bellman_ford(graph, start, edge_weight),
+            AlgoExt::Bfs => bfs(graph, start, goal, edge_weight.get_const().unwrap()),
         }
     }
 }
@@ -234,23 +281,32 @@ impl<'a, W, G, F, A> ShortestPathsBuilder<'a, W, G, F, A>
 where
     G: GraphBase,
 {
-    fn choose_algo<E, Ty: EdgeType>(&self) -> Algo
+    fn choose_algo<E, Ty: EdgeType>(&self) -> AlgoExt
     where
         G: VerticesBase + Edges<E, Ty> + VerticesBaseWeak + EdgesWeak<E, Ty> + Neighbors,
         G::VertexIndex: NumIndexType,
         F: GetWeight<E, W>,
         W: Weight,
     {
-        let ShortestPathsBuilder { graph, goal, .. } = self;
+        let ShortestPathsBuilder {
+            graph,
+            goal,
+            edge_weight,
+            ..
+        } = self;
 
-        if !W::is_unsigned() {
+        if W::is_unsigned() && edge_weight.get_const().is_some() {
+            // The weight is constant, we can use standard BFS algorithm without
+            // any overhead.
+            AlgoExt::Bfs
+        } else if !W::is_unsigned() {
             // There is a possibility that a negative weight is encountered,
             // so we conservatively use Bellman-Ford.
-            Algo::BellmanFord
+            AlgoExt::Algo(Algo::BellmanFord)
         } else if goal.is_some() {
             // If the goal is specified, Dijkstra's algorithm likely
             // finishes without the need of traversing the entire graph.
-            Algo::Dijkstra
+            AlgoExt::Algo(Algo::Dijkstra)
         } else {
             let v = graph.vertex_count();
             let e = graph.edge_count();
@@ -258,9 +314,9 @@ where
             // Compare the worst-case bounds. This will result in choosing
             // Dijkstra in vast majority of cases.
             if v * e < max(e, v * (v as f64).log2() as usize) {
-                Algo::BellmanFord
+                AlgoExt::Algo(Algo::BellmanFord)
             } else {
-                Algo::Dijkstra
+                AlgoExt::Algo(Algo::Dijkstra)
             }
         }
     }

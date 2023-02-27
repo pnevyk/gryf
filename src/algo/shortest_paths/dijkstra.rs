@@ -58,16 +58,22 @@ where
         }
 
         for neighbor in graph.neighbors_directed(&vertex, Direction::Outgoing) {
-            let edge = graph
-                .edge_weak(&neighbor.edge())
-                .ok_or(Error::EdgeNotAvailable)?;
-            let next = neighbor.index().into_owned();
+            let next = neighbor.index();
 
             if visited.is_visited(&next) {
                 continue;
             }
 
-            let edge_dist = edge_weight.get(&edge);
+            let next = next.into_owned();
+
+            let edge_dist = edge_weight
+                .get_const()
+                .or_else(|| {
+                    graph
+                        .edge_weak(&neighbor.edge())
+                        .map(|edge| edge_weight.get(&edge))
+                })
+                .ok_or(Error::EdgeNotAvailable)?;
 
             // The check for unsignedness should eliminate the negativity weight
             // check, because the implementation of `is_unsigned` method is

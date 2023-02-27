@@ -48,7 +48,7 @@ impl EdgesBaseWeak<Undirected> for Chessboard {
 
 impl EdgesWeak<(), Undirected> for Chessboard {
     fn edge_weak(&self, _index: &Self::EdgeIndex) -> Option<WeakRef<'_, ()>> {
-        Some(WeakRef::Owned(()))
+        None
     }
 }
 

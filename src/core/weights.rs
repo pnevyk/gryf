@@ -20,7 +20,13 @@ where
     W: Weight,
 {
     fn get(&self, edge: &E) -> W;
+
+    fn get_const(&self) -> Option<W> {
+        None
+    }
 }
+
+pub trait IsConstWeight {}
 
 impl<F, E, W> GetWeight<E, W> for F
 where
@@ -51,7 +57,13 @@ impl<E> GetWeight<E, u8> for Unit {
     fn get(&self, _edge: &E) -> u8 {
         1
     }
+
+    fn get_const(&self) -> Option<u8> {
+        Some(1)
+    }
 }
+
+impl IsConstWeight for Unit {}
 
 #[derive(Debug)]
 pub struct FromWeighted;

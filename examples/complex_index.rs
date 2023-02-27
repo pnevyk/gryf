@@ -144,8 +144,6 @@ fn main() {
 
     println!(
         "{} moves by king to get from {:?} to {:?}",
-        path.dist(end).unwrap(),
-        start,
-        end
+        path[end], start, end
     );
 }

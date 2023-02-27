@@ -25,18 +25,14 @@ jobs:
       - run: cargo fmt --all -- --check
 
   lint:
-    name: Clippy (${{ matrix.rust }})
+    name: Clippy
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        rust: [stable, nightly]
-    continue-on-error: ${{ matrix.rust == 'nightly' }}
     steps:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: ${{ matrix.rust }}
+          # Pin the compiler version to avoid future breakage from new lints
+          toolchain: 1.67.1
           components: clippy
       - uses: Swatinem/rust-cache@v2
       - run: cargo clippy --tests

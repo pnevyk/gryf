@@ -13,14 +13,12 @@ use gryf::{
 // https://stackoverflow.com/questions/58870416/can-you-explain-implicit-graphsin-graph-theory-with-a-simple-example/58887179#58887179
 struct Collatz;
 
-impl Collatz {
-    pub fn new() -> Self {
-        Self
-    }
+fn to_vertex(n: u64) -> VertexIndex {
+    VertexIndex::from_bits(n)
+}
 
-    pub fn vertex_index(&self, n: u64) -> VertexIndex {
-        VertexIndex::from_bits(n)
-    }
+fn to_num(v: VertexIndex) -> u64 {
+    v.to_bits()
 }
 
 struct Neighbor {
@@ -31,7 +29,7 @@ impl NeighborRef<VertexIndex, EdgeIndex> for Neighbor {
     fn index(&self) -> WeakRef<'_, VertexIndex> {
         let n = self.src.to_bits();
         let c = if n % 2 == 0 { n / 2 } else { 3 * n + 1 };
-        WeakRef::Owned(VertexIndex::from_bits(c))
+        WeakRef::Owned(to_vertex(c))
     }
 
     fn edge(&self) -> WeakRef<'_, EdgeIndex> {
@@ -86,12 +84,12 @@ impl VerticesWeak<u64> for Collatz {
 }
 
 fn main() {
-    let collatz = Collatz::new();
+    let collatz = Collatz;
 
     let sequence = Dfs::new(&collatz)
-        .start(collatz.vertex_index(9))
+        .start(to_vertex(9))
         .iter(&collatz)
-        .map(|v| *collatz.vertex_weak(&v).unwrap())
+        .map(to_num)
         .collect::<Vec<_>>();
     println!("A Collatz sequence: {sequence:?}");
 }

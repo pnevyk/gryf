@@ -125,6 +125,15 @@ pub trait EdgesMut<E, Ty: EdgeType>: Edges<E, Ty> {
         }
     }
 
+    fn remove_edge_between(
+        &mut self,
+        src: &Self::VertexIndex,
+        dst: &Self::VertexIndex,
+    ) -> Option<E> {
+        let index = self.edge_index(src, dst)?;
+        self.remove_edge(&index)
+    }
+
     fn try_replace_edge(
         &mut self,
         index: &Self::EdgeIndex,

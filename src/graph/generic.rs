@@ -333,6 +333,14 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         self.graph.remove_edge(index.borrow())
     }
 
+    pub fn remove_edge_between<VI>(&mut self, src: VI, dst: VI) -> Option<E>
+    where
+        G: EdgesMut<E, Ty>,
+        VI: Borrow<G::VertexIndex>,
+    {
+        self.graph.remove_edge_between(src.borrow(), dst.borrow())
+    }
+
     pub fn replace_edge<EI>(&mut self, index: EI, edge: E) -> E
     where
         G: EdgesMut<E, Ty>,

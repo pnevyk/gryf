@@ -49,7 +49,7 @@ mod tests {
 
         let valid_edge_indices = graph.edge_indices().all(|edge_index| {
             let (src, dst) = graph.endpoints(&edge_index).unwrap();
-            graph.edge_index(&src, &dst) == Some(edge_index)
+            graph.edge_index_any(&src, &dst) == Some(edge_index)
         });
         assert!(valid_edge_indices);
 
@@ -96,7 +96,7 @@ mod tests {
 
     pub fn test_multi<Ty: EdgeType, G>()
     where
-        G: Create<(), i32, Ty> + MultiEdges<i32, Ty>,
+        G: Create<(), i32, Ty> + MultiEdges<Ty>,
     {
         let mut graph = G::default();
 
@@ -109,14 +109,14 @@ mod tests {
         graph.add_edge(&v0, &v1, 2);
 
         let mut e01 = graph
-            .multi_edge_index(&v0, &v1)
+            .edge_index(&v0, &v1)
             .map(|e| graph.edge(&e))
             .collect::<Vec<_>>();
 
         e01.sort();
 
         let e02 = graph
-            .multi_edge_index(&v0, &v2)
+            .edge_index(&v0, &v2)
             .map(|e| graph.edge(&e))
             .collect::<Vec<_>>();
 

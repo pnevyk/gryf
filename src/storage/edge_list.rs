@@ -168,6 +168,9 @@ where
     type EdgeIndicesIter<'a> = EdgeIndices<Self::EdgeIndex>
     where
         Self: 'a;
+    type EdgeIndexIter<'a> = EdgeIndexIter<'a, Ty, Ix>
+    where
+        Self: 'a;
 
     fn edge_count(&self) -> usize {
         self.edges.len()
@@ -187,20 +190,13 @@ where
         &self,
         src: &Self::VertexIndex,
         dst: &Self::VertexIndex,
-    ) -> Option<Self::EdgeIndex> {
-        self.endpoints
-            .iter()
-            .enumerate()
-            .find_map(|(i, endpoints)| {
-                #[allow(clippy::if_same_then_else)]
-                if &endpoints[0] == src && &endpoints[1] == dst {
-                    Some(i.into())
-                } else if !Ty::is_directed() && &endpoints[1] == src && &endpoints[0] == dst {
-                    Some(i.into())
-                } else {
-                    None
-                }
-            })
+    ) -> Self::EdgeIndexIter<'_> {
+        EdgeIndexIter {
+            src: *src,
+            dst: *dst,
+            endpoints: self.endpoints.iter().enumerate(),
+            ty: PhantomData,
+        }
     }
 
     fn edge_indices(&self) -> Self::EdgeIndicesIter<'_> {
@@ -280,27 +276,11 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, Ix: Indexing> MultiEdges<E, Ty> for EdgeList<V, E, Ty, Ix>
+impl<V, E, Ty: EdgeType, Ix: Indexing> MultiEdges<Ty> for EdgeList<V, E, Ty, Ix>
 where
     Ix::VertexIndex: NumIndexType,
     Ix::EdgeIndex: NumIndexType,
 {
-    type MultiEdgeIndicesIter<'a> = MultiEdgeIndicesIter<'a, Ty, Ix>
-    where
-        Self: 'a;
-
-    fn multi_edge_index(
-        &self,
-        src: &Self::VertexIndex,
-        dst: &Self::VertexIndex,
-    ) -> Self::MultiEdgeIndicesIter<'_> {
-        MultiEdgeIndicesIter {
-            src: *src,
-            dst: *dst,
-            endpoints: self.endpoints.iter().enumerate(),
-            ty: PhantomData,
-        }
-    }
 }
 
 impl<V, E, Ty: EdgeType, Ix: Indexing> Neighbors for EdgeList<V, E, Ty, Ix>
@@ -381,14 +361,14 @@ where
 
 impl<V, E, Ty: EdgeType, Ix: Indexing> Guarantee for EdgeList<V, E, Ty, Ix> {}
 
-pub struct MultiEdgeIndicesIter<'a, Ty: EdgeType, Ix: Indexing> {
+pub struct EdgeIndexIter<'a, Ty: EdgeType, Ix: Indexing> {
     src: Ix::VertexIndex,
     dst: Ix::VertexIndex,
     endpoints: Enumerate<slice::Iter<'a, [Ix::VertexIndex; 2]>>,
     ty: PhantomData<Ty>,
 }
 
-impl<'a, Ty: EdgeType, Ix: Indexing> Iterator for MultiEdgeIndicesIter<'a, Ty, Ix>
+impl<'a, Ty: EdgeType, Ix: Indexing> Iterator for EdgeIndexIter<'a, Ty, Ix>
 where
     Ix::EdgeIndex: NumIndexType,
 {
@@ -396,7 +376,10 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         for (index, endpoints) in self.endpoints.by_ref() {
-            if endpoints[0] == self.src && endpoints[1] == self.dst {
+            let src_dst = endpoints[0] == self.src && endpoints[1] == self.dst;
+            let dst_src =
+                !Ty::is_directed() && endpoints[0] == self.dst && endpoints[1] == self.src;
+            if src_dst || dst_src {
                 return Some(Ix::EdgeIndex::from_usize(index));
             }
         }

@@ -251,12 +251,20 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         self.graph.endpoints(index.borrow())
     }
 
-    pub fn edge_index<VI>(&self, src: VI, dst: VI) -> Option<G::EdgeIndex>
+    pub fn edge_index<VI>(&self, src: VI, dst: VI) -> G::EdgeIndexIter<'_>
     where
         G: EdgesBase<Ty>,
         VI: Borrow<G::VertexIndex>,
     {
         self.graph.edge_index(src.borrow(), dst.borrow())
+    }
+
+    pub fn edge_index_any<VI>(&self, src: VI, dst: VI) -> Option<G::EdgeIndex>
+    where
+        G: EdgesBase<Ty>,
+        VI: Borrow<G::VertexIndex>,
+    {
+        self.graph.edge_index_any(src.borrow(), dst.borrow())
     }
 
     pub fn edge_indices(&self) -> G::EdgeIndicesIter<'_>
@@ -362,14 +370,6 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         G: EdgesMut<E, Ty>,
     {
         self.graph.clear_edges()
-    }
-
-    pub fn multi_edge_index<VI>(&self, src: VI, dst: VI) -> G::MultiEdgeIndicesIter<'_>
-    where
-        G: MultiEdges<E, Ty>,
-        VI: Borrow<G::VertexIndex>,
-    {
-        self.graph.multi_edge_index(src.borrow(), dst.borrow())
     }
 
     pub fn neighbors<VI>(&self, src: VI) -> G::NeighborsIter<'_>

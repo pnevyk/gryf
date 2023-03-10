@@ -253,6 +253,9 @@ pub fn edges_base(tokens: TokenStream) -> TokenStream {
             type EdgeIndicesIter<'a> = <#field_type as EdgesBase<Ty>>::EdgeIndicesIter<'a>
             where
                 Self: 'a;
+            type EdgeIndexIter<'a> = <#field_type as EdgesBase<Ty>>::EdgeIndexIter<'a>
+            where
+                Self: 'a;
 
             fn edge_count(&self) -> usize {
                 <#field_type as EdgesBase<Ty>>::edge_count(&self.#field_name)
@@ -266,7 +269,7 @@ pub fn edges_base(tokens: TokenStream) -> TokenStream {
                 <#field_type as EdgesBase<Ty>>::endpoints(&self.#field_name, index)
             }
 
-            fn edge_index(&self, src: &Self::VertexIndex, dst: &Self::VertexIndex) -> Option<Self::EdgeIndex> {
+            fn edge_index(&self, src: &Self::VertexIndex, dst: &Self::VertexIndex) -> Self::EdgeIndexIter<'_> {
                 <#field_type as EdgesBase<Ty>>::edge_index(&self.#field_name, src, dst)
             }
 
@@ -276,6 +279,10 @@ pub fn edges_base(tokens: TokenStream) -> TokenStream {
 
             fn contains_edge(&self, index: &Self::EdgeIndex) -> bool {
                 <#field_type as EdgesBase<Ty>>::contains_edge(&self.#field_name, index)
+            }
+
+            fn edge_index_any(&self, src: &Self::VertexIndex, dst: &Self::VertexIndex) -> Option<Self::EdgeIndex> {
+                <#field_type as EdgesBase<Ty>>::edge_index_any(&self.#field_name, src, dst)
             }
 
             fn edge_index_map(&self) -> CompactIndexMap<Self::EdgeIndex>
@@ -422,7 +429,7 @@ pub fn edges_base_weak(tokens: TokenStream) -> TokenStream {
             }
 
             fn edge_index_weak(&self, src: &Self::VertexIndex, dst: &Self::VertexIndex) -> Option<Self::EdgeIndex> {
-                <Self as EdgesBase<Ty>>::edge_index(self, src, dst)
+                <Self as EdgesBase<Ty>>::edge_index_any(self, src, dst)
             }
         }
     };
@@ -468,33 +475,20 @@ pub fn multi_edges(tokens: TokenStream) -> TokenStream {
     let name = &input.ident;
     let field = util::get_graph_field(&input);
 
-    let field_name = field.ident.as_ref().unwrap();
     let field_type = &field.ty;
 
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
-    let impl_generics = util::augment_impl_generics_if_necessary(impl_generics, vec!["E", "Ty"]);
+    let impl_generics = util::augment_impl_generics_if_necessary(impl_generics, vec!["Ty"]);
     let where_clause = util::augment_where_clause(
         where_clause,
         vec![
-            (field_type.clone(), quote! { MultiEdges<E, Ty> }),
+            (field_type.clone(), quote! { MultiEdges<Ty> }),
             (syn::parse_str::<Type>("Ty").unwrap(), quote! { EdgeType }),
         ],
     );
 
     let implemented = quote! {
-        impl #impl_generics MultiEdges<E, Ty> for #name #ty_generics #where_clause {
-            type MultiEdgeIndicesIter<'a> = <#field_type as MultiEdges<E, Ty>>::MultiEdgeIndicesIter<'a>
-            where
-                Self: 'a;
-
-            fn multi_edge_index(
-                &self,
-                src: &Self::VertexIndex,
-                dst: &Self::VertexIndex,
-            ) -> Self::MultiEdgeIndicesIter<'_> {
-                <#field_type as MultiEdges<E, Ty>>::multi_edge_index(&self.#field_name, src, dst)
-            }
-        }
+        impl #impl_generics MultiEdges<Ty> for #name #ty_generics #where_clause {}
     };
 
     TokenStream::from(implemented)

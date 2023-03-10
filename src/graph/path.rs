@@ -487,12 +487,20 @@ where
         self.graph.endpoints(index.borrow())
     }
 
-    pub fn edge_index<VI>(&self, src: VI, dst: VI) -> Option<G::EdgeIndex>
+    pub fn edge_index<VI>(&self, src: VI, dst: VI) -> G::EdgeIndexIter<'_>
     where
         G: EdgesBase<Ty>,
         VI: Borrow<G::VertexIndex>,
     {
         self.graph.edge_index(src.borrow(), dst.borrow())
+    }
+
+    pub fn edge_index_any<VI>(&self, src: VI, dst: VI) -> Option<G::EdgeIndex>
+    where
+        G: EdgesBase<Ty>,
+        VI: Borrow<G::VertexIndex>,
+    {
+        self.graph.edge_index_any(src.borrow(), dst.borrow())
     }
 
     pub fn edge_indices(&self) -> G::EdgeIndicesIter<'_>
@@ -992,7 +1000,7 @@ mod tests {
         let v = result.unwrap();
         assert_eq!(path.ends(), Some(&[v0, v]));
 
-        assert!(path.edge_index(&v0, &v).is_some());
+        assert!(path.edge_index_any(&v0, &v).is_some());
     }
 
     #[test]
@@ -1014,6 +1022,6 @@ mod tests {
         let v = result.unwrap();
         assert_eq!(path.ends(), Some(&[v0, v]));
 
-        assert!(path.edge_index(&v1, &v).is_some());
+        assert!(path.edge_index_any(&v1, &v).is_some());
     }
 }

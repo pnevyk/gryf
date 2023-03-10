@@ -79,6 +79,9 @@ where
     type EdgeIndicesIter<'a> = G::EdgeIndicesIter<'a>
     where
         Self: 'a;
+    type EdgeIndexIter<'a> = G::EdgeIndexIter<'a>
+    where
+        Self: 'a;
 
     fn edge_count(&self) -> usize {
         self.graph.edge_count()
@@ -96,8 +99,16 @@ where
         &self,
         src: &Self::VertexIndex,
         dst: &Self::VertexIndex,
-    ) -> Option<Self::EdgeIndex> {
+    ) -> Self::EdgeIndexIter<'_> {
         self.graph.edge_index(dst, src)
+    }
+
+    fn edge_index_any(
+        &self,
+        src: &Self::VertexIndex,
+        dst: &Self::VertexIndex,
+    ) -> Option<Self::EdgeIndex> {
+        self.graph.edge_index_any(dst, src)
     }
 
     fn edge_indices(&self) -> Self::EdgeIndicesIter<'_> {
@@ -266,8 +277,8 @@ mod tests {
     fn edge_index() {
         let graph = Transpose::new(create_graph());
 
-        assert_eq!(graph.edge_index(&2.into(), &1.into()), Some(1.into()));
-        assert_eq!(graph.edge_index(&1.into(), &2.into()), Some(3.into()));
+        assert_eq!(graph.edge_index_any(&2.into(), &1.into()), Some(1.into()));
+        assert_eq!(graph.edge_index_any(&1.into(), &2.into()), Some(3.into()));
     }
 
     #[test]

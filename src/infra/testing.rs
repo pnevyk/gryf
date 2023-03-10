@@ -262,7 +262,7 @@ mod random {
                             return;
                         }
 
-                        if !self.options.multi_edges && self.graph.edge_index(&src, &dst).is_some()
+                        if !self.options.multi_edges && self.graph.edge_index_any(&src, &dst).is_some()
                         {
                             return;
                         }
@@ -279,7 +279,7 @@ mod random {
                         let map = self.graph.vertex_index_map();
                         let src = map.real(src % self.graph.vertex_count()).unwrap();
                         let dst = map.real(dst % self.graph.vertex_count()).unwrap();
-                        if let Some(index) = self.graph.edge_index(&src, &dst) {
+                        if let Some(index) = self.graph.edge_index_any(&src, &dst) {
                             self.graph.remove_edge(&index);
                         }
                     }

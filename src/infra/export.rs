@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     fmt::Display,
-    io::{self, Write},
+    io::{self, Cursor, Write},
     marker::PhantomData,
 };
 
@@ -30,6 +30,17 @@ impl<V, E, Ty: EdgeType> Dot<V, E, Ty> {
             get_edge_label: Box::new(get_edge_label),
             ty: PhantomData,
         }
+    }
+
+    pub fn to_string<G>(&self, graph: &G) -> String
+    where
+        G: Vertices<V> + Edges<E, Ty>,
+    {
+        let mut cursor = Cursor::new(Vec::new());
+        self.export(graph, &mut cursor)
+            .expect("writing to vec in cursor does not fail");
+
+        String::from_utf8(cursor.into_inner()).expect("dot format is text format")
     }
 }
 

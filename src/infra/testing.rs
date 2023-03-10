@@ -1,8 +1,27 @@
+use std::{fmt, marker::PhantomData};
+
+use thiserror::Error;
+
 use crate::core::{
     facts,
     marker::{Direction, EdgeType},
-    Create,
+    Create, Edges, Neighbors, Vertices,
 };
+
+use crate::derive::{
+    Edges, EdgesBase, EdgesBaseWeak, EdgesMut, EdgesWeak, GraphBase, MultiEdges, Neighbors,
+    Vertices, VerticesBase, VerticesBaseWeak, VerticesMut, VerticesWeak,
+};
+
+// TODO: Remove these imports once hygiene of procedural macros is fixed.
+use crate::common::CompactIndexMap;
+use crate::core::{
+    index::NumIndexType, AddEdgeError, AddVertexError, EdgesBase, EdgesBaseWeak, EdgesMut,
+    EdgesWeak, GraphBase, MultiEdges, VerticesBase, VerticesBaseWeak, VerticesMut, VerticesWeak,
+    WeakRef,
+};
+
+use super::export::Dot;
 
 pub fn create_complete<V, E, Ty: EdgeType, G>(vertex_count: usize) -> G
 where
@@ -96,346 +115,277 @@ where
     graph
 }
 
-#[cfg(any(feature = "proptest", feature = "arbitrary"))]
-pub use random::*;
+fn degree_dir(dir: Direction) -> &'static str {
+    match dir {
+        Direction::Outgoing => "out",
+        Direction::Incoming => "in",
+    }
+}
 
-#[cfg(any(feature = "proptest", feature = "arbitrary"))]
-mod random {
-    use std::{fmt, io::Cursor, marker::PhantomData};
+#[derive(Debug, Clone, PartialEq, Error)]
+pub enum ConsistencyCheckError {
+    #[error("vertex indices iterator count ({0}) is not equal to vertex count ({1})")]
+    VertexIndicesVertexCountMismatch(usize, usize),
+    #[error("vertices iterator count ({0}) is not equal to vertex count ({1})")]
+    VerticesVertexCountMismatch(usize, usize),
+    #[error("vertex bound ({0}) is less than vertex count ({1})")]
+    VertexBoundInvalid(usize, usize),
+    #[error("edge indices iterator count ({0}) is not equal to edge count ({1})")]
+    EdgeIndicesEdgeCountMismatch(usize, usize),
+    #[error("edges iterator count ({0}) is not equal to edge count ({1})")]
+    EdgesEdgeCountMismatch(usize, usize),
+    #[error("edge bound ({0}) is less than edge count ({1})")]
+    EdgeBoundInvalid(usize, usize),
+    #[error("edge index {0} (zero-based) is invalid, either edge does not exist or is different")]
+    EdgeIndicesInvalid(usize),
+    #[error("sum of directed degrees ({0}) is not equal to sum of undirected degrees ({1})")]
+    DirectedUndirectedDegreeMismatch(usize, usize),
+    #[error("sum of degrees ({0}) is not equal to doubled edge count ({1})")]
+    HandshakingLemma(usize, usize),
+    #[error("sum of {} degrees ({0}) is not equal to edge count ({1})", degree_dir(*.2))]
+    HandshakingLemmaDirected(usize, usize, Direction),
+}
 
-    use crate::{
-        core::{
-            index::NumIndexType, marker::EdgeType, AddEdgeError, AddVertexError, Create, Edges,
-            EdgesMut, Vertices, VerticesMut,
-        },
-        infra::export::{Dot, Export},
-    };
-
-    use crate::derive::{
-        Edges, EdgesBase, EdgesBaseWeak, EdgesWeak, GraphBase, Guarantee, Neighbors, Vertices,
-        VerticesBase, VerticesBaseWeak, VerticesWeak,
-    };
-
-    // TODO: Remove these imports once hygiene of procedural macros is fixed.
-    use crate::common::CompactIndexMap;
-    use crate::core::{
-        marker::Direction, EdgesBase, EdgesBaseWeak, EdgesWeak, GraphBase, Guarantee, Neighbors,
-        VerticesBase, VerticesBaseWeak, VerticesWeak, WeakRef,
-    };
-
-    #[cfg(feature = "proptest")]
-    use proptest_derive::Arbitrary;
-
-    #[derive(Clone, Copy, PartialEq, Eq)]
-    #[cfg_attr(feature = "proptest", derive(Arbitrary))]
-    pub enum MutOp<V, E, Ty: EdgeType> {
-        #[cfg_attr(feature = "proptest", proptest(weight = 4))]
-        AddVertex(V),
-        #[cfg_attr(feature = "proptest", proptest(weight = 1))]
-        RemoveVertex(usize),
-        #[cfg_attr(feature = "proptest", proptest(weight = 10))]
-        AddEdge(usize, usize, E, PhantomData<Ty>),
-        #[cfg_attr(feature = "proptest", proptest(weight = 1))]
-        RemoveEdge(usize, usize),
+pub fn check_consistency<V, E, Ty: EdgeType, G>(graph: &G) -> Result<(), ConsistencyCheckError>
+where
+    G: Vertices<V> + Edges<E, Ty> + Neighbors,
+{
+    enum Ordering {
+        Equal,
+        GreaterOrEqual,
     }
 
-    impl<V, E, Ty: EdgeType> fmt::Debug for MutOp<V, E, Ty>
-    where
-        V: fmt::Debug,
-        E: fmt::Debug,
-    {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    impl Ordering {
+        fn cmp<T, U>(self, lhs: &T, rhs: &U) -> bool
+        where
+            T: PartialOrd<U>,
+        {
             match self {
-                Self::AddVertex(vertex) => write!(f, "add vertex {vertex:?}"),
-                Self::RemoveVertex(index) => write!(f, "remove vertex v{index}"),
-                Self::AddEdge(src, dst, edge, _) => {
-                    if Ty::is_directed() {
-                        write!(f, "add edge v{src} -> v{dst} {edge:?}")
-                    } else {
-                        write!(f, "add edge v{src} -- v{dst} {edge:?}")
-                    }
-                }
-                Self::RemoveEdge(src, dst) => {
-                    if Ty::is_directed() {
-                        write!(f, "remove edge v{src} -> v{dst}")
-                    } else {
-                        write!(f, "remove edge v{src} -- v{dst}")
-                    }
-                }
+                Equal => lhs == rhs,
+                GreaterOrEqual => lhs >= rhs,
             }
         }
     }
 
-    pub trait ApplyMutOps<V, E, Ty: EdgeType> {
-        fn apply_one(&mut self, op: MutOp<V, E, Ty>);
-        fn apply_many(&mut self, ops: impl Iterator<Item = MutOp<V, E, Ty>>) {
-            for op in ops {
-                self.apply_one(op);
-            }
-        }
-    }
-
-    #[derive(Debug, Clone, Copy)]
-    pub struct ApplyOptions {
-        pub loops: bool,
-        pub multi_edges: bool,
-        pub remove_vertices: bool,
-        pub remove_edges: bool,
-    }
-
-    impl Default for ApplyOptions {
-        fn default() -> Self {
-            Self {
-                loops: true,
-                multi_edges: true,
-                remove_vertices: true,
-                remove_edges: true,
-            }
-        }
-    }
-
-    impl ApplyOptions {
-        pub fn loops(mut self, allow: bool) -> Self {
-            self.loops = allow;
-            self
-        }
-
-        pub fn multi_edges(mut self, allow: bool) -> Self {
-            self.multi_edges = allow;
-            self
-        }
-
-        pub fn remove_vertices(mut self, allow: bool) -> Self {
-            self.remove_vertices = allow;
-            self
-        }
-
-        pub fn remove_edges(mut self, allow: bool) -> Self {
-            self.remove_edges = allow;
-            self
-        }
-    }
-
-    pub struct Applier<'g, G> {
-        graph: &'g mut G,
-        options: ApplyOptions,
-    }
-
-    impl<'g, G> Applier<'g, G> {
-        pub fn new(graph: &'g mut G) -> Self {
-            Self::with_options(graph, ApplyOptions::default())
-        }
-
-        pub fn with_options(graph: &'g mut G, options: ApplyOptions) -> Self {
-            Self { graph, options }
-        }
-    }
-
-    impl<V, E, Ty: EdgeType, G> ApplyMutOps<V, E, Ty> for Applier<'_, G>
+    fn cmp<F, E>(actual: usize, expected: usize, ord: Ordering, error: F) -> Result<(), E>
     where
-        G: VerticesMut<V> + EdgesMut<E, Ty>,
-        G::VertexIndex: NumIndexType,
+        F: FnOnce(usize, usize) -> E,
     {
-        fn apply_one(&mut self, op: MutOp<V, E, Ty>) {
-            match op {
-                MutOp::AddVertex(vertex) => {
-                    self.graph.add_vertex(vertex);
-                }
-                MutOp::RemoveVertex(index) => {
-                    if !self.options.remove_vertices {
-                        return;
-                    }
+        if ord.cmp(&actual, &expected) {
+            Ok(())
+        } else {
+            Err(error(actual, expected))
+        }
+    }
 
-                    if self.graph.vertex_count() > 0 {
-                        let map = self.graph.vertex_index_map();
-                        let index = map.real(index % self.graph.vertex_count()).unwrap();
-                        self.graph.remove_vertex(&index);
-                    }
-                }
-                MutOp::AddEdge(src, dst, edge, _) => {
-                    if self.graph.vertex_count() > 0 {
-                        let map = self.graph.vertex_index_map();
-                        let src = map.real(src % self.graph.vertex_count()).unwrap();
-                        let dst = map.real(dst % self.graph.vertex_count()).unwrap();
+    use Ordering::*;
 
-                        if !self.options.loops && src == dst {
-                            return;
-                        }
+    let vertex_count = graph.vertex_count();
 
-                        if !self.options.multi_edges && self.graph.edge_index_any(&src, &dst).is_some()
-                        {
-                            return;
-                        }
+    cmp(
+        graph.vertex_indices().count(),
+        vertex_count,
+        Equal,
+        ConsistencyCheckError::VertexIndicesVertexCountMismatch,
+    )?;
+    cmp(
+        graph.vertices().count(),
+        vertex_count,
+        Equal,
+        ConsistencyCheckError::VerticesVertexCountMismatch,
+    )?;
+    cmp(
+        graph.vertex_bound(),
+        vertex_count,
+        GreaterOrEqual,
+        ConsistencyCheckError::VertexBoundInvalid,
+    )?;
 
-                        self.graph.add_edge(&src, &dst, edge);
-                    }
-                }
-                MutOp::RemoveEdge(src, dst) => {
-                    if !self.options.remove_edges {
-                        return;
-                    }
+    let edge_count = graph.edge_count();
 
-                    if self.graph.vertex_count() > 0 {
-                        let map = self.graph.vertex_index_map();
-                        let src = map.real(src % self.graph.vertex_count()).unwrap();
-                        let dst = map.real(dst % self.graph.vertex_count()).unwrap();
-                        if let Some(index) = self.graph.edge_index_any(&src, &dst) {
-                            self.graph.remove_edge(&index);
-                        }
-                    }
-                }
+    cmp(
+        graph.edge_indices().count(),
+        edge_count,
+        Equal,
+        ConsistencyCheckError::VertexIndicesVertexCountMismatch,
+    )?;
+    cmp(
+        graph.edges().count(),
+        edge_count,
+        Equal,
+        ConsistencyCheckError::VerticesVertexCountMismatch,
+    )?;
+    cmp(
+        graph.edge_bound(),
+        edge_count,
+        GreaterOrEqual,
+        ConsistencyCheckError::VertexBoundInvalid,
+    )?;
+
+    let invalid_edge_index = graph.edge_indices().enumerate().find_map(|(i, index)| {
+        graph
+            .endpoints(&index)
+            // Ideally we would check `== Some(index)` but for that we would
+            // need to use multi edge iterator, which is not implemented for all
+            // storages.
+            .filter(|(src, dst)| graph.edge_index(src, dst).any(|e| e == index))
+            .is_none()
+            .then_some(i)
+    });
+
+    if let Some(index) = invalid_edge_index {
+        return Err(ConsistencyCheckError::EdgeIndicesInvalid(index));
+    }
+
+    let deg_sum = graph
+        .vertex_indices()
+        .map(|index| graph.degree(&index))
+        .sum::<usize>();
+
+    let out_deg_sum = graph
+        .vertex_indices()
+        .map(|index| graph.degree_directed(&index, Direction::Outgoing))
+        .sum::<usize>();
+
+    let in_deg_sum = graph
+        .vertex_indices()
+        .map(|index| graph.degree_directed(&index, Direction::Incoming))
+        .sum::<usize>();
+
+    if Ty::is_directed() {
+        cmp(
+            out_deg_sum + in_deg_sum,
+            deg_sum,
+            Equal,
+            ConsistencyCheckError::DirectedUndirectedDegreeMismatch,
+        )?;
+
+        fn handshaking_lemma_directed(
+            dir: Direction,
+        ) -> impl FnOnce(usize, usize) -> ConsistencyCheckError {
+            move |actual, expected| {
+                ConsistencyCheckError::HandshakingLemmaDirected(actual, expected, dir)
             }
         }
+
+        // https://en.wikipedia.org/wiki/Handshaking_lemma
+        cmp(
+            in_deg_sum,
+            edge_count,
+            Equal,
+            handshaking_lemma_directed(Direction::Incoming),
+        )?;
+
+        cmp(
+            out_deg_sum,
+            edge_count,
+            Equal,
+            handshaking_lemma_directed(Direction::Outgoing),
+        )?;
+    } else {
+        cmp(
+            out_deg_sum + in_deg_sum,
+            2 * deg_sum,
+            Equal,
+            ConsistencyCheckError::DirectedUndirectedDegreeMismatch,
+        )?;
+
+        cmp(
+            deg_sum,
+            2 * edge_count,
+            Equal,
+            ConsistencyCheckError::HandshakingLemma,
+        )?;
     }
 
-    #[derive(
-        GraphBase,
-        VerticesBase,
-        Vertices,
-        EdgesBase,
-        Edges,
-        Neighbors,
-        VerticesBaseWeak,
-        VerticesWeak,
-        EdgesBaseWeak,
-        EdgesWeak,
-        Guarantee,
-    )]
-    pub struct DebugGraph<V, E, Ty: EdgeType, G> {
-        #[graph]
-        graph: G,
-        dot: Dot<V, E, Ty>,
-        history: Vec<MutOp<V, E, Ty>>,
+    Ok(())
+}
+
+// A fast check for graphs similarity. This is not a full isomorphism check!
+pub fn check_potential_isomorphism<V, E, Ty: EdgeType, G1, G2>(lhs: &G1, rhs: &G2) -> bool
+where
+    G1: Vertices<V> + Edges<E, Ty> + Neighbors,
+    G2: Vertices<V> + Edges<E, Ty> + Neighbors,
+{
+    if lhs.vertex_count() != rhs.vertex_count() {
+        return false;
     }
 
-    impl<V, E, Ty: EdgeType, G> DebugGraph<V, E, Ty, G>
-    where
-        V: fmt::Debug,
-        E: fmt::Debug,
-    {
-        pub fn new(graph: G) -> Self {
-            Self {
-                graph,
-                dot: Dot::new(None, |v| format!("{v:?}"), |e| format!("{e:?}")),
-                history: Vec::new(),
-            }
-        }
+    if lhs.edge_count() != rhs.edge_count() {
+        return false;
     }
 
-    impl<V, E, Ty: EdgeType, G> Default for DebugGraph<V, E, Ty, G>
-    where
-        V: fmt::Debug,
-        E: fmt::Debug,
-        G: Default,
-    {
-        fn default() -> Self {
-            Self::new(G::default())
+    let mut deg_seq_lhs = lhs
+        .vertex_indices()
+        .map(|index| lhs.degree_directed(&index, Direction::Outgoing))
+        .collect::<Vec<_>>();
+
+    let mut deg_seq_rhs = rhs
+        .vertex_indices()
+        .map(|index| rhs.degree_directed(&index, Direction::Outgoing))
+        .collect::<Vec<_>>();
+
+    deg_seq_lhs.sort_unstable();
+    deg_seq_rhs.sort_unstable();
+
+    deg_seq_lhs == deg_seq_rhs
+}
+
+#[derive(
+    GraphBase,
+    VerticesBase,
+    Vertices,
+    VerticesMut,
+    EdgesBase,
+    Edges,
+    EdgesMut,
+    MultiEdges,
+    Neighbors,
+    VerticesBaseWeak,
+    VerticesWeak,
+    EdgesBaseWeak,
+    EdgesWeak,
+)]
+pub struct AsDot<V, E, Ty, G> {
+    #[graph]
+    graph: G,
+    ty: PhantomData<(V, E, Ty)>,
+}
+
+impl<V, E, Ty, G> AsDot<V, E, Ty, G> {
+    pub fn new(graph: G) -> Self {
+        Self {
+            graph,
+            ty: PhantomData,
         }
     }
+}
 
-    impl<V, E, Ty: EdgeType, G> Create<V, E, Ty> for DebugGraph<V, E, Ty, G>
-    where
-        V: Clone + fmt::Debug,
-        E: Clone + fmt::Debug,
-        G: Create<V, E, Ty>,
-        G::VertexIndex: NumIndexType,
-    {
-        fn with_capacity(vertex_count: usize, edge_count: usize) -> Self {
-            Self::new(G::with_capacity(vertex_count, edge_count))
-        }
+impl<V, E, Ty: EdgeType, G> fmt::Debug for AsDot<V, E, Ty, G>
+where
+    G: Vertices<V> + Edges<E, Ty>,
+    V: fmt::Debug,
+    E: fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let dot = Dot::new(None, |v| format!("{v:?}"), |e| format!("{e:?}")).to_string(&self.graph);
+        f.write_str(&dot)
     }
+}
 
-    impl<V, E, Ty: EdgeType, G> VerticesMut<V> for DebugGraph<V, E, Ty, G>
-    where
-        V: Clone,
-        G: VerticesMut<V>,
-        G::VertexIndex: NumIndexType,
-    {
-        fn vertex_mut(&mut self, index: &Self::VertexIndex) -> Option<&mut V> {
-            self.graph.vertex_mut(index)
-        }
-
-        fn try_add_vertex(&mut self, vertex: V) -> Result<Self::VertexIndex, AddVertexError<V>> {
-            self.history.push(MutOp::AddVertex(vertex.clone()));
-            let result = self.graph.try_add_vertex(vertex);
-
-            if result.is_err() {
-                self.history.pop();
-            }
-
-            result
-        }
-
-        fn remove_vertex(&mut self, index: &Self::VertexIndex) -> Option<V> {
-            self.history.push(MutOp::RemoveVertex(index.to_usize()));
-            self.graph.remove_vertex(index)
-        }
+impl<V, E, Ty: EdgeType, G> PartialEq for AsDot<V, E, Ty, G>
+where
+    G: Vertices<V> + Edges<E, Ty>,
+    V: fmt::Debug,
+    E: fmt::Debug,
+{
+    fn eq(&self, other: &Self) -> bool {
+        format!("{:?}", self) == format!("{:?}", other)
     }
+}
 
-    impl<V, E, Ty: EdgeType, G> EdgesMut<E, Ty> for DebugGraph<V, E, Ty, G>
-    where
-        E: Clone,
-        G: EdgesMut<E, Ty>,
-        G::VertexIndex: NumIndexType,
-    {
-        fn edge_mut(&mut self, index: &Self::EdgeIndex) -> Option<&mut E> {
-            self.graph.edge_mut(index)
-        }
-
-        fn try_add_edge(
-            &mut self,
-            src: &Self::VertexIndex,
-            dst: &Self::VertexIndex,
-            edge: E,
-        ) -> Result<Self::EdgeIndex, AddEdgeError<E>> {
-            self.history.push(MutOp::AddEdge(
-                src.to_usize(),
-                dst.to_usize(),
-                edge.clone(),
-                PhantomData,
-            ));
-            let result = self.graph.try_add_edge(src, dst, edge);
-
-            if result.is_err() {
-                self.history.pop();
-            }
-
-            result
-        }
-
-        fn remove_edge(&mut self, index: &Self::EdgeIndex) -> Option<E> {
-            if let Some((src, dst)) = self.endpoints(index) {
-                self.history
-                    .push(MutOp::RemoveEdge(src.to_usize(), dst.to_usize()));
-            }
-            self.graph.remove_edge(index)
-        }
-    }
-
-    impl<V, E, Ty: EdgeType, G> fmt::Debug for DebugGraph<V, E, Ty, G>
-    where
-        V: fmt::Debug,
-        E: fmt::Debug,
-        G: fmt::Debug + Vertices<V> + Edges<E, Ty>,
-    {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            let mut exported = Cursor::new(Vec::new());
-            self.dot.export(&self.graph, &mut exported).unwrap();
-            let exported = String::from_utf8(exported.into_inner()).unwrap();
-
-            struct Exported(String);
-
-            impl fmt::Debug for Exported {
-                fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                    write!(f, "\n\n{}\n", self.0)
-                }
-            }
-
-            f.debug_struct("DebugGraph")
-                .field("graph", &self.graph)
-                .field("history", &self.history)
-                .field("dot", &Exported(exported))
-                .finish()
-        }
+impl<V, E, Ty, G> From<G> for AsDot<V, E, Ty, G> {
+    fn from(graph: G) -> Self {
+        Self::new(graph)
     }
 }

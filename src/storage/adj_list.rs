@@ -561,6 +561,10 @@ mod tests {
             index::DefaultIndexing,
             marker::{Directed, Undirected},
         },
+        infra::{
+            arbitrary::{ArbitraryIndexing, Index},
+            testing::check_consistency,
+        },
         storage::tests::*,
     };
 
@@ -592,5 +596,28 @@ mod tests {
     #[test]
     fn connect_vertices_directed() {
         test_connect_vertices::<Directed, AdjList<_, _, _, DefaultIndexing>>();
+    }
+
+    #[test]
+    #[ignore = "not fixed yet"]
+    fn fuzz_trophy1() {
+        let mut graph = AdjList::<_, _, Undirected, ArbitraryIndexing>::new();
+
+        graph.add_vertex(0);
+        graph.add_edge(&Index(0), &Index(0), -68);
+        graph.clear_edges();
+        graph.remove_edge_between(&Index(0), &Index(0));
+    }
+
+    #[test]
+    #[ignore = "not fixed yet"]
+    fn fuzz_trophy2() {
+        let mut graph = AdjList::<_, _, Directed, ArbitraryIndexing>::new();
+
+        graph.add_vertex(5);
+        graph.add_edge(&Index(0), &Index(0), -1);
+        graph.clear_edges();
+
+        check_consistency(&graph).unwrap();
     }
 }

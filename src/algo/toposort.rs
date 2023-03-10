@@ -86,10 +86,15 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
+    use proptest::prelude::*;
+
     use super::*;
 
     use crate::{
         core::{index::DefaultIndexing, EdgesBaseWeak, EdgesMut, VerticesBaseWeak, VerticesMut},
+        infra::proptest::graph_directed,
         storage::AdjList,
         visit::{DfsEvent, DfsEvents, Visitor},
     };
@@ -116,19 +121,20 @@ mod tests {
 
         match (sorted, cycle) {
             (Ok(sorted), None) => {
+                let map = sorted
+                    .iter()
+                    .copied()
+                    .enumerate()
+                    .map(|(k, v)| (v, k))
+                    .collect::<HashMap<_, _>>();
+
                 for (src, dst) in graph.edge_indices().map(|e| graph.endpoints(&e).unwrap()) {
-                    let i = sorted
-                        .iter()
-                        .copied()
-                        .enumerate()
-                        .find_map(|(k, v)| (v == src).then_some(Some(k)))
+                    let i = map
+                        .get(&src)
                         .unwrap_or_else(|| panic!("algorithm omitted vertex {src:?}"));
 
-                    let j = sorted
-                        .iter()
-                        .copied()
-                        .enumerate()
-                        .find_map(|(k, v)| (v == dst).then_some(Some(k)))
+                    let j = map
+                        .get(&dst)
                         .unwrap_or_else(|| panic!("algorithm omitted vertex {dst:?}"));
 
                     assert!(i < j, "invalid topological order for {src:?} -> {dst:?}");
@@ -258,5 +264,35 @@ mod tests {
         let toposort = TopoSort::on(&graph).with(Algo::Kahn).run();
 
         assert_valid(toposort, &graph);
+    }
+
+    proptest! {
+        #[test]
+        #[cfg_attr(not(proptest), ignore = "compile with --cfg proptest")]
+        fn toposort_dfs_acyclic(graph in graph_directed(any::<()>(), any::<()>()).acyclic()) {
+            let toposort = TopoSort::on(&graph).with(Algo::Dfs).run();
+            assert_valid(toposort, &graph);
+        }
+
+        #[test]
+        #[cfg_attr(not(proptest), ignore = "compile with --cfg proptest")]
+        fn toposort_dfs_any(graph in graph_directed(any::<()>(), any::<()>())) {
+            let toposort = TopoSort::on(&graph).with(Algo::Dfs).run();
+            assert_valid(toposort, &graph);
+        }
+
+        #[test]
+        #[cfg_attr(not(proptest), ignore = "compile with --cfg proptest")]
+        fn toposort_kahn_acyclic(graph in graph_directed(any::<()>(), any::<()>()).acyclic()) {
+            let toposort = TopoSort::on(&graph).with(Algo::Kahn).run();
+            assert_valid(toposort, &graph);
+        }
+
+        #[test]
+        #[cfg_attr(not(proptest), ignore = "compile with --cfg proptest")]
+        fn toposort_kahn_any(graph in graph_directed(any::<()>(), any::<()>())) {
+            let toposort = TopoSort::on(&graph).with(Algo::Kahn).run();
+            assert_valid(toposort, &graph);
+        }
     }
 }

@@ -210,7 +210,10 @@ impl<Ty: EdgeType, G> EdgesBase<Ty> for Stable<G>
 where
     G: EdgesBase<Ty>,
 {
-    type EdgeIndicesIter<'a> = EdgeIndices<'a, Ty, G>
+    type EdgeIndicesIter<'a> = EdgeIndicesIter<'a, Ty, G>
+    where
+        Self: 'a;
+    type EdgeIndexIter<'a> = EdgeIndexIter<'a, Ty, G>
     where
         Self: 'a;
 
@@ -230,24 +233,18 @@ where
         }
     }
 
-    fn edge_index(&self, src: &G::VertexIndex, dst: &G::VertexIndex) -> Option<G::EdgeIndex> {
-        match (
-            self.removed_vertices.contains(src),
-            self.removed_vertices.contains(dst),
-        ) {
-            (false, false) => self.inner.edge_index(src, dst).and_then(|index| {
-                if self.removed_edges.contains(&index) {
-                    None
-                } else {
-                    Some(index)
-                }
-            }),
-            _ => None,
+    fn edge_index(&self, src: &G::VertexIndex, dst: &G::VertexIndex) -> Self::EdgeIndexIter<'_> {
+        let endpoints_exist =
+            !self.removed_vertices.contains(src) && !self.removed_vertices.contains(dst);
+        EdgeIndexIter {
+            inner: self.inner.edge_index(src, dst),
+            removed_edges: &self.removed_edges,
+            endpoints_exist,
         }
     }
 
     fn edge_indices(&self) -> Self::EdgeIndicesIter<'_> {
-        EdgeIndices {
+        EdgeIndicesIter {
             inner: self.inner.edge_indices(),
             removed_edges: &self.removed_edges,
         }
@@ -433,12 +430,12 @@ impl<'a, V, G: Vertices<V>> Iterator for VerticesIter<'a, V, G> {
     }
 }
 
-pub struct EdgeIndices<'a, Ty: EdgeType, G: EdgesBase<Ty> + 'a> {
+pub struct EdgeIndicesIter<'a, Ty: EdgeType, G: EdgesBase<Ty> + 'a> {
     inner: G::EdgeIndicesIter<'a>,
     removed_edges: &'a BTreeSet<G::EdgeIndex>,
 }
 
-impl<'a, Ty: EdgeType, G: EdgesBase<Ty>> Iterator for EdgeIndices<'a, Ty, G> {
+impl<'a, Ty: EdgeType, G: EdgesBase<Ty>> Iterator for EdgeIndicesIter<'a, Ty, G> {
     type Item = G::EdgeIndex;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -460,6 +457,26 @@ impl<'a, E, Ty: EdgeType, G: Edges<E, Ty>> Iterator for EdgesIter<'a, E, Ty, G> 
         self.inner
             .by_ref()
             .find(|edge| !self.removed_edges.contains(edge.index()))
+    }
+}
+
+pub struct EdgeIndexIter<'a, Ty: EdgeType, G: EdgesBase<Ty> + 'a> {
+    inner: G::EdgeIndexIter<'a>,
+    removed_edges: &'a BTreeSet<G::EdgeIndex>,
+    endpoints_exist: bool,
+}
+
+impl<'a, Ty: EdgeType, G: EdgesBase<Ty>> Iterator for EdgeIndexIter<'a, Ty, G> {
+    type Item = G::EdgeIndex;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.endpoints_exist {
+            self.inner
+                .by_ref()
+                .find(|index| !self.removed_edges.contains(index))
+        } else {
+            None
+        }
     }
 }
 
@@ -580,7 +597,7 @@ mod tests {
     }
 
     #[test]
-    fn edge_index() {
+    fn edge_index_any() {
         let mut graph: Stable<AdjList<_, _, Undirected, DefaultIndexing>> =
             Stable::new(AdjList::new());
 
@@ -590,7 +607,7 @@ mod tests {
 
         graph.remove_edge(&e);
 
-        assert!(graph.edge_index(&v0, &v1).is_none());
+        assert!(graph.edge_index_any(&v0, &v1).is_none());
     }
 
     #[test]

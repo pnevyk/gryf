@@ -258,6 +258,9 @@ where
     type EdgeIndicesIter<'a> = EdgeIndices<Self::EdgeIndex>
     where
         Self: 'a;
+    type EdgeIndexIter<'a> = EdgeIndexIter<'a, Ix>
+    where
+        Self: 'a;
 
     fn edge_count(&self) -> usize {
         self.edges.len()
@@ -277,18 +280,21 @@ where
         &self,
         src: &Self::VertexIndex,
         dst: &Self::VertexIndex,
-    ) -> Option<Self::EdgeIndex> {
-        self.vertices
-            .get(src.to_usize())
-            .and_then(|src| {
-                src.edges[Direction::Outgoing.index()]
-                    .iter()
-                    .find(|edge_index| {
-                        let endpoints = &self.endpoints[edge_index.to_usize()];
-                        endpoints[1] == *dst || (!Ty::is_directed() && endpoints[0] == *dst)
-                    })
-            })
-            .copied()
+    ) -> Self::EdgeIndexIter<'_> {
+        match self.vertices.get(src.to_usize()) {
+            Some(vertex) => EdgeIndexIter {
+                src: *src,
+                dst: *dst,
+                edges: &vertex.edges[Direction::Outgoing.index()],
+                endpoints: self.endpoints.as_slice(),
+            },
+            None => EdgeIndexIter {
+                src: *src,
+                dst: *dst,
+                edges: &[],
+                endpoints: &[],
+            },
+        }
     }
 
     fn edge_indices(&self) -> Self::EdgeIndicesIter<'_> {
@@ -369,35 +375,11 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, Ix: Indexing> MultiEdges<E, Ty> for AdjList<V, E, Ty, Ix>
+impl<V, E, Ty: EdgeType, Ix: Indexing> MultiEdges<Ty> for AdjList<V, E, Ty, Ix>
 where
     Ix::VertexIndex: NumIndexType,
     Ix::EdgeIndex: NumIndexType,
 {
-    type MultiEdgeIndicesIter<'a> = MultiEdgeIndicesIter<'a, Ix>
-    where
-        Self: 'a;
-
-    fn multi_edge_index(
-        &self,
-        src: &Self::VertexIndex,
-        dst: &Self::VertexIndex,
-    ) -> Self::MultiEdgeIndicesIter<'_> {
-        match self.vertices.get(src.to_usize()) {
-            Some(vertex) => MultiEdgeIndicesIter {
-                src: *src,
-                dst: *dst,
-                edges: &vertex.edges[0],
-                endpoints: self.endpoints.as_slice(),
-            },
-            None => MultiEdgeIndicesIter {
-                src: *src,
-                dst: *dst,
-                edges: &[],
-                endpoints: &[],
-            },
-        }
-    }
 }
 
 impl<V, E, Ty: EdgeType, Ix: Indexing> Neighbors for AdjList<V, E, Ty, Ix>
@@ -498,14 +480,14 @@ where
 
 impl<V, E, Ty: EdgeType, Ix: Indexing> Guarantee for AdjList<V, E, Ty, Ix> {}
 
-pub struct MultiEdgeIndicesIter<'a, Ix: Indexing> {
+pub struct EdgeIndexIter<'a, Ix: Indexing> {
     src: Ix::VertexIndex,
     dst: Ix::VertexIndex,
     edges: &'a [Ix::EdgeIndex],
     endpoints: &'a [[Ix::VertexIndex; 2]],
 }
 
-impl<'a, Ix: Indexing> Iterator for MultiEdgeIndicesIter<'a, Ix>
+impl<'a, Ix: Indexing> Iterator for EdgeIndexIter<'a, Ix>
 where
     Ix::VertexIndex: NumIndexType,
     Ix::EdgeIndex: NumIndexType,

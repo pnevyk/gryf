@@ -185,6 +185,9 @@ where
     type EdgeIndicesIter<'a> = EdgeIndicesIter<'a, Ty, Ix>
     where
         Self: 'a;
+    type EdgeIndexIter<'a> = std::option::IntoIter<Self::EdgeIndex>
+    where
+        Self: 'a;
 
     fn edge_count(&self) -> usize {
         self.n_edges
@@ -207,9 +210,9 @@ where
         &self,
         src: &Self::VertexIndex,
         dst: &Self::VertexIndex,
-    ) -> Option<Self::EdgeIndex> {
+    ) -> Self::EdgeIndexIter<'_> {
         let index = self.matrix.index(src.to_usize(), dst.to_usize());
-        self.matrix.get(index).map(|_| index)
+        self.matrix.get(index).map(|_| index).into_iter()
     }
 
     fn edge_indices(&self) -> Self::EdgeIndicesIter<'_> {

@@ -22,6 +22,10 @@ pub trait EdgesBase<Ty: EdgeType>: GraphBase {
     where
         Self: 'a;
 
+    type EdgeIndexIter<'a>: Iterator<Item = Self::EdgeIndex>
+    where
+        Self: 'a;
+
     fn edge_count(&self) -> usize;
     fn edge_bound(&self) -> usize;
     fn endpoints(&self, index: &Self::EdgeIndex) -> Option<(Self::VertexIndex, Self::VertexIndex)>;
@@ -29,11 +33,19 @@ pub trait EdgesBase<Ty: EdgeType>: GraphBase {
         &self,
         src: &Self::VertexIndex,
         dst: &Self::VertexIndex,
-    ) -> Option<Self::EdgeIndex>;
+    ) -> Self::EdgeIndexIter<'_>;
     fn edge_indices(&self) -> Self::EdgeIndicesIter<'_>;
 
     fn contains_edge(&self, index: &Self::EdgeIndex) -> bool {
         self.endpoints(index).is_some()
+    }
+
+    fn edge_index_any(
+        &self,
+        src: &Self::VertexIndex,
+        dst: &Self::VertexIndex,
+    ) -> Option<Self::EdgeIndex> {
+        self.edge_index(src, dst).next()
     }
 
     fn edge_index_map(&self) -> CompactIndexMap<Self::EdgeIndex>
@@ -130,7 +142,7 @@ pub trait EdgesMut<E, Ty: EdgeType>: Edges<E, Ty> {
         src: &Self::VertexIndex,
         dst: &Self::VertexIndex,
     ) -> Option<E> {
-        let index = self.edge_index(src, dst)?;
+        let index = self.edge_index_any(src, dst)?;
         self.remove_edge(&index)
     }
 
@@ -192,17 +204,7 @@ pub trait EdgesWeak<E, Ty: EdgeType>: EdgesBaseWeak<Ty> {
     fn edge_weak(&self, index: &Self::EdgeIndex) -> Option<WeakRef<'_, E>>;
 }
 
-pub trait MultiEdges<E, Ty: EdgeType>: Edges<E, Ty> {
-    type MultiEdgeIndicesIter<'a>: Iterator<Item = Self::EdgeIndex>
-    where
-        Self: 'a;
-
-    fn multi_edge_index(
-        &self,
-        src: &Self::VertexIndex,
-        dst: &Self::VertexIndex,
-    ) -> Self::MultiEdgeIndicesIter<'_>;
-}
+pub trait MultiEdges<Ty: EdgeType>: EdgesBase<Ty> {}
 
 pub trait IntoEdge<Ix: Indexing, E, Ty: EdgeType> {
     fn unpack(self) -> (Ix::VertexIndex, Ix::VertexIndex, E);
@@ -265,6 +267,9 @@ macro_rules! deref_edges_base {
             type EdgeIndicesIter<'a> = G::EdgeIndicesIter<'a>
             where
                 Self: 'a;
+            type EdgeIndexIter<'a> = G::EdgeIndexIter<'a>
+            where
+                Self: 'a;
 
             fn edge_count(&self) -> usize {
                 (**self).edge_count()
@@ -278,8 +283,12 @@ macro_rules! deref_edges_base {
                 (**self).endpoints(index)
             }
 
-            fn edge_index(&self, src: &Self::VertexIndex, dst: &Self::VertexIndex) -> Option<Self::EdgeIndex> {
+            fn edge_index(&self, src: &Self::VertexIndex, dst: &Self::VertexIndex) -> Self::EdgeIndexIter<'_> {
                 (**self).edge_index(src, dst)
+            }
+
+            fn edge_index_any(&self, src: &Self::VertexIndex, dst: &Self::VertexIndex) -> Option<Self::EdgeIndex> {
+                (**self).edge_index_any(src, dst)
             }
 
             fn edge_indices(&self) -> Self::EdgeIndicesIter<'_> {

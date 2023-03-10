@@ -65,7 +65,7 @@ where
 
         for u in self.graph.vertex_indices() {
             for v in self.graph.vertex_indices() {
-                if u < v && self.graph.edge_index(&u, &v).is_none() {
+                if u < v && self.graph.edge_index_any(&u, &v).is_none() {
                     let u = NumIndexType::from_usize(vertex_map.virt(u).unwrap().to_usize());
                     let v = NumIndexType::from_usize(vertex_map.virt(v).unwrap().to_usize());
                     result.add_edge(&u, &v, self.edge.clone());
@@ -206,13 +206,13 @@ mod tests {
 
         let complement: AdjList<_, _, _, _> = Complement::new(graph, ()).apply();
 
-        assert!(complement.edge_index(&v0, &v1).is_none());
-        assert!(complement.edge_index(&v1, &v2).is_none());
-        assert!(complement.edge_index(&v2, &v3).is_none());
-        assert!(complement.edge_index(&v3, &v1).is_none());
+        assert!(complement.edge_index_any(&v0, &v1).is_none());
+        assert!(complement.edge_index_any(&v1, &v2).is_none());
+        assert!(complement.edge_index_any(&v2, &v3).is_none());
+        assert!(complement.edge_index_any(&v3, &v1).is_none());
 
-        assert!(complement.edge_index(&v0, &v3).is_some());
-        assert!(complement.edge_index(&v0, &v2).is_some());
+        assert!(complement.edge_index_any(&v0, &v3).is_some());
+        assert!(complement.edge_index_any(&v0, &v2).is_some());
     }
 
     #[test]
@@ -282,12 +282,12 @@ mod tests {
         let v2 = VertexIndex::from(2);
         let v4 = VertexIndex::from(3);
 
-        assert!(complement.edge_index(&v0, &v1).is_none());
-        assert!(complement.edge_index(&v1, &v2).is_none());
-        assert!(complement.edge_index(&v4, &v1).is_none());
+        assert!(complement.edge_index_any(&v0, &v1).is_none());
+        assert!(complement.edge_index_any(&v1, &v2).is_none());
+        assert!(complement.edge_index_any(&v4, &v1).is_none());
 
-        assert!(complement.edge_index(&v0, &v2).is_some());
-        assert!(complement.edge_index(&v0, &v4).is_some());
-        assert!(complement.edge_index(&v2, &v4).is_some());
+        assert!(complement.edge_index_any(&v0, &v2).is_some());
+        assert!(complement.edge_index_any(&v0, &v4).is_some());
+        assert!(complement.edge_index_any(&v2, &v4).is_some());
     }
 }

@@ -1,0 +1,57 @@
+[package]
+name = "gryf-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.gryf]
+path = ".."
+
+# Prevent this from interfering with workspaces
+[workspace]
+members = ["."]
+
+[profile.release]
+debug = 1
+
+[[bin]]
+name = "adj_list_undirected"
+path = "fuzz_targets/adj_list_undirected.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "adj_list_directed"
+path = "fuzz_targets/adj_list_directed.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "adj_matrix_undirected"
+path = "fuzz_targets/adj_matrix_undirected.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "adj_matrix_directed"
+path = "fuzz_targets/adj_matrix_directed.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "edge_list_undirected"
+path = "fuzz_targets/edge_list_undirected.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "edge_list_directed"
+path = "fuzz_targets/edge_list_directed.rs"
+test = false
+doc = false

@@ -51,7 +51,7 @@ pub trait Vertices<V>: VerticesBase {
     fn vertices(&self) -> Self::VerticesIter<'_>;
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq)]
 #[error("adding vertex failed: {kind}")]
 pub struct AddVertexError<V> {
     pub data: V,

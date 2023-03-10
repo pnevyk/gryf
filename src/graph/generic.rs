@@ -33,6 +33,7 @@ use crate::core::{
 
 #[derive(
     Debug,
+    Clone,
     GraphBase,
     VerticesBase,
     Vertices,
@@ -48,7 +49,7 @@ use crate::core::{
     EdgesWeak,
     Guarantee,
 )]
-pub struct Graph<V, E, Ty: EdgeType, G> {
+pub struct Graph<V, E, Ty: EdgeType, G = AdjList<V, E, Ty, DefaultIndexing>> {
     #[graph]
     graph: G,
     ty: PhantomData<(V, E, Ty)>,

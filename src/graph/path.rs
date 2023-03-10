@@ -30,6 +30,7 @@ use super::generic::Graph;
 
 #[derive(
     Debug,
+    Clone,
     GraphBase,
     VerticesBase,
     Vertices,
@@ -41,7 +42,7 @@ use super::generic::Graph;
     EdgesBaseWeak,
     EdgesWeak,
 )]
-pub struct Path<V, E, Ty: EdgeType, G>
+pub struct Path<V, E, Ty: EdgeType, G = AdjList<V, E, Ty, DefaultIndexing>>
 where
     G: GraphBase,
 {

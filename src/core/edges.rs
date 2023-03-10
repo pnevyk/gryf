@@ -64,7 +64,7 @@ pub trait Edges<E, Ty: EdgeType>: EdgesBase<Ty> {
     fn edges(&self) -> Self::EdgesIter<'_>;
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq)]
 #[error("adding edge failed: {kind}")]
 pub struct AddEdgeError<E> {
     pub data: E,

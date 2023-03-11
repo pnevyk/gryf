@@ -71,6 +71,21 @@ where
         }
     }
 
+    // Using closures in `edge_weight` gives "type annotations needed" for the
+    // closure argument. This method that uses explicit Fn signature circumvents
+    // the problem.
+    pub fn edge_weight_fn<F2, E, Ty: EdgeType>(
+        self,
+        edge_weight: F2,
+    ) -> ShortestPathsBuilder<'a, W, G, F2, A>
+    where
+        G: Edges<E, Ty>,
+        F2: Fn(&E) -> W,
+        W: Weight,
+    {
+        self.edge_weight(edge_weight)
+    }
+
     pub fn unit_weight(self) -> ShortestPathsBuilder<'a, W, G, weights::Unit, A> {
         ShortestPathsBuilder {
             edge_weight: weights::Unit,

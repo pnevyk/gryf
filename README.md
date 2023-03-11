@@ -1,10 +1,8 @@
 # gryf
 
-An *experimental* graph library written in Rust, not released to crates.io yet.
+Graph library written in Rust, not released on crates.io yet.
 **It is incomplete, lacks documentation and contains bugs. Breaking changes are
-inevitable.** Design ideas contributions are very welcome!
-
-## Usage
+expected.** Design ideas contributions are very welcome!
 
 ```toml
 gryf = { git = "https://github.com/pnevyk/gryf.git" }
@@ -40,7 +38,7 @@ fn main() {
     // As the edge weights are unsigned and there is a specific goal, Dijktra's
     // algorithm is applied. For signed edges, Bellman-Ford would be used.
     let shortest_paths = ShortestPaths::on(&graph).goal(prague).run(rome).unwrap();
-    let distance = shortest_paths.dist(prague).unwrap();
+    let distance = shortest_paths[prague];
     let path = shortest_paths
         .reconstruct(prague)
         .map(|v| *graph.vertex(v).unwrap())
@@ -52,35 +50,102 @@ fn main() {
 }
 ```
 
-## Key points
+## Overview
 
-*Not everything from the list is implemented*
+The main goals of gryf is to be
 
-* Separation of graph data storage (adjacency list, adjacency matrix, ...) from graph semantics (generic graph, simple graph, path, ...)
-* Organized into problems, not algorithms (e.g., `ShortestPaths` instead of `dijkstra` and `bellman_ford`)
-  * Most suitable algorithm is automatically selected based on graph instance properties
-  * Result structures provide high-level interface (e.g., path reconstruction)
-* Focus on flexible and expressive, yet not overly complex trait system
-  * The core is `VerticesBase`, `Vertices`, `VerticesMut`, `EdgesBase`, `Edges`, `EdgesMut`, `Neighbors`
-  * Not important for the user (that much), only for algorithms implementors
-* Support for graph generalizations (e.g., hypergraph)
-* Accessible codebase without sacrificing performance (too much)
+* **convenient** -- "make the common case straightforward and natural<sup>1</sup>",
+* **versatile** -- "offer simplicity as well as flexibility and strive for a
+  good balance if in conflict",
+* **correct** -- "use extensive fuzzing and property-based testing to increase
+  confidence about correctness", and
+* **performant** -- "write the code with performance and memory-efficiency in
+  mind".
+
+The algorithms are [organized into problems](#problems-instead-of-algorithms)
+they solve. For specifying the options of an algorithm the [builder
+pattern](#builder-pattern-for-algorithms) is utilized. Graphs can use different
+storages [under the hood](#separation-of-graph-storage-and-semantics).
+
+<sup>1</sup>Failing in this should be considered a bug and reported.
+
+## Details
+
+_For more details, see the [design doc](./DESIGN.md)._
+
+### Problems instead of algorithms
+
+For users without much experience or knowledge in graph theory and algorithms,
+it may not be obvious which algorithm should (or even can) be used to solve the
+given problem at hand. Instead, gryf organizes the algorithms into the problem
+they solve (e.g., `ShortestPaths`) instead of exposing the algorithms directly
+(`dijkstra`, `bellman_ford`).
+
+This brings a number of benefits, among which the most important are:
+
+* It is convenient for the user, especially if they are a beginner. It allows
+  not to care about details, if you don't want to care.
+* Having a specific type instead of a generic one such as `Vec` or `HashMap`
+  gives opportunity to provide an additional functionality (like path
+  reconstruction for shortest paths or "is perfect?" query on matching).
+* Not specifying  the algorithm enables use of **automatic algorithm
+  selection**, which makes the decision based on the properties of the input
+  graph.
+
+```rust
+let shortest_paths = ShortestPaths::on(&graph).run(rome).unwrap();
+```
+
+### Builder pattern for algorithms
+
+Specifying arguments for algorithms is done using the builder pattern. This
+avoids the need of passing dummy values (like `None`) to parameters that are not
+useful for the use case. On the other hand, it allows to tweak the algorithm
+with many optional arguments. Moreover, new optional parameters can be added in
+a backwards compatible way. A lot of care is taken to make the error feedback
+from the compiler helpful and obvious.
+
+```rust
+let shortest_paths = ShortestPaths::on(&graph)
+    .edge_weight_fn(|e| e.distance)
+    .goal(prague)
+    .run(rome)
+    .unwrap();
+```
+
+### Separation of graph storage and semantics
+
+In gryf, high-level semantics provided by user-facing types are strictly
+separated from the underlying storage/representation. The graph data can be
+stored in a common representation (e.g., adjacency list or adjacency matrix),
+but it can as well be stored in or represented by a custom, problem-tailored
+implementation, as long as it implements provided interfaces.
+
+On top of a storage, there is an encapsulation with clear semantics. The most
+general is a generic graph, but restricted forms include simple graph (without
+parallel edges), path, bipartite graph and so on. Among the advantages of
+restrictive encapsulations are:
+
+* The type of graph clearly communicates the intention and structure.
+* The API is limited such that it is impossible to violate rules of user-desired
+  class of graph.
+* Guaranteed properties of a restricted graph can be utilized in choosing a more
+  efficient algorithm.
+
+_NOTE: Specifying the underlying storage is already possible, but currently
+quite awkward. See [#47](https://github.com/pnevyk/gryf/issues/47) and
+[#40](https://github.com/pnevyk/gryf/issues/40) for planned improvements._
 
 ## Alternatives (and inspiration)
 
-* [petgraph](https://github.com/petgraph/petgraph)
-* [prepona](https://github.com/maminrayej/prepona)
-* [graphlib](https://crates.io/crates/graphlib)
-* [graphific](https://crates.io/crates/graphific)
+* [petgraph](https://crates.io/crates/petgraph)
+* [prepona](https://crates.io/crates/prepona)
 * [pathfinding](https://crates.io/crates/pathfinding)
 * [graph](https://crates.io/crates/graph)
+* [graphlib](https://crates.io/crates/graphlib)
+* [graphific](https://crates.io/crates/graphific)
 
-## Name
-
-*Gryf* /ɡrɨf/ is the czech word for
-[griffin](https://en.wikipedia.org/wiki/Griffin), a legendary creature from
-medieval times. And edit-distance-wise, it is not far from "graf" which is the
-czech for "graph".
+See the differences between them and gryf in [this comparison repository](https://github.com/pnevyk/rusty-graphs).
 
 ## License
 

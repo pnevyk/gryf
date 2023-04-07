@@ -141,7 +141,7 @@ macro_rules! impl_float_weight {
             }
 
             fn inf() -> Self {
-                <$ty>::MAX
+                <$ty>::INFINITY
             }
 
             fn is_unsigned() -> bool {

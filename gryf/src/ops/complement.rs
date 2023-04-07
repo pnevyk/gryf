@@ -7,7 +7,7 @@ use crate::core::{
     Create, Edges, EdgesBase, EdgesMut, Neighbors, Vertices, VerticesBase, VerticesMut, WeakRef,
 };
 
-use crate::derive::{GraphBase, Vertices, VerticesBase, VerticesMut};
+use gryf_derive::{GraphBase, Vertices, VerticesBase, VerticesMut};
 
 // TODO: Remove these imports once hygiene of procedural macros is fixed.
 use crate::common::CompactIndexMap;

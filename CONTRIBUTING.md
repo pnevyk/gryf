@@ -26,16 +26,16 @@ purpose and should serve as a quick overview of the most important parts and
 their relationships. For more detailed explanation, see [DESIGN](./DESIGN.md)
 document.
 
-* `src/core` -- Mostly core traits and marker types + their implementations. Most important:
-    * `src/core/index.rs` -- Index type (vertex index and edge index) traits and implementations.
-    * `src/core/marker.rs` -- Marker types for directionality of graphs (directed and undirected).
-    * `src/core/{base,vertices,edges,neighbors}.rs` -- Graph access and manipulation traits.
-* `src/storage` -- Implementations of various graph [representations](https://en.wikipedia.org/wiki/Graph_(abstract_data_type)#Common_data_structures_for_graph_representation).
-* `src/visit.rs` -- Graph traversal (BFS, DFS) implementations. Their internals are based on `src/visit/raw.rs`.
-* `src/algo` -- Implementations of graph algorithms. The structure of an algorithm follows this convention:
+* `gryf/src/core` -- Mostly core traits and marker types + their implementations. Most important:
+    * `gryf/src/core/index.rs` -- Index type (vertex index and edge index) traits and implementations.
+    * `gryf/src/core/marker.rs` -- Marker types for directionality of graphs (directed and undirected).
+    * `gryf/src/core/{base,vertices,edges,neighbors}.rs` -- Graph access and manipulation traits.
+* `gryf/src/storage` -- Implementations of various graph [representations](https://en.wikipedia.org/wiki/Graph_(abstract_data_type)#Common_data_structures_for_graph_representation).
+* `gryf/src/visit.rs` -- Graph traversal (BFS, DFS) implementations. Their internals are based on `gryf/src/visit/raw.rs`.
+* `gryf/src/algo` -- Implementations of graph algorithms. The structure of an algorithm follows this convention:
     * root -- The main and accompanying types for an algorithmic problem. The main type also represents a successful result of the corresponding algorithms.
     * `builder.rs` -- The algorithm builder that allows specifying parameters as well as fine-tuning the run.
     * `<algorithm>.rs` -- The implementation of an algorithm for given problem. This is private code used by the public API.
-* `src/graph` -- Wrappers for storages that represent different semantics (such as generic graph or [path](https://en.wikipedia.org/wiki/Path_(graph_theory))).
-* `src/ops` -- Implementations of operations on graphs.
-* `macros` -- Derive macros for the fundamental traits.
+* `gryf/src/graph` -- Wrappers for storages that represent different semantics (such as generic graph or [path](https://en.wikipedia.org/wiki/Path_(graph_theory))).
+* `gryf/src/ops` -- Implementations of operations on graphs.
+* `gryf-derive` -- Derive macros for the fundamental traits.

@@ -15,7 +15,7 @@ use crate::{
     storage::{AdjList, Frozen, Stable},
 };
 
-use crate::derive::{
+use gryf_derive::{
     Edges, EdgesBase, EdgesBaseWeak, EdgesWeak, GraphBase, Neighbors, Vertices, VerticesBase,
     VerticesBaseWeak, VerticesWeak,
 };

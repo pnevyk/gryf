@@ -8,7 +8,7 @@ use crate::{
     },
 };
 
-use crate::derive::{
+use gryf_derive::{
     EdgesBaseWeak, EdgesWeak, GraphBase, Guarantee, Vertices, VerticesBase, VerticesBaseWeak,
     VerticesMut, VerticesWeak,
 };

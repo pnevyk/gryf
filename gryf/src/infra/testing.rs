@@ -8,7 +8,7 @@ use crate::core::{
     Create, Edges, Neighbors, Vertices,
 };
 
-use crate::derive::{
+use gryf_derive::{
     Edges, EdgesBase, EdgesBaseWeak, EdgesMut, EdgesWeak, GraphBase, MultiEdges, Neighbors,
     Vertices, VerticesBase, VerticesBaseWeak, VerticesMut, VerticesWeak,
 };

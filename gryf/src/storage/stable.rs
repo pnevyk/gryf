@@ -11,9 +11,7 @@ use crate::{
     },
 };
 
-use crate::derive::{
-    EdgesBaseWeak, EdgesWeak, GraphBase, Guarantee, VerticesBaseWeak, VerticesWeak,
-};
+use gryf_derive::{EdgesBaseWeak, EdgesWeak, GraphBase, Guarantee, VerticesBaseWeak, VerticesWeak};
 
 // TODO: Remove these imports once hygiene of procedural macros is fixed.
 use crate::core::{EdgesBaseWeak, EdgesWeak, Guarantee, VerticesBaseWeak, VerticesWeak, WeakRef};

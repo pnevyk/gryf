@@ -16,6 +16,7 @@ pub mod prelude {
     pub use crate::visit::Visitor;
 }
 
+#[cfg(feature = "derive")]
 pub mod derive {
-    pub use macros::*;
+    pub use gryf_derive::*;
 }

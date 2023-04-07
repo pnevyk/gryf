@@ -1,0 +1,36 @@
+[package]
+name = "gryf"
+version = "0.1.0"
+authors = ["Petr Nevyhoštěný"]
+edition = "2021"
+license = "MIT OR Unlicense"
+description = "Graph data structure library with focus on convenience, versatility, correctness and performance."
+homepage = "https://github.com/pnevyk/gryf"
+documentation = "https://docs.rs/gryf"
+repository = "https://github.com/pnevyk/gryf"
+readme = "../README.md"
+keywords = ["graph", "algorithms", "data-structures"]
+categories = ["algorithms", "data-structures"]
+
+[dependencies]
+bitvec = "1.0.1"
+fixedbitset = "0.4.2"
+rustc-hash = "1.1.0"
+thiserror = "1.0.38"
+
+# gryf-derive is not optional, because we use it in gryf itself. This might change in the future.
+gryf-derive = { version = "=0.1.0", path = "../gryf-derive" }
+
+arbitrary = { version = "1.2.3", features = ["derive"], optional = true }
+proptest = { version = "1.1.0", optional = true }
+
+[dev-dependencies]
+# Remove once https://github.com/rust-lang/rust/issues/82775 is stabilized
+assert_matches = "1.5.0"
+fastrand = "1.9.0"
+
+[features]
+default = ["arbitrary", "proptest"]
+arbitrary = ["dep:arbitrary"]
+proptest = ["dep:proptest"]
+derive = []

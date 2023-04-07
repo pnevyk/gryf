@@ -1,0 +1,20 @@
+[package]
+name = "gryf-derive"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Unlicense"
+description = "Derive macros for gryf, a graph data structure library with focus on convenience, versatility, correctness and performance."
+homepage = "https://github.com/pnevyk/gryf"
+documentation = "https://docs.rs/gryf"
+repository = "https://github.com/pnevyk/gryf"
+readme = "../README.md"
+keywords = ["graph", "algorithms", "data-structures"]
+categories = ["algorithms", "data-structures"]
+
+[dependencies]
+proc-macro2 = "1"
+quote = "1"
+syn = { version = "1", features = ["full"] }
+
+[lib]
+proc-macro = true

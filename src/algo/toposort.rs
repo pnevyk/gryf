@@ -32,6 +32,16 @@ where
     }
 }
 
+impl<'a, G> TopoSort<'a, G>
+where
+    G: Neighbors + VerticesBase + EdgesBase<Directed>,
+    G::VertexIndex: NumIndexType,
+{
+    pub fn into_vec(self) -> Result<Vec<G::VertexIndex>, Error> {
+        self.collect()
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Algo {

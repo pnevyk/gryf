@@ -11,7 +11,7 @@ cargo-fuzz = true
 libfuzzer-sys = "0.4"
 
 [dependencies.gryf]
-path = ".."
+path = "../gryf"
 
 # Prevent this from interfering with workspaces
 [workspace]

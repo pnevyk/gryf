@@ -4,19 +4,15 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use crate::core::{marker::Direction, ConnectVertices, ReplaceEdgeError, ReplaceVertexError};
-use crate::core::{
-    Create, Edges, EdgesBase, EdgesMut, GraphBase, MultiEdges, Neighbors, Vertices, VerticesBase,
-    VerticesMut,
-};
-use crate::storage::{Frozen, Stable};
 use crate::{
     core::{
         index::DefaultIndexing,
-        marker::{Directed, EdgeType, Undirected},
-        AddEdgeError, AddVertexError, ExtendWithEdges, ExtendWithVertices, IntoEdge,
+        marker::{Directed, Direction, EdgeType, Undirected},
+        AddEdgeError, AddVertexError, ConnectVertices, Create, Edges, EdgesBase, EdgesMut,
+        ExtendWithEdges, ExtendWithVertices, GraphBase, IntoEdge, MultiEdges, Neighbors,
+        ReplaceEdgeError, ReplaceVertexError, Vertices, VerticesBase, VerticesMut,
     },
-    storage::AdjList,
+    storage::{AdjList, Frozen, Stable},
 };
 
 use gryf_derive::{
@@ -51,29 +47,41 @@ use crate::core::{
 )]
 pub struct Graph<V, E, Ty: EdgeType, G = AdjList<V, E, Ty, DefaultIndexing>> {
     #[graph]
-    graph: G,
+    storage: G,
     ty: PhantomData<(V, E, Ty)>,
 }
 
-impl<V, E, Ty: EdgeType> Graph<V, E, Ty, AdjList<V, E, Ty, DefaultIndexing>> {
+impl<V, E, Ty: EdgeType> Graph<V, E, Ty> {
     pub fn new() -> Self {
-        Self::with_storage(AdjList::new())
+        Self::new_in(AdjList::new())
     }
 
     pub fn with_capacity(vertex_count: usize, edge_count: usize) -> Self {
-        Self::with_storage(AdjList::with_capacity(vertex_count, edge_count))
+        Self::new_in(AdjList::with_capacity(vertex_count, edge_count))
     }
 }
 
-impl<V, E> Graph<V, E, Undirected, AdjList<V, E, Undirected, DefaultIndexing>> {
+impl<V, E> Graph<V, E, Undirected> {
     pub fn new_undirected() -> Self {
         Self::new()
     }
 }
 
-impl<V, E> Graph<V, E, Directed, AdjList<V, E, Directed, DefaultIndexing>> {
+impl<V, E, G> Graph<V, E, Undirected, G> {
+    pub fn new_undirected_in(storage: G) -> Self {
+        Self::new_in(storage)
+    }
+}
+
+impl<V, E> Graph<V, E, Directed> {
     pub fn new_directed() -> Self {
         Self::new()
+    }
+}
+
+impl<V, E, G> Graph<V, E, Directed, G> {
+    pub fn new_directed_in(storage: G) -> Self {
+        Self::new_in(storage)
     }
 }
 
@@ -82,20 +90,20 @@ where
     G: Default,
 {
     fn default() -> Self {
-        Self::with_storage(G::default())
+        Self::new_in(G::default())
     }
 }
 
 impl<V, E, Ty: EdgeType, G> From<G> for Graph<V, E, Ty, G> {
-    fn from(graph: G) -> Self {
-        Self::with_storage(graph)
+    fn from(storage: G) -> Self {
+        Self::new_in(storage)
     }
 }
 
 impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
-    pub fn with_storage(graph: G) -> Self {
+    pub fn new_in(storage: G) -> Self {
         Self {
-            graph,
+            storage,
             ty: PhantomData,
         }
     }
@@ -107,7 +115,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         V: Default,
         G: ExtendWithEdges<T, V, E, Ty>,
     {
-        self.graph.extend_with_edges(iter)
+        self.storage.extend_with_edges(iter)
     }
 
     pub fn from_edges<T, I>(iter: I) -> Self
@@ -117,7 +125,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         V: Default,
         G: ExtendWithEdges<T, V, E, Ty>,
     {
-        Self::with_storage(G::from_edges(iter))
+        Self::new_in(G::from_edges(iter))
     }
 
     pub fn extend_with_vertices<I>(&mut self, iter: I)
@@ -125,7 +133,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         I: IntoIterator<Item = V>,
         G: ExtendWithVertices<V, E, Ty>,
     {
-        self.graph.extend_with_vertices(iter)
+        self.storage.extend_with_vertices(iter)
     }
 
     pub fn from_vertices<I>(iter: I) -> Self
@@ -133,28 +141,28 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         I: IntoIterator<Item = V>,
         G: ExtendWithVertices<V, E, Ty>,
     {
-        Self::with_storage(G::from_vertices(iter))
+        Self::new_in(G::from_vertices(iter))
     }
 
     pub fn vertex_count(&self) -> usize
     where
         G: VerticesBase,
     {
-        self.graph.vertex_count()
+        self.storage.vertex_count()
     }
 
     pub fn vertex_bound(&self) -> usize
     where
         G: VerticesBase,
     {
-        self.graph.vertex_bound()
+        self.storage.vertex_bound()
     }
 
     pub fn vertex_indices(&self) -> G::VertexIndicesIter<'_>
     where
         G: VerticesBase,
     {
-        self.graph.vertex_indices()
+        self.storage.vertex_indices()
     }
 
     pub fn vertex<VI>(&self, index: VI) -> Option<&V>
@@ -162,14 +170,14 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         G: Vertices<V>,
         VI: Borrow<G::VertexIndex>,
     {
-        self.graph.vertex(index.borrow())
+        self.storage.vertex(index.borrow())
     }
 
     pub fn vertices(&self) -> G::VerticesIter<'_>
     where
         G: Vertices<V>,
     {
-        self.graph.vertices()
+        self.storage.vertices()
     }
 
     pub fn vertex_mut<VI>(&mut self, index: VI) -> Option<&mut V>
@@ -177,21 +185,21 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         G: VerticesMut<V>,
         VI: Borrow<G::VertexIndex>,
     {
-        self.graph.vertex_mut(index.borrow())
+        self.storage.vertex_mut(index.borrow())
     }
 
     pub fn add_vertex(&mut self, vertex: V) -> G::VertexIndex
     where
         G: VerticesMut<V>,
     {
-        self.graph.add_vertex(vertex)
+        self.storage.add_vertex(vertex)
     }
 
     pub fn try_add_vertex(&mut self, vertex: V) -> Result<G::VertexIndex, AddVertexError<V>>
     where
         G: VerticesMut<V>,
     {
-        self.graph.try_add_vertex(vertex)
+        self.storage.try_add_vertex(vertex)
     }
 
     pub fn remove_vertex<VI>(&mut self, index: VI) -> Option<V>
@@ -199,7 +207,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         G: VerticesMut<V>,
         VI: Borrow<G::VertexIndex>,
     {
-        self.graph.remove_vertex(index.borrow())
+        self.storage.remove_vertex(index.borrow())
     }
 
     pub fn replace_vertex<VI>(&mut self, index: VI, vertex: V) -> V
@@ -207,7 +215,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         G: VerticesMut<V>,
         VI: Borrow<G::VertexIndex>,
     {
-        self.graph.replace_vertex(index.borrow(), vertex)
+        self.storage.replace_vertex(index.borrow(), vertex)
     }
 
     pub fn try_replace_vertex<VI>(
@@ -219,28 +227,28 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         G: VerticesMut<V>,
         VI: Borrow<G::VertexIndex>,
     {
-        self.graph.try_replace_vertex(index.borrow(), vertex)
+        self.storage.try_replace_vertex(index.borrow(), vertex)
     }
 
     pub fn clear(&mut self)
     where
         G: VerticesMut<V>,
     {
-        self.graph.clear()
+        self.storage.clear()
     }
 
     pub fn edge_count(&self) -> usize
     where
         G: EdgesBase<Ty>,
     {
-        self.graph.edge_count()
+        self.storage.edge_count()
     }
 
     pub fn edge_bound(&self) -> usize
     where
         G: EdgesBase<Ty>,
     {
-        self.graph.edge_bound()
+        self.storage.edge_bound()
     }
 
     pub fn endpoints<EI>(&self, index: EI) -> Option<(G::VertexIndex, G::VertexIndex)>
@@ -248,7 +256,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         G: EdgesBase<Ty>,
         EI: Borrow<G::EdgeIndex>,
     {
-        self.graph.endpoints(index.borrow())
+        self.storage.endpoints(index.borrow())
     }
 
     pub fn edge_index<VI>(&self, src: VI, dst: VI) -> G::EdgeIndexIter<'_>
@@ -256,7 +264,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         G: EdgesBase<Ty>,
         VI: Borrow<G::VertexIndex>,
     {
-        self.graph.edge_index(src.borrow(), dst.borrow())
+        self.storage.edge_index(src.borrow(), dst.borrow())
     }
 
     pub fn edge_index_any<VI>(&self, src: VI, dst: VI) -> Option<G::EdgeIndex>
@@ -264,14 +272,14 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         G: EdgesBase<Ty>,
         VI: Borrow<G::VertexIndex>,
     {
-        self.graph.edge_index_any(src.borrow(), dst.borrow())
+        self.storage.edge_index_any(src.borrow(), dst.borrow())
     }
 
     pub fn edge_indices(&self) -> G::EdgeIndicesIter<'_>
     where
         G: EdgesBase<Ty>,
     {
-        self.graph.edge_indices()
+        self.storage.edge_indices()
     }
 
     pub fn contains_edge<EI>(&self, index: EI) -> bool
@@ -279,14 +287,14 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         G: EdgesBase<Ty>,
         EI: Borrow<G::EdgeIndex>,
     {
-        self.graph.contains_edge(index.borrow())
+        self.storage.contains_edge(index.borrow())
     }
 
     pub fn is_directed(&self) -> bool
     where
         G: EdgesBase<Ty>,
     {
-        self.graph.is_directed()
+        self.storage.is_directed()
     }
 
     pub fn edge<EI>(&self, index: EI) -> Option<&E>
@@ -294,14 +302,14 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         G: Edges<E, Ty>,
         EI: Borrow<G::EdgeIndex>,
     {
-        self.graph.edge(index.borrow())
+        self.storage.edge(index.borrow())
     }
 
     pub fn edges(&self) -> G::EdgesIter<'_>
     where
         G: Edges<E, Ty>,
     {
-        self.graph.edges()
+        self.storage.edges()
     }
 
     pub fn edge_mut<EI>(&mut self, index: EI) -> Option<&mut E>
@@ -309,7 +317,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         G: EdgesMut<E, Ty>,
         EI: Borrow<G::EdgeIndex>,
     {
-        self.graph.edge_mut(index.borrow())
+        self.storage.edge_mut(index.borrow())
     }
 
     pub fn add_edge<VI>(&mut self, src: VI, dst: VI, edge: E) -> G::EdgeIndex
@@ -317,7 +325,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         G: EdgesMut<E, Ty>,
         VI: Borrow<G::VertexIndex>,
     {
-        self.graph.add_edge(src.borrow(), dst.borrow(), edge)
+        self.storage.add_edge(src.borrow(), dst.borrow(), edge)
     }
 
     pub fn try_add_edge<VI>(
@@ -330,7 +338,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         G: EdgesMut<E, Ty>,
         VI: Borrow<G::VertexIndex>,
     {
-        self.graph.try_add_edge(src.borrow(), dst.borrow(), edge)
+        self.storage.try_add_edge(src.borrow(), dst.borrow(), edge)
     }
 
     pub fn remove_edge<EI>(&mut self, index: EI) -> Option<E>
@@ -338,7 +346,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         G: EdgesMut<E, Ty>,
         EI: Borrow<G::EdgeIndex>,
     {
-        self.graph.remove_edge(index.borrow())
+        self.storage.remove_edge(index.borrow())
     }
 
     pub fn remove_edge_between<VI>(&mut self, src: VI, dst: VI) -> Option<E>
@@ -346,7 +354,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         G: EdgesMut<E, Ty>,
         VI: Borrow<G::VertexIndex>,
     {
-        self.graph.remove_edge_between(src.borrow(), dst.borrow())
+        self.storage.remove_edge_between(src.borrow(), dst.borrow())
     }
 
     pub fn replace_edge<EI>(&mut self, index: EI, edge: E) -> E
@@ -354,7 +362,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         G: EdgesMut<E, Ty>,
         EI: Borrow<G::EdgeIndex>,
     {
-        self.graph.replace_edge(index.borrow(), edge)
+        self.storage.replace_edge(index.borrow(), edge)
     }
 
     pub fn try_replace_edge<EI>(&mut self, index: EI, edge: E) -> Result<E, ReplaceEdgeError<E>>
@@ -362,14 +370,14 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         G: EdgesMut<E, Ty>,
         EI: Borrow<G::EdgeIndex>,
     {
-        self.graph.try_replace_edge(index.borrow(), edge)
+        self.storage.try_replace_edge(index.borrow(), edge)
     }
 
     pub fn clear_edges(&mut self)
     where
         G: EdgesMut<E, Ty>,
     {
-        self.graph.clear_edges()
+        self.storage.clear_edges()
     }
 
     pub fn neighbors<VI>(&self, src: VI) -> G::NeighborsIter<'_>
@@ -377,7 +385,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         G: Neighbors,
         VI: Borrow<G::VertexIndex>,
     {
-        self.graph.neighbors(src.borrow())
+        self.storage.neighbors(src.borrow())
     }
 
     pub fn neighbors_directed<VI>(&self, src: VI, dir: Direction) -> G::NeighborsIter<'_>
@@ -385,7 +393,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         G: Neighbors,
         VI: Borrow<G::VertexIndex>,
     {
-        self.graph.neighbors_directed(src.borrow(), dir)
+        self.storage.neighbors_directed(src.borrow(), dir)
     }
 
     pub fn degree<VI>(&self, src: VI) -> usize
@@ -393,7 +401,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         G: Neighbors,
         VI: Borrow<G::VertexIndex>,
     {
-        self.graph.degree(src.borrow())
+        self.storage.degree(src.borrow())
     }
 
     pub fn degree_directed<VI>(&self, src: VI, dir: Direction) -> usize
@@ -401,18 +409,18 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         G: Neighbors,
         VI: Borrow<G::VertexIndex>,
     {
-        self.graph.degree_directed(src.borrow(), dir)
+        self.storage.degree_directed(src.borrow(), dir)
     }
 
     pub fn stabilize(self) -> Graph<V, E, Ty, Stable<G>>
     where
         G: GraphBase,
     {
-        Graph::with_storage(Stable::new(self.graph))
+        Graph::new_in(Stable::new(self.storage))
     }
 
     pub fn freeze(self) -> Graph<V, E, Ty, Frozen<G>> {
-        Graph::with_storage(Frozen::new(self.graph))
+        Graph::new_in(Frozen::new(self.storage))
     }
 
     pub fn connect_vertices<F>(&mut self, connect: F)
@@ -420,7 +428,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         G: ConnectVertices<V, E, Ty>,
         F: FnMut(&V, &V) -> Option<E>,
     {
-        self.graph.connect_vertices(connect);
+        self.storage.connect_vertices(connect);
     }
 }
 
@@ -428,13 +436,13 @@ impl<V, E, Ty: EdgeType, G> Deref for Graph<V, E, Ty, G> {
     type Target = G;
 
     fn deref(&self) -> &Self::Target {
-        &self.graph
+        &self.storage
     }
 }
 
 impl<V, E, Ty: EdgeType, G> DerefMut for Graph<V, E, Ty, G> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.graph
+        &mut self.storage
     }
 }
 
@@ -443,6 +451,6 @@ where
     G: Create<V, E, Ty>,
 {
     fn with_capacity(vertex_count: usize, edge_count: usize) -> Self {
-        Self::with_storage(G::with_capacity(vertex_count, edge_count))
+        Self::new_in(G::with_capacity(vertex_count, edge_count))
     }
 }

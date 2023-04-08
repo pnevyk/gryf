@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use crate::{
     common::CompactIndexMap,
     core::{
-        index::{Indexing, NumIndexType},
+        index::{DefaultIndexing, Indexing, NumIndexType},
         marker::{Direction, EdgeType},
         AddEdgeError, AddEdgeErrorKind, AddVertexError, ConnectVertices, Create, Edges, EdgesBase,
         EdgesMut, GraphBase, Guarantee, Neighbors, Vertices, VerticesBase, VerticesMut,
@@ -39,11 +39,7 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, Ix: Indexing> Default for AdjMatrix<V, E, Ty, Ix>
-where
-    Ix::VertexIndex: NumIndexType,
-    Ix::EdgeIndex: NumIndexType,
-{
+impl<V, E, Ty: EdgeType> Default for AdjMatrix<V, E, Ty, DefaultIndexing> {
     fn default() -> Self {
         Self::new()
     }

@@ -712,6 +712,14 @@ mod raw {
         Ix::EdgeIndex: NumIndexType,
     {
         pub fn with_capacity(capacity: usize) -> Self {
+            if capacity == 0 {
+                return Self {
+                    data: Default::default(),
+                    capacity,
+                    ty: PhantomData,
+                };
+            }
+
             let capacity = capacity.next_power_of_two();
             let len = size_of::<Ty>(capacity);
             let mut data = FlaggedVec::with_capacity(len);
@@ -726,7 +734,8 @@ mod raw {
 
         pub fn ensure_capacity(&mut self, capacity: usize) {
             if self.capacity < capacity {
-                resize::<E, Ty, _>(&mut self.data);
+                self.capacity = (self.capacity * 2).max(capacity.next_power_of_two());
+                resize::<E, Ty, _>(&mut self.data, self.capacity);
             }
         }
 

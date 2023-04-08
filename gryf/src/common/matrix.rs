@@ -16,9 +16,14 @@ pub fn size_of<Ty: EdgeType>(capacity: usize) -> usize {
     }
 }
 
-pub fn resize<E, Ty: EdgeType, M: MatrixResize<E>>(prev: &mut M) {
+pub fn resize<E, Ty: EdgeType, M: MatrixResize<E>>(prev: &mut M, capacity: usize) {
     let prev_len = prev.len();
-    let len = size_of::<Ty>(2 * prev_len);
+    let len = size_of::<Ty>(capacity);
+
+    if len <= prev_len {
+        // This routine is only for growing.
+        return;
+    }
 
     if Ty::is_directed() {
         let mut next = M::with_capacity(len);

@@ -23,7 +23,7 @@ mod tests {
     where
         G: Create<(), (), Ty> + Neighbors,
     {
-        let mut graph = G::default();
+        let mut graph = G::empty();
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -98,7 +98,7 @@ mod tests {
     where
         G: Create<(), i32, Ty> + MultiEdges<Ty>,
     {
-        let mut graph = G::default();
+        let mut graph = G::empty();
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -128,7 +128,7 @@ mod tests {
     where
         G: Create<i32, (), Ty> + ConnectVertices<i32, (), Ty>,
     {
-        let mut graph = G::default();
+        let mut graph = G::empty();
 
         graph.add_vertex(1);
         graph.add_vertex(2);

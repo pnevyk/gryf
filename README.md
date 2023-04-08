@@ -132,9 +132,11 @@ restrictive encapsulations are:
 * Guaranteed properties of a restricted graph can be utilized in choosing a more
   efficient algorithm.
 
-_NOTE: Specifying the underlying storage is already possible, but currently
-quite awkward. See [#47](https://github.com/pnevyk/gryf/issues/47) and
-[#40](https://github.com/pnevyk/gryf/issues/40) for planned improvements._
+```rust
+use gryf::storage::AdjMatrix;
+
+let mut graph = Graph::new_undirected_in(AdjMatrix::default());
+```
 
 ## Alternatives (and inspiration)
 

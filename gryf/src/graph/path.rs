@@ -47,7 +47,7 @@ where
     G: GraphBase,
 {
     #[graph]
-    graph: G,
+    storage: G,
     ends: Option<[G::VertexIndex; 2]>,
     ty: PhantomData<(V, E, Ty)>,
 }
@@ -80,7 +80,7 @@ impl<V, E> From<AddEdgeError<E>> for PathError<V, E> {
     }
 }
 
-impl<V, E, Ty: EdgeType> Path<V, E, Ty, AdjList<V, E, Ty, DefaultIndexing>> {
+impl<V, E, Ty: EdgeType> Path<V, E, Ty> {
     pub fn new() -> Self {
         Self::new_unchecked(AdjList::new(), None)
     }
@@ -90,7 +90,7 @@ impl<V, E, Ty: EdgeType> Path<V, E, Ty, AdjList<V, E, Ty, DefaultIndexing>> {
     }
 }
 
-impl<V, E> Path<V, E, Undirected, AdjList<V, E, Undirected, DefaultIndexing>> {
+impl<V, E> Path<V, E, Undirected> {
     pub fn new_undirected() -> Self {
         Self::new_unchecked(AdjList::new(), None)
     }
@@ -115,26 +115,26 @@ impl<V, E, Ty: EdgeType, G> Path<V, E, Ty, G>
 where
     G: GraphBase,
 {
-    fn new_unchecked(graph: G, ends: Option<[G::VertexIndex; 2]>) -> Self {
+    fn new_unchecked(storage: G, ends: Option<[G::VertexIndex; 2]>) -> Self {
         Self {
-            graph,
+            storage,
             ends,
             ty: PhantomData,
         }
     }
 
-    fn check_runtime(graph: &G) -> Result<Option<[G::VertexIndex; 2]>, PathError<V, E>>
+    fn check_runtime(storage: &G) -> Result<Option<[G::VertexIndex; 2]>, PathError<V, E>>
     where
         G: Vertices<V> + Neighbors,
     {
-        let v = match graph.vertex_indices().next() {
+        let v = match storage.vertex_indices().next() {
             Some(v) => v,
             // Empty graph.
             None => return Ok(None),
         };
 
         let mut visited = FxHashSet::with_capacity_and_hasher(
-            graph.vertex_count(),
+            storage.vertex_count(),
             BuildHasherDefault::default(),
         );
 
@@ -146,10 +146,10 @@ where
             visited.visit(v.clone());
 
             loop {
-                match graph.degree(&v) {
+                match storage.degree(&v) {
                     1 => return Ok(v),
                     2 => {
-                        let u = graph
+                        let u = storage
                             .neighbors(&v)
                             .find(|n| n.index().as_ref() != &prev)
                             .ok_or(PathError::Cycle)?
@@ -170,20 +170,20 @@ where
 
         // Based on what vertex we picked, check the rest of the path from an
         // end or both segments from the middle.
-        let mut ends = match graph.degree(&v) {
+        let mut ends = match storage.degree(&v) {
             0 => {
                 // Isolated vertex.
                 [v.clone(), v]
             }
             1 => {
                 let u = check_segment(
-                    graph.neighbors(&v).next().unwrap().index().into_owned(),
+                    storage.neighbors(&v).next().unwrap().index().into_owned(),
                     v.clone(),
                 )?;
                 [v, u]
             }
             2 => {
-                let mut iter = graph.neighbors(&v);
+                let mut iter = storage.neighbors(&v);
                 let u = iter.next().unwrap();
                 let u1 = check_segment(u.index().into_owned(), v.clone())?;
                 let u = iter.next().unwrap();
@@ -193,14 +193,14 @@ where
             _ => return Err(PathError::HigherDegree),
         };
 
-        if visited.visited_count() != graph.vertex_count() {
+        if visited.visited_count() != storage.vertex_count() {
             return Err(PathError::Disconnected);
         }
 
         if Ty::is_directed() {
-            let start = if graph.degree_directed(&ends[0], Direction::Outgoing) == 1 {
+            let start = if storage.degree_directed(&ends[0], Direction::Outgoing) == 1 {
                 ends[0].clone()
-            } else if graph.degree_directed(&ends[1], Direction::Outgoing) == 1 {
+            } else if storage.degree_directed(&ends[1], Direction::Outgoing) == 1 {
                 // In directed paths, the first end is always with in-degree 0
                 // and the second end is with out-degree 0.
                 ends.swap(0, 1);
@@ -213,14 +213,14 @@ where
 
             let mut vertex = Some(start);
             while let Some(v) = vertex {
-                vertex = graph
+                vertex = storage
                     .neighbors_directed(&v, Direction::Outgoing)
                     .next()
                     .map(|n| n.index().into_owned());
                 visited.visit(v);
             }
 
-            if visited.visited_count() != graph.vertex_count() {
+            if visited.visited_count() != storage.vertex_count() {
                 return Err(PathError::Direction);
             }
         }
@@ -232,21 +232,21 @@ where
     where
         G: VerticesBase,
     {
-        self.graph.vertex_count()
+        self.storage.vertex_count()
     }
 
     pub fn vertex_bound(&self) -> usize
     where
         G: VerticesBase,
     {
-        self.graph.vertex_bound()
+        self.storage.vertex_bound()
     }
 
     pub fn vertex_indices(&self) -> G::VertexIndicesIter<'_>
     where
         G: VerticesBase,
     {
-        self.graph.vertex_indices()
+        self.storage.vertex_indices()
     }
 
     pub fn vertex<VI>(&self, index: VI) -> Option<&V>
@@ -254,14 +254,14 @@ where
         G: Vertices<V>,
         VI: Borrow<G::VertexIndex>,
     {
-        self.graph.vertex(index.borrow())
+        self.storage.vertex(index.borrow())
     }
 
     pub fn vertices(&self) -> G::VerticesIter<'_>
     where
         G: Vertices<V>,
     {
-        self.graph.vertices()
+        self.storage.vertices()
     }
 
     pub fn vertex_mut<VI>(&mut self, index: VI) -> Option<&mut V>
@@ -269,7 +269,7 @@ where
         G: VerticesMut<V>,
         VI: Borrow<G::VertexIndex>,
     {
-        self.graph.vertex_mut(index.borrow())
+        self.storage.vertex_mut(index.borrow())
     }
 
     pub fn try_add_vertex<VI>(
@@ -293,7 +293,7 @@ where
                     // should change the "second" end, not the "first".
                     [_, u] | [u, _] if u == end => u,
                     _ => {
-                        let error = if self.graph.vertex_indices().any(|v| &v == end) {
+                        let error = if self.storage.vertex_indices().any(|v| &v == end) {
                             PathError::HigherDegree
                         } else {
                             PathError::Disconnected
@@ -305,7 +305,7 @@ where
                 let edge = edge.ok_or(PathError::Disconnected)?;
 
                 let u = end.clone();
-                let v = self.graph.try_add_vertex(vertex)?;
+                let v = self.storage.try_add_vertex(vertex)?;
                 *end = v.clone();
 
                 let (u, v) = if Ty::is_directed() {
@@ -320,12 +320,12 @@ where
                     (u, v)
                 };
 
-                self.graph.try_add_edge(&u, &v, edge)?;
+                self.storage.try_add_edge(&u, &v, edge)?;
 
                 Ok(v)
             }
             None => {
-                let v = self.graph.try_add_vertex(vertex)?;
+                let v = self.storage.try_add_vertex(vertex)?;
                 self.ends = Some([v.clone(), v.clone()]);
                 Ok(v)
             }
@@ -371,7 +371,7 @@ where
             Some(ends) if ends[0] == ends[1] => {
                 if &ends[0] == index {
                     self.ends = None;
-                    self.graph.remove_vertex(index)
+                    self.storage.remove_vertex(index)
                 } else {
                     None
                 }
@@ -380,26 +380,26 @@ where
                 [end, _] | [_, end] if end == index => {
                     // The removed vertex is an end.
                     *end = self
-                        .graph
+                        .storage
                         .neighbors(index)
                         .next()
                         .unwrap()
                         .index()
                         .into_owned();
-                    self.graph.remove_vertex(index)
+                    self.storage.remove_vertex(index)
                 }
                 _ => {
                     // The removed vertex is an inner vertex.
                     let (u, v) = if Ty::is_directed() {
                         let u = self
-                            .graph
+                            .storage
                             .neighbors_directed(index, Direction::Incoming)
                             .next()
                             .unwrap()
                             .index()
                             .into_owned();
                         let v = self
-                            .graph
+                            .storage
                             .neighbors_directed(index, Direction::Outgoing)
                             .next()
                             .unwrap()
@@ -407,7 +407,7 @@ where
                             .into_owned();
                         (u, v)
                     } else {
-                        let mut neighbors = self.graph.neighbors(index);
+                        let mut neighbors = self.storage.neighbors(index);
                         let u = neighbors.next().unwrap().index().into_owned();
                         let v = neighbors.next().unwrap().index().into_owned();
                         (u, v)
@@ -418,19 +418,19 @@ where
                         // reuse an edge that was between the removed vertex and
                         // one of its neighbors.
                         let e = self
-                            .graph
+                            .storage
                             .neighbors(index)
                             .next()
                             .unwrap()
                             .edge()
                             .into_owned();
-                        self.graph.remove_edge(&e).unwrap()
+                        self.storage.remove_edge(&e).unwrap()
                     });
 
                     // Connect the neighbors of the removed vertex.
-                    self.graph.add_edge(&u, &v, edge);
+                    self.storage.add_edge(&u, &v, edge);
 
-                    self.graph.remove_vertex(index)
+                    self.storage.remove_vertex(index)
                 }
             },
             None => None,
@@ -442,7 +442,7 @@ where
         G: VerticesMut<V>,
         VI: Borrow<G::VertexIndex>,
     {
-        self.graph.replace_vertex(index.borrow(), vertex)
+        self.storage.replace_vertex(index.borrow(), vertex)
     }
 
     pub fn try_replace_vertex<VI>(
@@ -454,14 +454,14 @@ where
         G: VerticesMut<V>,
         VI: Borrow<G::VertexIndex>,
     {
-        self.graph.try_replace_vertex(index.borrow(), vertex)
+        self.storage.try_replace_vertex(index.borrow(), vertex)
     }
 
     pub fn clear(&mut self)
     where
         G: VerticesMut<V>,
     {
-        self.graph.clear();
+        self.storage.clear();
         self.ends = None;
     }
 
@@ -469,14 +469,14 @@ where
     where
         G: EdgesBase<Ty>,
     {
-        self.graph.edge_count()
+        self.storage.edge_count()
     }
 
     pub fn edge_bound(&self) -> usize
     where
         G: EdgesBase<Ty>,
     {
-        self.graph.edge_bound()
+        self.storage.edge_bound()
     }
 
     pub fn endpoints<EI>(&self, index: EI) -> Option<(G::VertexIndex, G::VertexIndex)>
@@ -484,7 +484,7 @@ where
         G: EdgesBase<Ty>,
         EI: Borrow<G::EdgeIndex>,
     {
-        self.graph.endpoints(index.borrow())
+        self.storage.endpoints(index.borrow())
     }
 
     pub fn edge_index<VI>(&self, src: VI, dst: VI) -> G::EdgeIndexIter<'_>
@@ -492,7 +492,7 @@ where
         G: EdgesBase<Ty>,
         VI: Borrow<G::VertexIndex>,
     {
-        self.graph.edge_index(src.borrow(), dst.borrow())
+        self.storage.edge_index(src.borrow(), dst.borrow())
     }
 
     pub fn edge_index_any<VI>(&self, src: VI, dst: VI) -> Option<G::EdgeIndex>
@@ -500,14 +500,14 @@ where
         G: EdgesBase<Ty>,
         VI: Borrow<G::VertexIndex>,
     {
-        self.graph.edge_index_any(src.borrow(), dst.borrow())
+        self.storage.edge_index_any(src.borrow(), dst.borrow())
     }
 
     pub fn edge_indices(&self) -> G::EdgeIndicesIter<'_>
     where
         G: EdgesBase<Ty>,
     {
-        self.graph.edge_indices()
+        self.storage.edge_indices()
     }
 
     pub fn contains_edge<EI>(&self, index: EI) -> bool
@@ -515,14 +515,14 @@ where
         G: EdgesBase<Ty>,
         EI: Borrow<G::EdgeIndex>,
     {
-        self.graph.contains_edge(index.borrow())
+        self.storage.contains_edge(index.borrow())
     }
 
     pub fn is_directed(&self) -> bool
     where
         G: EdgesBase<Ty>,
     {
-        self.graph.is_directed()
+        self.storage.is_directed()
     }
 
     pub fn edge<EI>(&self, index: EI) -> Option<&E>
@@ -530,14 +530,14 @@ where
         G: Edges<E, Ty>,
         EI: Borrow<G::EdgeIndex>,
     {
-        self.graph.edge(index.borrow())
+        self.storage.edge(index.borrow())
     }
 
     pub fn edges(&self) -> G::EdgesIter<'_>
     where
         G: Edges<E, Ty>,
     {
-        self.graph.edges()
+        self.storage.edges()
     }
 
     pub fn edge_mut<EI>(&mut self, index: EI) -> Option<&mut E>
@@ -545,7 +545,7 @@ where
         G: EdgesMut<E, Ty>,
         EI: Borrow<G::EdgeIndex>,
     {
-        self.graph.edge_mut(index.borrow())
+        self.storage.edge_mut(index.borrow())
     }
 
     pub fn replace_edge<EI>(&mut self, index: EI, edge: E) -> E
@@ -553,7 +553,7 @@ where
         G: EdgesMut<E, Ty>,
         EI: Borrow<G::EdgeIndex>,
     {
-        self.graph.replace_edge(index.borrow(), edge)
+        self.storage.replace_edge(index.borrow(), edge)
     }
 
     pub fn try_replace_edge<EI>(&mut self, index: EI, edge: E) -> Result<E, ReplaceEdgeError<E>>
@@ -561,7 +561,7 @@ where
         G: EdgesMut<E, Ty>,
         EI: Borrow<G::EdgeIndex>,
     {
-        self.graph.try_replace_edge(index.borrow(), edge)
+        self.storage.try_replace_edge(index.borrow(), edge)
     }
 
     pub fn neighbors<VI>(&self, src: VI) -> G::NeighborsIter<'_>
@@ -569,7 +569,7 @@ where
         G: Neighbors,
         VI: Borrow<G::VertexIndex>,
     {
-        self.graph.neighbors(src.borrow())
+        self.storage.neighbors(src.borrow())
     }
 
     pub fn neighbors_directed<VI>(&self, src: VI, dir: Direction) -> G::NeighborsIter<'_>
@@ -577,7 +577,7 @@ where
         G: Neighbors,
         VI: Borrow<G::VertexIndex>,
     {
-        self.graph.neighbors_directed(src.borrow(), dir)
+        self.storage.neighbors_directed(src.borrow(), dir)
     }
 
     pub fn degree<VI>(&self, src: VI) -> usize
@@ -585,7 +585,7 @@ where
         G: Neighbors,
         VI: Borrow<G::VertexIndex>,
     {
-        self.graph.degree(src.borrow())
+        self.storage.degree(src.borrow())
     }
 
     pub fn degree_directed<VI>(&self, src: VI, dir: Direction) -> usize
@@ -593,7 +593,7 @@ where
         G: Neighbors,
         VI: Borrow<G::VertexIndex>,
     {
-        self.graph.degree_directed(src.borrow(), dir)
+        self.storage.degree_directed(src.borrow(), dir)
     }
 
     pub fn ends(&self) -> Option<&[G::VertexIndex; 2]> {
@@ -601,11 +601,11 @@ where
     }
 
     pub fn stabilize(self) -> Path<V, E, Ty, Stable<G>> {
-        Path::new_unchecked(Stable::new(self.graph), self.ends)
+        Path::new_unchecked(Stable::new(self.storage), self.ends)
     }
 
     pub fn freeze(self) -> Path<V, E, Ty, Frozen<G>> {
-        Path::new_unchecked(Frozen::new(self.graph), self.ends)
+        Path::new_unchecked(Frozen::new(self.storage), self.ends)
     }
 }
 
@@ -614,7 +614,7 @@ where
     G: GraphBase,
 {
     fn from(path: Path<V, E, Ty, G>) -> Self {
-        Graph::with_storage(path.graph)
+        Graph::new_in(path.storage)
     }
 }
 
@@ -624,20 +624,20 @@ where
 {
     type Error = PathError<V, E>;
 
-    fn check(graph: &G) -> Result<(), Self::Error> {
+    fn check(storage: &G) -> Result<(), Self::Error> {
         // Statically guaranteed.
         if G::has_paths_only() && G::is_connected() {
             return Ok(());
         }
 
-        Self::check_runtime(graph).map(|_| ())
+        Self::check_runtime(storage).map(|_| ())
     }
 
-    fn constrain(graph: G) -> Result<Self, Self::Error>
+    fn constrain(storage: G) -> Result<Self, Self::Error>
     where
         Self: Sized,
     {
-        Self::check_runtime(&graph).map(|ends| Self::new_unchecked(graph, ends))
+        Self::check_runtime(&storage).map(|ends| Self::new_unchecked(storage, ends))
     }
 }
 
@@ -648,7 +648,7 @@ where
     type Target = G;
 
     fn deref(&self) -> &Self::Target {
-        &self.graph
+        &self.storage
     }
 }
 

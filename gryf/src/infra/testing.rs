@@ -100,7 +100,7 @@ where
     G: Create<V, E, Ty>,
 {
     if vertex_count == 0 {
-        return G::default();
+        return G::empty();
     }
 
     let mut graph = G::with_capacity(vertex_count, vertex_count - 1);

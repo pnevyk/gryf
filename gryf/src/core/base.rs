@@ -132,8 +132,12 @@ where
     type EdgeIndex = G::EdgeIndex;
 }
 
-pub trait Create<V, E, Ty: EdgeType>: VerticesMut<V> + EdgesMut<E, Ty> + Default {
+pub trait Create<V, E, Ty: EdgeType>: VerticesMut<V> + EdgesMut<E, Ty> + Sized {
     fn with_capacity(vertex_count: usize, edge_count: usize) -> Self;
+
+    fn empty() -> Self {
+        Self::with_capacity(0, 0)
+    }
 }
 
 pub trait ExtendWithEdges<T, V, E, Ty: EdgeType>

@@ -27,15 +27,17 @@ pub fn resize<E, Ty: EdgeType, M: MatrixResize<E>>(prev: &mut M, capacity: usize
 
     if Ty::is_directed() {
         let mut next = M::with_capacity(len);
+        let prev_capacity = (prev_len as f32).sqrt() as usize;
 
         // Add the top-right corner.
         for (i, value) in core::mem::take(prev).into_iter().enumerate() {
             next.push(value);
 
             // Are we on the right edge of the original square?
-            if (i + 1) % prev_len == 0 {
+            if (i + 1) % prev_capacity == 0 {
                 // New elements into top-right corner.
-                next.resize_with_none(i + prev_len);
+                let additional = next.len() + capacity - prev_capacity;
+                next.resize_with_none(additional);
             }
         }
 

@@ -207,19 +207,19 @@ where
         graph.edge_indices().count(),
         edge_count,
         Equal,
-        ConsistencyCheckError::VertexIndicesVertexCountMismatch,
+        ConsistencyCheckError::EdgeIndicesEdgeCountMismatch,
     )?;
     cmp(
         graph.edges().count(),
         edge_count,
         Equal,
-        ConsistencyCheckError::VerticesVertexCountMismatch,
+        ConsistencyCheckError::EdgesEdgeCountMismatch,
     )?;
     cmp(
         graph.edge_bound(),
         edge_count,
         GreaterOrEqual,
-        ConsistencyCheckError::VertexBoundInvalid,
+        ConsistencyCheckError::EdgeBoundInvalid,
     )?;
 
     let invalid_edge_index = graph.edge_indices().enumerate().find_map(|(i, index)| {

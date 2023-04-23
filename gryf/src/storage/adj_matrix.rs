@@ -121,45 +121,51 @@ where
     fn remove_vertex(&mut self, index: &Self::VertexIndex) -> Option<V> {
         self.vertex(index)?;
 
+        let index = index.to_usize();
+
         // Remove incident edges.
         for i in 0..self.vertices.len() {
-            let edge_index = self.matrix.index(index.to_usize(), i);
+            let edge_index = self.matrix.index(index, i);
             if self.matrix.remove(edge_index).is_some() {
                 self.n_edges -= 1;
             }
 
             if Ty::is_directed() {
-                let edge_index = self.matrix.index(i, index.to_usize());
+                let edge_index = self.matrix.index(i, index);
                 if self.matrix.remove(edge_index).is_some() {
                     self.n_edges -= 1;
                 }
             }
         }
 
-        let vertex = self.vertices.swap_remove(index.to_usize());
+        let vertex = self.vertices.swap_remove(index);
 
         // Relocate the edges of the last vertex, if it is going to replace the
         // removed vertex.
-        if index.to_usize() < self.vertices.len() {
-            let last_index = Ix::VertexIndex::from_usize(self.vertices.len());
+        if index < self.vertices.len() {
+            let last_index = self.vertices.len();
 
-            // We already removed the vertex from the vector, so its size is one
-            // less than before. But we need to iterate over entire matrix, so
-            // the range is inclusive.
-            for i in 0..=self.vertices.len() {
-                let edge_index = self.matrix.index(last_index.to_usize(), i);
+            for i in 0..self.vertices.len() {
+                let edge_index = self.matrix.index(last_index, i);
                 if let Some(edge) = self.matrix.remove(edge_index) {
-                    let edge_index = self.matrix.index(index.to_usize(), i);
+                    let edge_index = self.matrix.index(index, i);
                     self.matrix.insert(edge_index, edge);
                 }
 
                 if Ty::is_directed() {
-                    let edge_index = self.matrix.index(i, last_index.to_usize());
+                    let edge_index = self.matrix.index(i, last_index);
                     if let Some(edge) = self.matrix.remove(edge_index) {
-                        let edge_index = self.matrix.index(i, index.to_usize());
+                        let edge_index = self.matrix.index(i, index);
                         self.matrix.insert(edge_index, edge);
                     }
                 }
+            }
+
+            // Handle self-loops.
+            let edge_index = self.matrix.index(last_index, last_index);
+            if let Some(edge) = self.matrix.remove(edge_index) {
+                let edge_index = self.matrix.index(index, index);
+                self.matrix.insert(edge_index, edge);
             }
         }
 
@@ -858,6 +864,32 @@ mod raw {
             coords::<Ty>(index.to_usize(), self.capacity)
         }
     }
+
+    impl<Ty: EdgeType, Ix> std::fmt::Debug for DetachedMatrix<'_, Ty, Ix> {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            if f.alternate() {
+                writeln!(f, "DetachedMatrix {{")?;
+                for row in 0..self.capacity {
+                    write!(f, "    ")?;
+                    for col in 0..self.capacity {
+                        if col > 0 {
+                            write!(f, " ")?;
+                        }
+
+                        let index = index::<Ty>(row, col, self.capacity);
+                        write!(f, "{}", self.data[index] as usize)?;
+                    }
+                    writeln!(f)?;
+                }
+                writeln!(f, "}}")
+            } else {
+                f.debug_struct("DetachedMatrix")
+                    .field("data", &self.data)
+                    .field("capacity", &self.capacity)
+                    .finish()
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -911,6 +943,18 @@ mod tests {
 
         graph.add_vertex(10);
         graph.add_edge(&Index(0), &Index(0), 0);
+
+        check_consistency(&graph).unwrap();
+    }
+
+    #[test]
+    fn fuzz_trophy2() {
+        let mut graph = AdjMatrix::<_, _, Undirected, ArbitraryIndexing>::new();
+
+        graph.add_vertex(1);
+        graph.add_vertex(100);
+        graph.add_edge(&Index(1), &Index(1), 2);
+        graph.remove_vertex(&Index(0));
 
         check_consistency(&graph).unwrap();
     }

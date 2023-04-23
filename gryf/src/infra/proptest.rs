@@ -133,9 +133,12 @@ impl<V: Strategy, E: Strategy, Ty: EdgeType> GraphStrategy<V, E, Ty> {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RandomModel {
-    ErdosRenyi,
-    WattsStrogatz,
-    BarabasiAlbert,
+    // Erdős–Rényi model
+    Uniform,
+    // Watts-Strogatz model
+    SmallWorlds,
+    // Barabási-Albert model
+    PreferentialAttachment,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -165,7 +168,7 @@ impl Default for StrategyParams {
             connected: false,
             allow_loops: false,
             multi_edge_prob: 0.0,
-            model: RandomModel::ErdosRenyi,
+            model: RandomModel::Uniform,
             class: None,
             density: 1.0,
         }
@@ -245,7 +248,7 @@ where
         runner: &mut proptest::test_runner::TestRunner,
     ) -> proptest::strategy::NewTree<Self> {
         assert!(
-            self.params.model == RandomModel::ErdosRenyi,
+            self.params.model == RandomModel::Uniform,
             "generation of graphs in other models is not supported yet"
         );
 

@@ -1,8 +1,14 @@
+<div align="center">
+
 # gryf
 
-Graph library written in Rust, not released on crates.io yet.
-**It is incomplete, lacks documentation and contains bugs. Breaking changes are
-expected.** Design ideas contributions are very welcome!
+> Graph data structure library aspiring to be convenient, versatile, correct and performant.
+
+</div>
+
+**Status:** The library is not released on crates.io yet. It is incomplete,
+lacks documentation and contains bugs. Breaking changes are expected. Design
+contributions are very welcome!
 
 ```toml
 gryf = { git = "https://github.com/pnevyk/gryf.git" }
@@ -16,7 +22,7 @@ use gryf::prelude::*;
 
 fn main() {
     // Default storage is adjacency list, but that can be simply changed by
-    // using `Graph::with_storage`.
+    // using `Graph::new_undirected_in`.
     let mut graph = Graph::new_undirected();
 
     let prague = graph.add_vertex("Prague");
@@ -52,20 +58,21 @@ fn main() {
 
 ## Overview
 
-The main goals of gryf is to be
+The main goal of gryf is to be
 
 * **convenient** -- "make the common case straightforward and natural<sup>1</sup>",
 * **versatile** -- "offer simplicity as well as flexibility and strive for a
   good balance if in conflict",
 * **correct** -- "use extensive fuzzing and property-based testing to increase
   confidence about correctness", and
-* **performant** -- "write the code with performance and memory-efficiency in
+* **performant** -- "write the code with performance and memory efficiency in
   mind".
 
-The algorithms are [organized into problems](#problems-instead-of-algorithms)
-they solve. For specifying the options of an algorithm the [builder
-pattern](#builder-pattern-for-algorithms) is utilized. Graphs can use different
-storages [under the hood](#separation-of-graph-storage-and-semantics).
+The algorithms are [organized into the
+problems](#problems-instead-of-algorithms) they solve. For specifying the
+options of an algorithm the [builder pattern](#builder-pattern-for-algorithms)
+is utilized. Graphs can use different storage [under the
+hood](#separation-of-graph-storage-and-semantics).
 
 <sup>1</sup>Failing in this should be considered a bug and reported.
 
@@ -84,11 +91,11 @@ they solve (e.g., `ShortestPaths`) instead of exposing the algorithms directly
 This brings a number of benefits, among which the most important are:
 
 * It is convenient for the user, especially if they are a beginner. It allows
-  not to care about details, if you don't want to care.
+  them not to care about details if they don't want to care.
 * Having a specific type instead of a generic one such as `Vec` or `HashMap`
-  gives opportunity to provide an additional functionality (like path
+  gives the opportunity to provide additional functionality (like path
   reconstruction for shortest paths or "is perfect?" query on matching).
-* Not specifying  the algorithm enables use of **automatic algorithm
+* Not specifying the algorithm enables the use of **automatic algorithm
   selection**, which makes the decision based on the properties of the input
   graph.
 
@@ -100,9 +107,9 @@ let shortest_paths = ShortestPaths::on(&graph).run(rome).unwrap();
 
 Specifying arguments for algorithms is done using the builder pattern. This
 avoids the need of passing dummy values (like `None`) to parameters that are not
-useful for the use case. On the other hand, it allows to tweak the algorithm
+useful for the use case. On the other hand, it allows tweaking the algorithm
 with many optional arguments. Moreover, new optional parameters can be added in
-a backwards compatible way. A lot of care is taken to make the error feedback
+a backward-compatible way. A lot of care is taken to make the error feedback
 from the compiler helpful and obvious.
 
 ```rust
@@ -127,10 +134,10 @@ parallel edges), path, bipartite graph and so on. Among the advantages of
 restrictive encapsulations are:
 
 * The type of graph clearly communicates the intention and structure.
-* The API is limited such that it is impossible to violate rules of user-desired
-  class of graph.
-* Guaranteed properties of a restricted graph can be utilized in choosing a more
-  efficient algorithm.
+* The API is limited such that it is impossible to violate the rules of the
+  user-desired class of graph.
+* The guaranteed properties of a restricted graph can be utilized in choosing a
+  more efficient algorithm.
 
 ```rust
 use gryf::storage::AdjMatrix;

@@ -151,4 +151,30 @@ mod tests {
         // 1 -> 3, 2 -> 2
         assert_eq!(graph.edge_count(), 2);
     }
+
+    pub fn test_neighbors_edge_cases<Ty: EdgeType, G>()
+    where
+        G: Create<(), (), Ty> + Neighbors,
+    {
+        let mut graph = G::empty();
+
+        let v0 = graph.add_vertex(());
+
+        graph.add_edge(&v0, &v0, ());
+
+        // For undirected graphs, we want to iterate over the self-loop edge
+        // only once. But the degree should still be 2. Note that this is not a
+        // required behavior for neighbors, just an "optimization" in our
+        // implementations. In fact, for the correct behavior of the default
+        // implementation degree methods, the neighbors iterators are expected
+        // to yield such an edge twice.
+        let n_neighbors = if Ty::is_directed() { 2 } else { 1 };
+        assert_eq!(graph.neighbors(&v0).count(), n_neighbors);
+        assert_eq!(graph.degree(&v0), 2);
+
+        if Ty::is_directed() {
+            assert_eq!(graph.degree_directed(&v0, Direction::Outgoing), 1);
+            assert_eq!(graph.degree_directed(&v0, Direction::Incoming), 1);
+        }
+    }
 }

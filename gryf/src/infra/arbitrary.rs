@@ -158,7 +158,7 @@ impl<V, E> MutOpsSeq<V, E> {
         }
 
         println!();
-        println!("check_consistency(&graph);");
+        println!("check_consistency(&graph).unwrap();");
     }
 }
 

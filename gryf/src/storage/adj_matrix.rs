@@ -958,4 +958,40 @@ mod tests {
 
         check_consistency(&graph).unwrap();
     }
+
+    #[test]
+    fn fuzz_trophy3() {
+        let mut graph = AdjMatrix::<_, _, Directed, ArbitraryIndexing>::new();
+
+        graph.add_vertex(1);
+        graph.add_vertex(42);
+        graph.add_edge(&Index(1), &Index(1), -34);
+        graph.add_vertex(-34);
+        graph.add_vertex(-34);
+        graph.add_vertex(-34);
+        graph.add_vertex(-34);
+        graph.add_vertex(-34);
+        graph.add_vertex(-34);
+        graph.add_vertex(0);
+
+        check_consistency(&graph).unwrap();
+    }
+
+    #[test]
+    fn fuzz_trophy4() {
+        let mut graph = AdjMatrix::<_, _, Directed, ArbitraryIndexing>::new();
+
+        graph.add_vertex(-55);
+        graph.add_vertex(-127);
+        graph.add_vertex(-1);
+        graph.add_edge(&Index(1), &Index(2), -33);
+        graph.add_vertex(-13);
+        graph.add_vertex(21);
+        graph.add_vertex(-13);
+        graph.add_vertex(74);
+        graph.add_vertex(0);
+        graph.add_vertex(35);
+
+        check_consistency(&graph).unwrap();
+    }
 }

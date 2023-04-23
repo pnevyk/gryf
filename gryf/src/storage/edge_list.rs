@@ -129,6 +129,8 @@ where
     }
 
     fn remove_vertex(&mut self, index: &Self::VertexIndex) -> Option<V> {
+        self.vertex(index)?;
+
         // Remove all edges connected to this vertex in any direction.
         let mut i = 0;
         while i < self.endpoints.len() {
@@ -508,6 +510,7 @@ mod tests {
             index::DefaultIndexing,
             marker::{Directed, Undirected},
         },
+        infra::arbitrary::{ArbitraryIndexing, Index},
         storage::tests::*,
     };
 
@@ -549,5 +552,14 @@ mod tests {
     #[test]
     fn neighbors_edge_cases_directed() {
         test_neighbors_edge_cases::<Directed, EdgeList<_, _, _, DefaultIndexing>>();
+    }
+
+    #[test]
+    fn fuzz_trophy1() {
+        let mut graph = EdgeList::<_, (), Undirected, ArbitraryIndexing>::new();
+
+        graph.add_vertex(0);
+        graph.remove_vertex(&Index(0));
+        graph.remove_vertex(&Index(0));
     }
 }

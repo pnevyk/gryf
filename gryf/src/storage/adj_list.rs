@@ -396,7 +396,7 @@ where
     where
         Self: 'a;
 
-    type NeighborsIter<'a> = NeighborsIter<'a, Ix>
+    type NeighborsIter<'a> = NeighborsIter<'a, Ty, Ix>
     where
         Self: 'a;
 
@@ -411,6 +411,7 @@ where
             edges: [&vertex.edges[0], &vertex.edges[1]],
             endpoints: self.endpoints.as_slice(),
             dir: 0,
+            ty: PhantomData,
         }
     }
 
@@ -441,7 +442,33 @@ where
             edges,
             endpoints: self.endpoints.as_slice(),
             dir: dir.index(),
+            ty: PhantomData,
         }
+    }
+
+    fn degree(&self, index: &Self::VertexIndex) -> usize {
+        Ty::directions()
+            .iter()
+            .map(|dir| self.degree_directed(index, *dir))
+            .sum()
+    }
+
+    fn degree_directed(&self, index: &Self::VertexIndex, dir: Direction) -> usize {
+        let vertex = self
+            .vertices
+            .get(index.to_usize())
+            .expect("vertex does not exist");
+
+        let adj_dir = if !Ty::is_directed() {
+            // If the graph is undirected, then the direction does not matter.
+            // However, we need to index the "outgoing" edge list in the vertex,
+            // because the "incoming" list is empty.
+            Direction::Outgoing
+        } else {
+            dir
+        };
+
+        vertex.edges[adj_dir.index()].len()
     }
 }
 
@@ -513,14 +540,15 @@ where
     }
 }
 
-pub struct NeighborsIter<'a, Ix: Indexing> {
+pub struct NeighborsIter<'a, Ty, Ix: Indexing> {
     src: Ix::VertexIndex,
     edges: [&'a [Ix::EdgeIndex]; 2],
     endpoints: &'a [[Ix::VertexIndex; 2]],
     dir: usize,
+    ty: PhantomData<Ty>,
 }
 
-impl<Ix: Indexing> Iterator for NeighborsIter<'_, Ix>
+impl<Ty: EdgeType, Ix: Indexing> Iterator for NeighborsIter<'_, Ty, Ix>
 where
     Ix::VertexIndex: NumIndexType,
     Ix::EdgeIndex: NumIndexType,
@@ -551,6 +579,14 @@ where
         } else {
             endpoints[1]
         };
+
+        if !Ty::is_directed() && neighbor == self.src {
+            // Skip self-loop edge duplication.
+            let (head, tail) = self.edges[self.dir].split_at(1);
+            self.edges[self.dir] = tail;
+
+            debug_assert_eq!(head[0], edge);
+        }
 
         let dir = Direction::from_index(self.dir);
 
@@ -601,6 +637,16 @@ mod tests {
     #[test]
     fn connect_vertices_directed() {
         test_connect_vertices::<Directed, AdjList<_, _, _, DefaultIndexing>>();
+    }
+
+    #[test]
+    fn neighbors_edge_cases_undirected() {
+        test_neighbors_edge_cases::<Undirected, AdjList<_, _, _, DefaultIndexing>>();
+    }
+
+    #[test]
+    fn neighbors_edge_cases_directed() {
+        test_neighbors_edge_cases::<Directed, AdjList<_, _, _, DefaultIndexing>>();
     }
 
     #[test]

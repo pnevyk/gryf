@@ -292,7 +292,7 @@ where
     where
         Self: 'a;
 
-    type NeighborsIter<'a> = NeighborsIter<'a, Ix>
+    type NeighborsIter<'a> = NeighborsIter<'a, Ty, Ix>
     where
         Self: 'a;
 
@@ -304,7 +304,8 @@ where
             edges: self.endpoints.as_slice(),
             dir: None,
             index: 0,
-            is_directed: Ty::is_directed(),
+            self_loop: None,
+            ty: PhantomData,
         }
     }
 
@@ -316,7 +317,39 @@ where
             edges: self.endpoints.as_slice(),
             dir: Some(dir),
             index: 0,
-            is_directed: Ty::is_directed(),
+            self_loop: None,
+            ty: PhantomData,
+        }
+    }
+
+    fn degree(&self, index: &Self::VertexIndex) -> usize {
+        self.vertex(index).expect("vertex does not exist");
+
+        self.endpoints
+            .iter()
+            .filter(|[u, v]| u == index || v == index)
+            .map(|[u, v]| 1 + (u == v) as usize)
+            .sum()
+    }
+
+    fn degree_directed(&self, index: &Self::VertexIndex, dir: Direction) -> usize {
+        if Ty::is_directed() {
+            match dir {
+                Direction::Outgoing => self
+                    .endpoints
+                    .iter()
+                    .filter(|[u, _]| u == index)
+                    .map(|[u, v]| 1 + (!Ty::is_directed() && u == v) as usize)
+                    .sum(),
+                Direction::Incoming => self
+                    .endpoints
+                    .iter()
+                    .filter(|[_, v]| v == index)
+                    .map(|[u, v]| 1 + (!Ty::is_directed() && u == v) as usize)
+                    .sum(),
+            }
+        } else {
+            self.degree(index)
         }
     }
 }
@@ -388,15 +421,16 @@ where
     }
 }
 
-pub struct NeighborsIter<'a, Ix: Indexing> {
+pub struct NeighborsIter<'a, Ty, Ix: Indexing> {
     src: Ix::VertexIndex,
     edges: &'a [[Ix::VertexIndex; 2]],
     index: usize,
     dir: Option<Direction>,
-    is_directed: bool,
+    self_loop: Option<(Ix::EdgeIndex, Direction)>,
+    ty: PhantomData<Ty>,
 }
 
-impl<'a, Ix: Indexing> Iterator for NeighborsIter<'a, Ix>
+impl<'a, Ty: EdgeType, Ix: Indexing> Iterator for NeighborsIter<'a, Ty, Ix>
 where
     Ix::VertexIndex: NumIndexType,
     Ix::EdgeIndex: NumIndexType,
@@ -404,6 +438,12 @@ where
     type Item = (Ix::VertexIndex, Ix::EdgeIndex, Ix::VertexIndex, Direction);
 
     fn next(&mut self) -> Option<Self::Item> {
+        if Ty::is_directed() {
+            if let Some((index, dir)) = self.self_loop.take() {
+                return Some((self.src, index, self.src, dir));
+            }
+        }
+
         loop {
             let (endpoints, tail) = self.edges.split_first()?;
             self.edges = tail;
@@ -411,7 +451,7 @@ where
             let index = Ix::EdgeIndex::from_usize(self.index);
             self.index += 1;
 
-            let neighbor = match (self.dir, self.is_directed) {
+            let neighbor = match (self.dir, Ty::is_directed()) {
                 (Some(Direction::Outgoing), true) => {
                     if endpoints[0] == self.src {
                         Some((endpoints[1], Direction::Outgoing))
@@ -447,6 +487,13 @@ where
             };
 
             if let Some((neighbor, dir)) = neighbor {
+                if Ty::is_directed() && neighbor == self.src && self.dir.is_none() {
+                    // There is only one edge-item in edge list for a self-loop
+                    // in directed graph. But we need to report the edge twice,
+                    // for each direction.
+                    self.self_loop = Some((index, dir.opposite()));
+                }
+
                 return Some((neighbor, index, self.src, dir));
             }
         }
@@ -482,5 +529,25 @@ mod tests {
     #[test]
     fn multi_directed() {
         test_multi::<Directed, EdgeList<_, _, _, DefaultIndexing>>();
+    }
+
+    #[test]
+    fn connect_vertices_undirected() {
+        test_connect_vertices::<Undirected, EdgeList<_, _, _, DefaultIndexing>>();
+    }
+
+    #[test]
+    fn connect_vertices_directed() {
+        test_connect_vertices::<Directed, EdgeList<_, _, _, DefaultIndexing>>();
+    }
+
+    #[test]
+    fn neighbors_edge_cases_undirected() {
+        test_neighbors_edge_cases::<Undirected, EdgeList<_, _, _, DefaultIndexing>>();
+    }
+
+    #[test]
+    fn neighbors_edge_cases_directed() {
+        test_neighbors_edge_cases::<Directed, EdgeList<_, _, _, DefaultIndexing>>();
     }
 }

@@ -315,6 +315,8 @@ where
         Self: 'a;
 
     fn neighbors(&self, src: &Self::VertexIndex) -> Self::NeighborsIter<'_> {
+        self.vertex(src).expect("vertex does not exist");
+
         let filter = if Ty::is_directed() {
             None
         } else {
@@ -337,6 +339,8 @@ where
         src: &Self::VertexIndex,
         dir: Direction,
     ) -> Self::NeighborsIter<'_> {
+        self.vertex(src).expect("vertex does not exist");
+
         NeighborsIter {
             matrix: self.matrix.detach(),
             src: *src,
@@ -345,6 +349,20 @@ where
             filter: Some(dir),
             dir,
         }
+    }
+
+    fn degree(&self, index: &Self::VertexIndex) -> usize {
+        Ty::directions()
+            .iter()
+            .map(|dir| self.degree_directed(index, *dir))
+            .sum()
+    }
+
+    fn degree_directed(&self, index: &Self::VertexIndex, dir: Direction) -> usize {
+        self.vertex(index).expect("vertex does not exist");
+
+        self.matrix
+            .degree_directed(*index, dir, self.vertices.len())
     }
 }
 
@@ -502,7 +520,7 @@ mod raw {
 
     use crate::common::matrix::*;
     use crate::core::index::{Indexing, NumIndexType};
-    use crate::core::marker::EdgeType;
+    use crate::core::marker::{Direction, EdgeType};
 
     #[derive(Debug)]
     struct FlaggedVec<T> {
@@ -705,6 +723,7 @@ mod raw {
 
     impl<E, Ty: EdgeType, Ix: Indexing> Matrix<E, Ty, Ix>
     where
+        Ix::VertexIndex: NumIndexType,
         Ix::EdgeIndex: NumIndexType,
     {
         pub fn with_capacity(capacity: usize) -> Self {
@@ -763,6 +782,44 @@ mod raw {
             coords::<Ty>(index.to_usize(), self.capacity)
         }
 
+        pub fn degree_directed(
+            &self,
+            v: Ix::VertexIndex,
+            dir: Direction,
+            n_vertices: usize,
+        ) -> usize {
+            let v = v.to_usize();
+            let mut degree = 0;
+
+            if Ty::is_directed() {
+                let (mut i, stride) = match dir {
+                    Direction::Outgoing => (index::<Ty>(v, 0, self.capacity), 1),
+                    Direction::Incoming => (index::<Ty>(0, v, self.capacity), self.capacity),
+                };
+
+                for _ in 0..n_vertices {
+                    if self.data.contains(i) {
+                        degree += 1;
+                    }
+
+                    i += stride;
+                }
+            } else {
+                for col in 0..n_vertices {
+                    let i = index::<Ty>(v, col, self.capacity);
+
+                    if self.data.contains(i) {
+                        degree += 1;
+
+                        // Self-loop counts twice.
+                        degree += (v == col) as usize;
+                    }
+                }
+            }
+
+            degree
+        }
+
         pub fn detach(&self) -> DetachedMatrix<'_, Ty, Ix> {
             DetachedMatrix {
                 data: self.data.detach(),
@@ -811,6 +868,10 @@ mod tests {
             index::DefaultIndexing,
             marker::{Directed, Undirected},
         },
+        infra::{
+            arbitrary::{ArbitraryIndexing, Index},
+            testing::check_consistency,
+        },
         storage::tests::*,
     };
 
@@ -832,5 +893,25 @@ mod tests {
     #[test]
     fn connect_vertices_directed() {
         test_connect_vertices::<Directed, AdjMatrix<_, _, _, DefaultIndexing>>();
+    }
+
+    #[test]
+    fn neighbors_edge_cases_undirected() {
+        test_neighbors_edge_cases::<Undirected, AdjMatrix<_, _, _, DefaultIndexing>>();
+    }
+
+    #[test]
+    fn neighbors_edge_cases_directed() {
+        test_neighbors_edge_cases::<Directed, AdjMatrix<_, _, _, DefaultIndexing>>();
+    }
+
+    #[test]
+    fn fuzz_trophy1() {
+        let mut graph = AdjMatrix::<_, _, Undirected, ArbitraryIndexing>::new();
+
+        graph.add_vertex(10);
+        graph.add_edge(&Index(0), &Index(0), 0);
+
+        check_consistency(&graph).unwrap();
     }
 }

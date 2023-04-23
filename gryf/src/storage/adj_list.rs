@@ -372,6 +372,11 @@ where
     fn clear_edges(&mut self) {
         self.edges.clear();
         self.endpoints.clear();
+
+        for vertex in self.vertices.iter_mut() {
+            vertex.edges[0].clear();
+            vertex.edges[1].clear();
+        }
     }
 }
 
@@ -599,7 +604,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "not fixed yet"]
     fn fuzz_trophy1() {
         let mut graph = AdjList::<_, _, Undirected, ArbitraryIndexing>::new();
 
@@ -610,7 +614,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "not fixed yet"]
     fn fuzz_trophy2() {
         let mut graph = AdjList::<_, _, Directed, ArbitraryIndexing>::new();
 

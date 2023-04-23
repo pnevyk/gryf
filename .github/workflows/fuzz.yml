@@ -1,0 +1,38 @@
+name: Fuzzing
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly on Sunday
+    - cron: "0 0 * * 0"
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    name: Fuzz
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - adj_list_undirected
+          - adj_list_directed
+          - adj_matrix_undirected
+          - adj_matrix_directed
+          - edge_list_undirected
+          - edge_list_directed
+    defaults:
+      run:
+        working-directory: fuzz
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@nightly
+      - run: cargo install cargo-fuzz
+      - uses: Swatinem/rust-cache@v2
+      - name: cargo fuzz run
+        run: |
+          cargo fuzz build
+          timeout 5m cargo fuzz run ${{ matrix.target }} || EXIT_CODE=$?
+          test $EXIT_CODE -eq 124 # 124 indicates cancellation

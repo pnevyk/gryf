@@ -49,6 +49,19 @@ pub trait Vertices<V>: VerticesBase {
 
     fn vertex(&self, index: &Self::VertexIndex) -> Option<&V>;
     fn vertices(&self) -> Self::VerticesIter<'_>;
+
+    fn find_vertex(&self, vertex: &V) -> Option<Self::VertexIndex>
+    where
+        V: Eq,
+    {
+        self.vertices().find_map(|v| {
+            if v.data() == vertex {
+                Some(v.index().clone())
+            } else {
+                None
+            }
+        })
+    }
 }
 
 #[derive(Debug, Error, PartialEq)]
@@ -123,6 +136,26 @@ pub trait VerticesMut<V>: Vertices<V> {
 
         for v in vertices {
             self.remove_vertex(&v);
+        }
+    }
+
+    fn try_get_or_add_vertex(&mut self, vertex: V) -> Result<Self::VertexIndex, AddVertexError<V>>
+    where
+        V: Eq,
+    {
+        match self.find_vertex(&vertex) {
+            Some(v) => Ok(v),
+            None => self.try_add_vertex(vertex),
+        }
+    }
+
+    fn get_or_add_vertex(&mut self, vertex: V) -> Self::VertexIndex
+    where
+        V: Eq,
+    {
+        match self.try_get_or_add_vertex(vertex) {
+            Ok(index) => index,
+            Err(error) => panic!("{error}"),
         }
     }
 }

@@ -15,6 +15,8 @@ use crate::{
     storage::{AdjList, Frozen, Stable},
 };
 
+use super::AddEdgeConnectingError;
+
 use gryf_derive::{
     Edges, EdgesBase, EdgesBaseWeak, EdgesMut, EdgesWeak, GraphBase, Guarantee, MultiEdges,
     Neighbors, Vertices, VerticesBase, VerticesBaseWeak, VerticesMut, VerticesWeak,
@@ -180,6 +182,14 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         self.storage.vertices()
     }
 
+    pub fn find_vertex(&self, vertex: &V) -> Option<G::VertexIndex>
+    where
+        G: Vertices<V>,
+        V: Eq,
+    {
+        self.storage.find_vertex(vertex)
+    }
+
     pub fn vertex_mut<VI>(&mut self, index: VI) -> Option<&mut V>
     where
         G: VerticesMut<V>,
@@ -235,6 +245,22 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         G: VerticesMut<V>,
     {
         self.storage.clear()
+    }
+
+    pub fn try_get_or_add_vertex(&mut self, vertex: V) -> Result<G::VertexIndex, AddVertexError<V>>
+    where
+        G: VerticesMut<V>,
+        V: Eq,
+    {
+        self.storage.try_get_or_add_vertex(vertex)
+    }
+
+    pub fn get_or_add_vertex(&mut self, vertex: V) -> G::VertexIndex
+    where
+        G: VerticesMut<V>,
+        V: Eq,
+    {
+        self.storage.get_or_add_vertex(vertex)
     }
 
     pub fn edge_count(&self) -> usize
@@ -339,6 +365,33 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         VI: Borrow<G::VertexIndex>,
     {
         self.storage.try_add_edge(src.borrow(), dst.borrow(), edge)
+    }
+
+    pub fn try_add_edge_connecting(
+        &mut self,
+        src: V,
+        dst: V,
+        edge: E,
+    ) -> Result<G::EdgeIndex, AddEdgeConnectingError<V, E>>
+    where
+        G: VerticesMut<V> + EdgesMut<E, Ty>,
+        V: Eq,
+    {
+        let src = self.storage.try_get_or_add_vertex(src)?;
+        let dst = self.storage.try_get_or_add_vertex(dst)?;
+        let edge = self.storage.try_add_edge(&src, &dst, edge)?;
+        Ok(edge)
+    }
+
+    pub fn add_edge_connecting(&mut self, src: V, dst: V, edge: E) -> G::EdgeIndex
+    where
+        G: VerticesMut<V> + EdgesMut<E, Ty>,
+        V: Eq,
+    {
+        match self.try_add_edge_connecting(src, dst, edge) {
+            Ok(index) => index,
+            Err(error) => panic!("{error}"),
+        }
     }
 
     pub fn remove_edge<EI>(&mut self, index: EI) -> Option<E>

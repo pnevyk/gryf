@@ -111,7 +111,7 @@ impl fmt::Display for AddEdgeErrorKind {
     }
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq)]
 #[error("edge does not exist")]
 pub struct ReplaceEdgeError<E>(pub E);
 

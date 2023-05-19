@@ -55,7 +55,7 @@ where
     }
 
     // Check for negative cycles. If the main loop was terminated early, then
-    // the absence of cycle if guaranteed.
+    // the absence of cycle is guaranteed.
     if !terminated_early {
         for edge in graph.edges() {
             let u = vertex_map.virt(*edge.src()).unwrap();

@@ -104,10 +104,10 @@ where
                     pred.insert(next, vertex.clone());
                 }
             }
-
-            // The vertex is finished.
-            visited.visit(vertex.clone());
         }
+
+        // The vertex is finished.
+        visited.visit(vertex.clone());
     }
 
     Ok(ShortestPaths { start, dist, pred })

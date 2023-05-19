@@ -66,30 +66,16 @@ where
             let next = next.into_owned();
             let next_dist = vertex_dist.clone() + edge_dist.clone();
 
-            match dist.entry(next.clone()) {
-                Entry::Occupied(curr_dist) => {
-                    // Relaxation operation. If the distance is better than what
-                    // we had so far, update it.
-                    if next_dist < *curr_dist.get() {
-                        *curr_dist.into_mut() = next_dist.clone();
-                        // A textbook version of the algorithm would update the
-                        // priority of `next`. Adding it as a new item causes
-                        // duplicities which is unfortunate for dense graphs,
-                        // but should be fine in practice.
-                        queue.push_back((next.clone(), next_dist));
-                        pred.insert(next, vertex.clone());
-                    }
-                }
-                Entry::Vacant(slot) => {
-                    slot.insert(next_dist.clone());
-                    queue.push_back((next.clone(), next_dist));
-                    pred.insert(next, vertex.clone());
-                }
+            if let Entry::Vacant(slot) = dist.entry(next.clone()) {
+                slot.insert(next_dist.clone());
+                pred.insert(next.clone(), vertex.clone());
             }
 
-            // The vertex is finished.
-            visited.visit(vertex.clone());
+            queue.push_back((next, next_dist));
         }
+
+        // The vertex is finished.
+        visited.visit(vertex.clone());
     }
 
     Ok(ShortestPaths { start, dist, pred })

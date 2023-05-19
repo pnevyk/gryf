@@ -25,6 +25,7 @@ where
             graph.vertex_count(),
             BuildHasherDefault::default(),
         ),
+        cycle: false,
     }
 }
 
@@ -35,6 +36,7 @@ where
     raw: RawVisit<G, UseVertexIndex, RawDfsExtra>,
     multi: RawVisitMulti<G, UseVertexIndex, RawDfsExtra, VisitAll<'a, G>>,
     closed: FxHashSet<G::VertexIndex>,
+    cycle: bool,
 }
 
 impl<'a, G> Visitor<G> for DfsVisit<'a, G>
@@ -44,6 +46,12 @@ where
     type Item = Result<G::VertexIndex, Error>;
 
     fn next(&mut self, graph: &G) -> Option<Self::Item> {
+        if self.cycle {
+            // We discovered a cycle in the previous iteration, but next vertex
+            // was still requested.
+            return None;
+        }
+
         // The implementation differs from classic DFS algorithm for topological
         // sorting in order to achieve lazy behavior. The algorithm traverses
         // the graph in reverse DFS order and reports each vertex that is being
@@ -56,8 +64,6 @@ where
         let graph = &Transpose::new(graph);
 
         loop {
-            let mut cycle = false;
-
             let raw_extra_event = self.multi.next_multi(
                 &mut self.raw,
                 |raw| {
@@ -66,7 +72,7 @@ where
                             // Vertex not added to the stack, but also
                             // has not been closed. That means that we
                             // encountered a back edge.
-                            cycle = true;
+                            self.cycle = true;
 
                             // Prune to avoid unnecessary work.
                             false
@@ -77,7 +83,7 @@ where
                 |vertex| graph.contains_vertex(vertex),
             )?;
 
-            if cycle {
+            if self.cycle {
                 return Some(Err(Error::Cycle));
             }
 

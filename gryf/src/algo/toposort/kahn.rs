@@ -31,6 +31,7 @@ where
         in_deg,
         queue,
         visited: 0,
+        cycle: false,
     }
 }
 
@@ -45,6 +46,7 @@ where
     // 0 does not matter.
     queue: Vec<G::VertexIndex>,
     visited: usize,
+    cycle: bool,
 }
 
 impl<'a, G> Iterator for KahnIter<'a, G>
@@ -71,7 +73,15 @@ where
             Some(Ok(vertex))
         } else if self.visited != self.map.len() {
             // `self.map.len()` corresponds to vertex count.
-            Some(Err(Error::Cycle))
+
+            if self.cycle {
+                // We discovered a cycle in the previous iteration, but next
+                // vertex was still requested.
+                None
+            } else {
+                self.cycle = true;
+                Some(Err(Error::Cycle))
+            }
         } else {
             None
         }

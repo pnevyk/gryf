@@ -253,6 +253,24 @@ mod tests {
     }
 
     #[test]
+    fn dfs_none_after_cycle() {
+        let graph = create_cyclic_graph();
+        let mut toposort = TopoSort::on(&graph).with(Algo::Dfs).run();
+
+        for result in toposort.by_ref() {
+            match result {
+                Ok(_) => {}
+                Err(error) => {
+                    assert_eq!(error, Error::Cycle);
+                    break;
+                }
+            }
+        }
+
+        assert_eq!(toposort.next(), None);
+    }
+
+    #[test]
     fn kahn_basic() {
         let graph = create_basic_graph();
         let toposort = TopoSort::on(&graph).with(Algo::Kahn).run();
@@ -274,6 +292,24 @@ mod tests {
         let toposort = TopoSort::on(&graph).with(Algo::Kahn).run();
 
         assert_valid(toposort, &graph);
+    }
+
+    #[test]
+    fn kahn_none_after_cycle() {
+        let graph = create_cyclic_graph();
+        let mut toposort = TopoSort::on(&graph).with(Algo::Kahn).run();
+
+        for result in toposort.by_ref() {
+            match result {
+                Ok(_) => {}
+                Err(error) => {
+                    assert_eq!(error, Error::Cycle);
+                    break;
+                }
+            }
+        }
+
+        assert_eq!(toposort.next(), None);
     }
 
     proptest! {

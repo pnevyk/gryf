@@ -40,13 +40,13 @@ pub struct Transpose<G> {
 
 impl<G> Transpose<G>
 where
-    G: VerticesBase + EdgesBase<Directed>,
+    G: EdgesBase<Directed>,
 {
     pub fn new(graph: G) -> Self {
         Self { graph }
     }
 
-    pub fn into_unmodified(self) -> G {
+    pub fn into_inner(self) -> G {
         self.graph
     }
 }

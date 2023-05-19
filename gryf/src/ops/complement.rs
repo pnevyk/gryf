@@ -30,7 +30,7 @@ where
         Self { graph, edge }
     }
 
-    pub fn into_unmodified(self) -> G {
+    pub fn into_inner(self) -> G {
         self.graph
     }
 

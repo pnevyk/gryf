@@ -1,7 +1,10 @@
 use crate::{
+    algo::Cycle,
     common::CompactIndexMap,
     core::{
-        index::NumIndexType, marker::Direction, GraphBase, NeighborRef, Neighbors, VerticesBase,
+        index::{NumIndexType, Virtual},
+        marker::Direction,
+        GraphBase, NeighborRef, Neighbors, VerticesBase,
     },
 };
 
@@ -54,7 +57,7 @@ where
     G: Neighbors,
     G::VertexIndex: NumIndexType,
 {
-    type Item = Result<G::VertexIndex, Error>;
+    type Item = Result<G::VertexIndex, Error<G>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(vertex) = self.queue.pop() {
@@ -80,7 +83,34 @@ where
                 None
             } else {
                 self.cycle = true;
-                Some(Err(Error::Cycle))
+
+                // Find a vertex that has a non-zero in degree. It must be part
+                // of a cycle, otherwise its in degree would be reduced to zero.
+                let v = self
+                    .in_deg
+                    .iter()
+                    .copied()
+                    .enumerate()
+                    .find(|(_, deg)| *deg > 0)
+                    .map(|(i, _)| self.map.real(Virtual::new(i as u64)).unwrap())
+                    .unwrap();
+
+                // Find an incoming edge to that vertex from a vertex that has
+                // not been visited too.
+                let edge = self
+                    .graph
+                    .neighbors_directed(&v, Direction::Incoming)
+                    .find_map(|n| {
+                        let i = self.map.virt(*n.index()).unwrap().to_usize();
+                        if self.in_deg[i] > 0 {
+                            Some(n.edge().into_owned())
+                        } else {
+                            None
+                        }
+                    })
+                    .unwrap();
+
+                Some(Err(Error::Cycle(Cycle::new(edge, false))))
             }
         } else {
             None

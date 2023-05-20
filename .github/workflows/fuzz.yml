@@ -23,6 +23,8 @@ jobs:
           - adj_matrix_directed
           - edge_list_undirected
           - edge_list_directed
+          - stable_undirected
+          - stable_directed
     defaults:
       run:
         working-directory: fuzz

@@ -55,3 +55,15 @@ name = "edge_list_directed"
 path = "fuzz_targets/edge_list_directed.rs"
 test = false
 doc = false
+
+[[bin]]
+name = "stable_undirected"
+path = "fuzz_targets/stable_undirected.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "stable_directed"
+path = "fuzz_targets/stable_directed.rs"
+test = false
+doc = false

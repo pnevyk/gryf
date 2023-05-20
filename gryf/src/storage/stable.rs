@@ -5,9 +5,9 @@ use crate::{
     core::{
         index::{EdgeIndex, NumIndexType, VertexIndex},
         marker::{Direction, EdgeType},
-        AddEdgeError, AddVertexError, ConnectVertices, Create, EdgeRef, Edges, EdgesBase, EdgesMut,
-        GraphBase, NeighborRef, Neighbors, NoReplace, StableIndices, VertexRef, Vertices,
-        VerticesBase, VerticesMut,
+        AddEdgeError, AddEdgeErrorKind, AddVertexError, ConnectVertices, Create, EdgeRef, Edges,
+        EdgesBase, EdgesMut, GraphBase, NeighborRef, Neighbors, NoReplace, StableIndices,
+        VertexRef, Vertices, VerticesBase, VerticesMut,
     },
 };
 
@@ -171,7 +171,6 @@ where
     fn remove_vertex(&mut self, index: &G::VertexIndex) -> Option<V> {
         if let Some(data) = self.vertex(index) {
             let data = data.clone();
-            self.removed_vertices.insert(index.clone());
 
             // Iterate over remaining neighbors only to get edges to be marked
             // as removed. An alternative could be to iterate over all neighbors
@@ -182,6 +181,8 @@ where
             for neighbor in self.neighbors(index) {
                 removed_edges.insert(neighbor.edge().into_owned());
             }
+
+            self.removed_vertices.insert(index.clone());
 
             for edge in removed_edges {
                 self.removed_edges.insert(edge);
@@ -317,6 +318,14 @@ where
         dst: &G::VertexIndex,
         edge: E,
     ) -> Result<G::EdgeIndex, AddEdgeError<E>> {
+        if self.removed_vertices.contains(src) {
+            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::SourceAbsent));
+        }
+
+        if self.removed_vertices.contains(dst) {
+            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::DestinationAbsent));
+        }
+
         self.inner.try_add_edge(src, dst, edge)
     }
 
@@ -350,6 +359,10 @@ where
         Self: 'a;
 
     fn neighbors(&self, src: &G::VertexIndex) -> Self::NeighborsIter<'_> {
+        if self.removed_vertices.contains(src) {
+            panic!("vertex does not exist");
+        }
+
         NeighborsIter {
             inner: self.inner.neighbors(src),
             removed_vertices: &self.removed_vertices,
@@ -358,6 +371,10 @@ where
     }
 
     fn neighbors_directed(&self, src: &G::VertexIndex, dir: Direction) -> Self::NeighborsIter<'_> {
+        if self.removed_vertices.contains(src) {
+            panic!("vertex does not exist");
+        }
+
         NeighborsIter {
             inner: self.inner.neighbors_directed(src, dir),
             removed_vertices: &self.removed_vertices,

@@ -91,6 +91,8 @@ pub enum Error {
     NegativeCycle,
     #[error("edge not available")]
     EdgeNotAvailable,
+    #[error("goal not reached")]
+    GoalNotReached,
 }
 
 pub struct PathReconstruction<'a, G: GraphBase> {
@@ -144,6 +146,22 @@ mod tests {
         graph
     }
 
+    fn create_graph_with_isolated_vertex(
+    ) -> (AdjList<(), i32, Undirected, DefaultIndexing>, VertexIndex) {
+        let mut graph = AdjList::default();
+
+        let v0 = graph.add_vertex(());
+        let v1 = graph.add_vertex(());
+        let v2 = graph.add_vertex(());
+        let v3 = graph.add_vertex(());
+
+        graph.add_edge(&v0, &v1, 3);
+        graph.add_edge(&v0, &v2, 2);
+        graph.add_edge(&v1, &v2, 2);
+
+        (graph, v3)
+    }
+
     fn v(index: usize) -> VertexIndex {
         index.into()
     }
@@ -192,6 +210,18 @@ mod tests {
             .run(v(0));
 
         assert_matches!(shortest_paths, Err(Error::NegativeWeight));
+    }
+
+    #[test]
+    fn dijkstra_goal_not_reached() {
+        let (graph, u) = create_graph_with_isolated_vertex();
+
+        let shortest_paths = ShortestPaths::on(&graph)
+            .goal(u)
+            .with(Algo::Dijkstra)
+            .run(v(0));
+
+        assert_matches!(shortest_paths, Err(Error::GoalNotReached));
     }
 
     #[test]
@@ -252,6 +282,18 @@ mod tests {
     }
 
     #[test]
+    fn bellman_ford_goal_not_reached() {
+        let (graph, u) = create_graph_with_isolated_vertex();
+
+        let shortest_paths = ShortestPaths::on(&graph)
+            .goal(u)
+            .with(Algo::BellmanFord)
+            .run(v(0));
+
+        assert_matches!(shortest_paths, Err(Error::GoalNotReached));
+    }
+
+    #[test]
     fn bfs_basic() {
         let graph = create_basic_graph();
         let shortest_paths = ShortestPaths::on(&graph)
@@ -280,5 +322,18 @@ mod tests {
             .unwrap();
 
         assert!(shortest_paths.dist(v(5)).is_none());
+    }
+
+    #[test]
+    fn bfs_goal_not_reached() {
+        let (graph, u) = create_graph_with_isolated_vertex();
+
+        let shortest_paths = ShortestPaths::on(&graph)
+            .goal(u)
+            .unit_weight()
+            .bfs()
+            .run(v(0));
+
+        assert_matches!(shortest_paths, Err(Error::GoalNotReached));
     }
 }

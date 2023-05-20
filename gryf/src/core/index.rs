@@ -1,6 +1,6 @@
 use std::{hash::Hash, marker::PhantomData};
 
-pub trait IndexType: Clone + PartialEq + PartialOrd + Ord + Hash + core::fmt::Debug {}
+pub trait IndexType: Clone + Ord + Hash + core::fmt::Debug {}
 
 pub trait NumIndexType: IndexType + Copy + From<usize> + Into<usize> {
     fn to_bits(self) -> u64;

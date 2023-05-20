@@ -1,9 +1,13 @@
+use std::fmt;
+
 use thiserror::Error;
 
 use crate::{
-    core::{index::NumIndexType, marker::Directed, EdgesBase, Neighbors, VerticesBase},
+    core::{index::NumIndexType, marker::Directed, EdgesBase, GraphBase, Neighbors, VerticesBase},
     visit,
 };
+
+use super::Cycle;
 
 mod builder;
 mod dfs;
@@ -25,7 +29,7 @@ where
     G: Neighbors + VerticesBase + EdgesBase<Directed>,
     G::VertexIndex: NumIndexType,
 {
-    type Item = Result<G::VertexIndex, Error>;
+    type Item = Result<G::VertexIndex, Error<G>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner.next()
@@ -37,7 +41,7 @@ where
     G: Neighbors + VerticesBase + EdgesBase<Directed>,
     G::VertexIndex: NumIndexType,
 {
-    pub fn into_vec(self) -> Result<Vec<G::VertexIndex>, Error> {
+    pub fn into_vec(self) -> Result<Vec<G::VertexIndex>, Error<G>> {
         self.collect()
     }
 }
@@ -65,11 +69,49 @@ mod algo {
     pub struct Kahn;
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
-pub enum Error {
+#[derive(Error)]
+pub enum Error<G>
+where
+    G: GraphBase,
+{
     #[error("the graph contains cycle")]
-    Cycle,
+    Cycle(Cycle<G>),
 }
+
+impl<G> fmt::Debug for Error<G>
+where
+    G: GraphBase,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Cycle(cycle) => f.debug_tuple("Cycle").field(&cycle.edge).finish(),
+        }
+    }
+}
+
+impl<G> Clone for Error<G>
+where
+    G: GraphBase,
+{
+    fn clone(&self) -> Self {
+        match self {
+            Self::Cycle(cycle) => Self::Cycle(cycle.clone()),
+        }
+    }
+}
+
+impl<G> PartialEq for Error<G>
+where
+    G: GraphBase,
+{
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Cycle(lhs), Self::Cycle(rhs)) => lhs == rhs,
+        }
+    }
+}
+
+impl<G> Eq for Error<G> where G: GraphBase {}
 
 enum TopoSortInner<'a, G>
 where
@@ -84,7 +126,7 @@ where
     G: Neighbors + VerticesBase + EdgesBase<Directed>,
     G::VertexIndex: NumIndexType,
 {
-    type Item = Result<G::VertexIndex, Error>;
+    type Item = Result<G::VertexIndex, Error<G>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
@@ -98,6 +140,7 @@ where
 mod tests {
     use std::collections::HashMap;
 
+    use assert_matches::assert_matches;
     use proptest::prelude::*;
 
     use super::*;
@@ -125,7 +168,7 @@ mod tests {
                 .start_all(graph)
                 .iter(graph)
                 .find_map(|event| match event {
-                    DfsEvent::BackEdge { .. } => Some(Error::Cycle),
+                    DfsEvent::BackEdge { .. } => Some(()),
                     _ => None,
                 });
 
@@ -150,7 +193,7 @@ mod tests {
                     assert!(i < j, "invalid topological order for {src:?} -> {dst:?}");
                 }
             }
-            (Ok(_), Some(error)) => panic!("algorithm did not detect error: {error:?}"),
+            (Ok(_), Some(_)) => panic!("algorithm did not detect cycle"),
             (Err(error), None) => panic!("algorithm incorrectly returned error: {error:?}"),
             (Err(_), Some(_)) => {}
         }
@@ -261,7 +304,7 @@ mod tests {
             match result {
                 Ok(_) => {}
                 Err(error) => {
-                    assert_eq!(error, Error::Cycle);
+                    assert_matches!(error, Error::Cycle(_));
                     break;
                 }
             }
@@ -303,7 +346,7 @@ mod tests {
             match result {
                 Ok(_) => {}
                 Err(error) => {
-                    assert_eq!(error, Error::Cycle);
+                    assert_matches!(error, Error::Cycle(_));
                     break;
                 }
             }

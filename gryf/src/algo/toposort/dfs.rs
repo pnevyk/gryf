@@ -3,6 +3,7 @@ use std::hash::BuildHasherDefault;
 use rustc_hash::FxHashSet;
 
 use crate::{
+    algo::Cycle,
     common::VisitSet,
     core::{index::UseVertexIndex, marker::Directed, EdgesBase, Neighbors, VerticesBase},
     ops::Transpose,
@@ -25,7 +26,7 @@ where
             graph.vertex_count(),
             BuildHasherDefault::default(),
         ),
-        cycle: false,
+        cycle: None,
     }
 }
 
@@ -36,17 +37,17 @@ where
     raw: RawVisit<G, UseVertexIndex, RawDfsExtra>,
     multi: RawVisitMulti<G, UseVertexIndex, RawDfsExtra, VisitAll<'a, G>>,
     closed: FxHashSet<G::VertexIndex>,
-    cycle: bool,
+    cycle: Option<G::EdgeIndex>,
 }
 
 impl<'a, G> Visitor<G> for DfsVisit<'a, G>
 where
     G: Neighbors + VerticesBase + EdgesBase<Directed>,
 {
-    type Item = Result<G::VertexIndex, Error>;
+    type Item = Result<G::VertexIndex, Error<G>>;
 
     fn next(&mut self, graph: &G) -> Option<Self::Item> {
-        if self.cycle {
+        if self.cycle.is_some() {
             // We discovered a cycle in the previous iteration, but next vertex
             // was still requested.
             return None;
@@ -68,11 +69,11 @@ where
                 &mut self.raw,
                 |raw| {
                     raw.next(graph, |_, raw_event| match raw_event {
-                        RawEvent::Skip { vertex, .. } if !self.closed.is_visited(&vertex) => {
+                        RawEvent::Skip { vertex, src } if !self.closed.is_visited(&vertex) => {
                             // Vertex not added to the stack, but also
                             // has not been closed. That means that we
                             // encountered a back edge.
-                            self.cycle = true;
+                            self.cycle = src.map(|(_, edge)| edge);
 
                             // Prune to avoid unnecessary work.
                             false
@@ -83,8 +84,8 @@ where
                 |vertex| graph.contains_vertex(vertex),
             )?;
 
-            if self.cycle {
-                return Some(Err(Error::Cycle));
+            if let Some(ref cycle) = self.cycle {
+                return Some(Err(Error::Cycle(Cycle::new(cycle.clone(), false))));
             }
 
             if let RawDfsExtraEvent::Close(vertex) = raw_extra_event {

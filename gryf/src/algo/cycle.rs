@@ -1,3 +1,5 @@
+use std::fmt;
+
 use crate::core::{
     marker::EdgeType, EdgesBase, EdgesBaseWeak, GraphBase, Neighbors, VerticesBase,
     VerticesBaseWeak,
@@ -14,7 +16,49 @@ pub struct Cycle<G: GraphBase> {
     as_undirected: bool,
 }
 
+impl<G> fmt::Debug for Cycle<G>
+where
+    G: GraphBase,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Cycle")
+            .field("edge", &self.edge)
+            .field("as_undirected", &self.as_undirected)
+            .finish()
+    }
+}
+
+impl<G> Clone for Cycle<G>
+where
+    G: GraphBase,
+{
+    fn clone(&self) -> Self {
+        Self {
+            edge: self.edge.clone(),
+            as_undirected: self.as_undirected,
+        }
+    }
+}
+
+impl<G> PartialEq for Cycle<G>
+where
+    G: GraphBase,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.edge == other.edge && self.as_undirected == other.as_undirected
+    }
+}
+
+impl<G> Eq for Cycle<G> where G: GraphBase {}
+
 impl<G: GraphBase> Cycle<G> {
+    pub(crate) fn new(edge: G::EdgeIndex, as_undirected: bool) -> Self {
+        Self {
+            edge,
+            as_undirected,
+        }
+    }
+
     pub fn collect<Ty: EdgeType>(self, graph: &G) -> Vec<G::EdgeIndex>
     where
         G: Neighbors + VerticesBase + VerticesBaseWeak + EdgesBase<Ty> + EdgesBaseWeak<Ty>,

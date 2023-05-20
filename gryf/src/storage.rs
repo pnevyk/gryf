@@ -163,11 +163,8 @@ mod tests {
         graph.add_edge(&v0, &v0, ());
 
         // For undirected graphs, we want to iterate over the self-loop edge
-        // only once. But the degree should still be 2. Note that this is not a
-        // required behavior for neighbors, just an "optimization" in our
-        // implementations. In fact, for the correct behavior of the default
-        // implementation degree methods, the neighbors iterators are expected
-        // to yield such an edge twice.
+        // only once. But the degree should still be 2. This is the required
+        // behavior for neighbors for any storage.
         let n_neighbors = if Ty::is_directed() { 2 } else { 1 };
         assert_eq!(graph.neighbors(&v0).count(), n_neighbors);
         assert_eq!(graph.degree(&v0), 2);

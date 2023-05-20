@@ -145,6 +145,7 @@ impl<V, E, Ty: EdgeType> Default for AdjList<V, E, Ty, DefaultIndexing> {
 impl<V, E, Ty: EdgeType, Ix: Indexing> GraphBase for AdjList<V, E, Ty, Ix> {
     type VertexIndex = Ix::VertexIndex;
     type EdgeIndex = Ix::EdgeIndex;
+    type EdgeType = Ty;
 }
 
 impl<V, E, Ty: EdgeType, Ix: Indexing> VerticesBase for AdjList<V, E, Ty, Ix>

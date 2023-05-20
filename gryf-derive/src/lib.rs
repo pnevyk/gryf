@@ -23,6 +23,7 @@ pub fn graph_base(tokens: TokenStream) -> TokenStream {
         impl #impl_generics GraphBase for #name #ty_generics #where_clause {
             type VertexIndex = <#field_type as GraphBase>::VertexIndex;
             type EdgeIndex = <#field_type as GraphBase>::EdgeIndex;
+            type EdgeType = <#field_type as GraphBase>::EdgeType;
         }
     };
 

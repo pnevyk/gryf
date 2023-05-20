@@ -184,12 +184,13 @@ impl<V, E, Ty: EdgeType> Model<V, E, Ty> {
     }
 }
 
-impl<V, E, Ty> GraphBase for Model<V, E, Ty> {
+impl<V, E, Ty: EdgeType> GraphBase for Model<V, E, Ty> {
     type VertexIndex = VertexIndex;
     type EdgeIndex = EdgeIndex;
+    type EdgeType = Ty;
 }
 
-impl<V, E, Ty> VerticesBase for Model<V, E, Ty> {
+impl<V, E, Ty: EdgeType> VerticesBase for Model<V, E, Ty> {
     type VertexIndicesIter<'a> = IndexIter<'a, VertexIndex, V>
     where
         Self: 'a;
@@ -211,7 +212,7 @@ impl<V, E, Ty> VerticesBase for Model<V, E, Ty> {
     }
 }
 
-impl<V, E, Ty> Vertices<V> for Model<V, E, Ty> {
+impl<V, E, Ty: EdgeType> Vertices<V> for Model<V, E, Ty> {
     type VertexRef<'a> = (VertexIndex, &'a V)
     where
         Self: 'a,
@@ -231,7 +232,7 @@ impl<V, E, Ty> Vertices<V> for Model<V, E, Ty> {
     }
 }
 
-impl<V, E, Ty> VerticesMut<V> for Model<V, E, Ty> {
+impl<V, E, Ty: EdgeType> VerticesMut<V> for Model<V, E, Ty> {
     fn vertex_mut(&mut self, index: &Self::VertexIndex) -> Option<&mut V> {
         self.vertices
             .get_mut(index.to_usize())

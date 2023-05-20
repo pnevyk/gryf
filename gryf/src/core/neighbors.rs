@@ -1,7 +1,7 @@
 use super::{
     base::{GraphBase, WeakRef},
     index::IndexType,
-    marker::Direction,
+    marker::{Direction, EdgeType},
 };
 
 pub trait NeighborRef<VI: IndexType, EI: IndexType> {
@@ -28,11 +28,33 @@ pub trait Neighbors: GraphBase {
     ) -> Self::NeighborsIter<'_>;
 
     fn degree(&self, index: &Self::VertexIndex) -> usize {
-        self.neighbors(index).count()
+        if Self::EdgeType::is_directed() {
+            self.degree_directed(index, Direction::Outgoing)
+                + self.degree_directed(index, Direction::Incoming)
+        } else {
+            self.degree_directed(index, Direction::Outgoing)
+        }
     }
 
     fn degree_directed(&self, index: &Self::VertexIndex, dir: Direction) -> usize {
-        self.neighbors_directed(index, dir).count()
+        if Self::EdgeType::is_directed() {
+            self.neighbors_directed(index, dir).count()
+        } else {
+            // In undirected graphs, we need to handle self-loops.
+            self.neighbors_directed(index, dir)
+                .map(|neighbor| {
+                    // If this is a self-loop, we need to count it twice.
+                    // Storages are required to yield a self-loop just once. If
+                    // this requirement is satisfied, then this implementation
+                    // of degree is correct.
+                    if neighbor.index().as_ref() == index {
+                        2
+                    } else {
+                        1
+                    }
+                })
+                .sum()
+        }
     }
 }
 

@@ -4,7 +4,7 @@ use gryf::prelude::*;
 use gryf::{
     core::{
         index::{EdgeIndex, VertexIndex},
-        marker::Direction,
+        marker::{Directed, Direction},
         GraphBase, NeighborRef, Neighbors, VerticesBaseWeak, VerticesWeak, WeakRef,
     },
     visit::Dfs,
@@ -48,6 +48,7 @@ impl NeighborRef<VertexIndex, EdgeIndex> for Neighbor {
 impl GraphBase for Collatz {
     type VertexIndex = VertexIndex;
     type EdgeIndex = EdgeIndex;
+    type EdgeType = Directed;
 }
 
 impl Neighbors for Collatz {

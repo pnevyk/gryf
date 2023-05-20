@@ -61,6 +61,7 @@ impl<V, E, Ty: EdgeType> Default for EdgeList<V, E, Ty, DefaultIndexing> {
 impl<V, E, Ty: EdgeType, Ix: Indexing> GraphBase for EdgeList<V, E, Ty, Ix> {
     type VertexIndex = Ix::VertexIndex;
     type EdgeIndex = Ix::EdgeIndex;
+    type EdgeType = Ty;
 }
 
 impl<V, E, Ty: EdgeType, Ix: Indexing> VerticesBase for EdgeList<V, E, Ty, Ix>

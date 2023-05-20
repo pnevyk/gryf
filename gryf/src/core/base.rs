@@ -106,6 +106,7 @@ impl<T> Borrow<T> for WeakRef<'_, T> {
 pub trait GraphBase {
     type VertexIndex: IndexType;
     type EdgeIndex: IndexType;
+    type EdgeType: EdgeType;
 }
 
 impl<G> GraphBase for &G
@@ -114,6 +115,7 @@ where
 {
     type VertexIndex = G::VertexIndex;
     type EdgeIndex = G::EdgeIndex;
+    type EdgeType = G::EdgeType;
 }
 
 impl<G> GraphBase for &mut G
@@ -122,6 +124,7 @@ where
 {
     type VertexIndex = G::VertexIndex;
     type EdgeIndex = G::EdgeIndex;
+    type EdgeType = G::EdgeType;
 }
 
 impl<G> Indexing for G

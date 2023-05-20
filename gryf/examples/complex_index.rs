@@ -17,6 +17,7 @@ struct Chessboard;
 impl GraphBase for Chessboard {
     type VertexIndex = ChessSquare;
     type EdgeIndex = (ChessSquare, ChessSquare);
+    type EdgeType = Undirected;
 }
 
 impl VerticesBaseWeak for Chessboard {

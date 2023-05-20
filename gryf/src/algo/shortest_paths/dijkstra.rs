@@ -54,6 +54,9 @@ where
         }
 
         if goal.as_ref() == Some(&vertex) {
+            // Mark as visited, because below is a test that checks that goal
+            // was visited.
+            visited.visit(vertex);
             break;
         }
 
@@ -108,6 +111,12 @@ where
 
         // The vertex is finished.
         visited.visit(vertex.clone());
+    }
+
+    if let Some(ref goal) = goal {
+        if !visited.is_visited(goal) {
+            return Err(Error::GoalNotReached);
+        }
     }
 
     Ok(ShortestPaths { start, dist, pred })

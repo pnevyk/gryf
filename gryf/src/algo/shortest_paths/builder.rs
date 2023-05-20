@@ -195,7 +195,7 @@ where
 
         match algo {
             AlgoExt::Algo(Algo::Dijkstra) => dijkstra(graph, start, goal, edge_weight),
-            AlgoExt::Algo(Algo::BellmanFord) => bellman_ford(graph, start, edge_weight),
+            AlgoExt::Algo(Algo::BellmanFord) => bellman_ford(graph, start, goal, edge_weight),
             AlgoExt::Bfs => bfs(graph, start, goal, edge_weight.get_const().unwrap()),
         }
     }
@@ -234,10 +234,13 @@ where
         W: Weight,
     {
         let ShortestPathsBuilder {
-            graph, edge_weight, ..
+            graph,
+            edge_weight,
+            goal,
+            ..
         } = self;
 
-        bellman_ford(graph, start, edge_weight)
+        bellman_ford(graph, start, goal, edge_weight)
     }
 }
 
@@ -286,7 +289,7 @@ where
 
         match algo {
             AlgoExt::Algo(Algo::Dijkstra) => dijkstra(graph, start, goal, edge_weight),
-            AlgoExt::Algo(Algo::BellmanFord) => bellman_ford(graph, start, edge_weight),
+            AlgoExt::Algo(Algo::BellmanFord) => bellman_ford(graph, start, goal, edge_weight),
             AlgoExt::Bfs => bfs(graph, start, goal, edge_weight.get_const().unwrap()),
         }
     }

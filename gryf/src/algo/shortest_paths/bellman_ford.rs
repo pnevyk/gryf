@@ -10,6 +10,7 @@ use super::{Error, ShortestPaths};
 pub fn bellman_ford<E, Ty: EdgeType, G, W, F>(
     graph: &G,
     start: G::VertexIndex,
+    goal: Option<G::VertexIndex>,
     edge_weight: F,
 ) -> Result<ShortestPaths<W, G>, Error>
 where
@@ -66,6 +67,12 @@ where
             if dist[u.to_usize()].clone() + edge_dist < dist[v.to_usize()] {
                 return Err(Error::NegativeCycle);
             }
+        }
+    }
+
+    if let Some(goal) = goal {
+        if dist[vertex_map.virt(goal).unwrap().to_usize()] == W::inf() {
+            return Err(Error::GoalNotReached);
         }
     }
 

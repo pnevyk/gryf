@@ -86,7 +86,7 @@ mod tests {
         assert_eq!(graph.edge_count(), 0);
         assert_eq!(graph.vertex_count(), 3);
 
-        graph.add_edge(&v0, &v1, ());
+        graph.add_edge(&v0, &v2, ());
         assert_eq!(graph.edge_count(), 1);
 
         graph.clear();

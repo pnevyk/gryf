@@ -1,4 +1,9 @@
-use std::{borrow::Borrow, hash::BuildHasherDefault, marker::PhantomData, ops::Deref};
+use std::{
+    borrow::Borrow,
+    hash::BuildHasherDefault,
+    marker::PhantomData,
+    ops::{Deref, Index, IndexMut},
+};
 
 use rustc_hash::FxHashSet;
 use thiserror::Error;
@@ -649,6 +654,28 @@ where
 
     fn deref(&self) -> &Self::Target {
         &self.storage
+    }
+}
+
+impl<V, E, Ty: EdgeType, G, VI> Index<VI> for Path<V, E, Ty, G>
+where
+    G: Vertices<V>,
+    VI: Borrow<G::VertexIndex>,
+{
+    type Output = V;
+
+    fn index(&self, index: VI) -> &Self::Output {
+        self.vertex(index).expect("vertex does not exist")
+    }
+}
+
+impl<V, E, Ty: EdgeType, G, VI> IndexMut<VI> for Path<V, E, Ty, G>
+where
+    G: VerticesMut<V>,
+    VI: Borrow<G::VertexIndex>,
+{
+    fn index_mut(&mut self, index: VI) -> &mut Self::Output {
+        self.vertex_mut(index).expect("vertex does not exist")
     }
 }
 

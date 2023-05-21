@@ -1,7 +1,7 @@
 use std::{
     borrow::Borrow,
     marker::PhantomData,
-    ops::{Deref, DerefMut},
+    ops::{Deref, DerefMut, Index, IndexMut},
 };
 
 use crate::{
@@ -505,5 +505,27 @@ where
 {
     fn with_capacity(vertex_count: usize, edge_count: usize) -> Self {
         Self::new_in(G::with_capacity(vertex_count, edge_count))
+    }
+}
+
+impl<V, E, Ty: EdgeType, G, VI> Index<VI> for Graph<V, E, Ty, G>
+where
+    G: Vertices<V>,
+    VI: Borrow<G::VertexIndex>,
+{
+    type Output = V;
+
+    fn index(&self, index: VI) -> &Self::Output {
+        self.vertex(index).expect("vertex does not exist")
+    }
+}
+
+impl<V, E, Ty: EdgeType, G, VI> IndexMut<VI> for Graph<V, E, Ty, G>
+where
+    G: VerticesMut<V>,
+    VI: Borrow<G::VertexIndex>,
+{
+    fn index_mut(&mut self, index: VI) -> &mut Self::Output {
+        self.vertex_mut(index).expect("vertex does not exist")
     }
 }

@@ -47,7 +47,7 @@ fn main() {
     let distance = shortest_paths[prague];
     let path = shortest_paths
         .reconstruct(prague)
-        .map(|v| *graph.vertex(v).unwrap())
+        .map(|v| graph[v])
         .collect::<Vec<_>>()
         .join(" - ");
 

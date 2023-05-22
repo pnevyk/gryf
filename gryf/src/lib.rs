@@ -1,3 +1,4 @@
+pub mod adapt;
 pub mod algo;
 pub mod common;
 pub mod core;

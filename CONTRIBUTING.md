@@ -37,5 +37,5 @@ document.
     * `builder.rs` -- The algorithm builder that allows specifying parameters as well as fine-tuning the run.
     * `<algorithm>.rs` -- The implementation of an algorithm for given problem. This is private code used by the public API.
 * `gryf/src/graph` -- Wrappers for storages that represent different semantics (such as generic graph or [path](https://en.wikipedia.org/wiki/Path_(graph_theory))).
-* `gryf/src/ops` -- Implementations of operations on graphs.
+* `gryf/src/adapt` -- Implementations of various adapters and operations on graphs.
 * `gryf-derive` -- Derive macros for the fundamental traits.

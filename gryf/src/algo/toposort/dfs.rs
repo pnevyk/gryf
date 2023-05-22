@@ -3,10 +3,10 @@ use std::hash::BuildHasherDefault;
 use rustc_hash::FxHashSet;
 
 use crate::{
+    adapt::Transpose,
     algo::Cycle,
     common::VisitSet,
     core::{index::UseVertexIndex, marker::Directed, EdgesBase, Neighbors, VerticesBase},
-    ops::Transpose,
     visit::{
         raw::{RawDfsExtra, RawDfsExtraEvent, RawEvent, RawVisit, RawVisitMulti},
         VisitAll, Visitor,

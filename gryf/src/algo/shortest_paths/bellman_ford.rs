@@ -1,4 +1,5 @@
 use crate::{
+    adapt::transpose::TransposeRef,
     common::CompactIndexMap,
     core::{
         index::{IndexType, NumIndexType, Virtual},
@@ -6,7 +7,6 @@ use crate::{
         weights::GetWeight,
         EdgeRef, Edges, VerticesBase, Weight,
     },
-    ops::transpose::TransposeRef,
 };
 
 use super::{Error, ShortestPaths};

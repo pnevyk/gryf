@@ -4,7 +4,6 @@ pub mod common;
 pub mod core;
 pub mod graph;
 pub mod infra;
-pub mod ops;
 pub mod storage;
 pub mod visit;
 

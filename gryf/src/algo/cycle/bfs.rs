@@ -3,6 +3,7 @@ use std::collections::VecDeque;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
+    adapt::Undirect,
     common::VisitSet,
     core::{
         index::IndexType,
@@ -10,7 +11,6 @@ use crate::{
         EdgesBase, EdgesBaseWeak, GraphBase, NeighborRef, Neighbors, VerticesBase,
         VerticesBaseWeak,
     },
-    ops::Undirect,
 };
 
 use super::Cycle;

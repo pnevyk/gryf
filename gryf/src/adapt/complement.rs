@@ -4,16 +4,14 @@ use crate::core::{
     facts,
     index::NumIndexType,
     marker::{Direction, Undirected},
-    Create, Edges, EdgesBase, EdgesMut, Neighbors, Vertices, VerticesBase, VerticesMut, WeakRef,
+    EdgesBase, EdgesMut, Neighbors, Vertices, VerticesBase, VerticesMut, WeakRef,
 };
 
 use gryf_derive::{GraphBase, Vertices, VerticesBase, VerticesMut};
 
 // TODO: Remove these imports once hygiene of procedural macros is fixed.
 use crate::common::CompactIndexMap;
-use crate::core::{AddVertexError, GraphBase, NeighborRef, VertexRef};
-
-use super::{OpMut, OpOwned};
+use crate::core::{AddVertexError, GraphBase, NeighborRef};
 
 #[derive(Debug, GraphBase, VerticesBase, Vertices, VerticesMut)]
 pub struct Complement<E, G> {
@@ -38,58 +36,32 @@ where
         facts::complete_graph_edge_count::<Undirected>(self.vertex_count())
             - self.graph.edge_count()
     }
-}
 
-impl<V, E, G1, G2> OpMut<G2, V> for Complement<E, G1>
-where
-    G1: Vertices<V> + Edges<E, Undirected>,
-    G2: VerticesMut<V> + EdgesMut<E, Undirected>,
-    G1::VertexIndex: NumIndexType,
-    G2::VertexIndex: NumIndexType,
-    V: Clone,
-    E: Clone,
-{
-    fn apply_mut(self, result: &mut G2) {
-        // Make sure that the result graph is initially empty.
-        result.clear();
+    pub fn apply(self) -> G
+    where
+        G: EdgesMut<E, Undirected>,
+        E: Clone,
+    {
+        let mut graph = self.graph;
+        let original_edges = graph
+            .edge_indices()
+            .map(|e| graph.endpoints(&e).unwrap())
+            .collect::<FxHashSet<_>>();
+        let vertices = graph.vertex_indices().collect::<Vec<_>>();
 
-        let vertex_map = self.graph.vertex_index_map();
+        graph.clear_edges();
 
-        for (cur, v) in self.graph.vertices().enumerate() {
-            let idx = result.add_vertex(v.data().clone());
-
-            // Assumption: adding vertices to the result graph generates index
-            // sequence going from zero with step 1.
-            debug_assert!(idx.to_usize() == cur, "unexpected behavior of `add_vertex`");
-        }
-
-        for u in self.graph.vertex_indices() {
-            for v in self.graph.vertex_indices() {
-                if u < v && self.graph.edge_index_any(&u, &v).is_none() {
-                    let u = NumIndexType::from_usize(vertex_map.virt(u).unwrap().to_usize());
-                    let v = NumIndexType::from_usize(vertex_map.virt(v).unwrap().to_usize());
-                    result.add_edge(&u, &v, self.edge.clone());
+        for (i, u) in vertices.iter().enumerate() {
+            for v in vertices.iter().skip(i) {
+                if !original_edges.contains(&(u.clone(), v.clone()))
+                    && !original_edges.contains(&(v.clone(), u.clone()))
+                {
+                    graph.add_edge(u, v, self.edge.clone());
                 }
             }
         }
-    }
-}
 
-impl<V, E, G> OpOwned<G, V> for Complement<E, G>
-where
-    G: VerticesMut<V> + EdgesMut<E, Undirected> + Create<V, E, Undirected>,
-    G::VertexIndex: NumIndexType,
-    V: Clone,
-    E: Clone,
-{
-    fn apply(self) -> G {
-        // XXX: Is it possible to do it in place in a way that would be more
-        // efficient that the out-of-place approach? It would also have a nice
-        // side effect of not changing the vertex indices when they are holes.
-
-        let mut result = G::with_capacity(self.graph.vertex_count(), self.edge_count());
-        self.apply_mut(&mut result);
-        result
+        graph
     }
 }
 
@@ -274,13 +246,6 @@ mod tests {
         graph.remove_vertex(&v3);
 
         let complement: Stable<AdjList<_, _, _, _>> = Complement::new(graph, ()).apply();
-
-        // XXX: Complement does not preserve the vertex indices when there are
-        // holes. This would change if we implement an in-place algorithm.
-        let v0 = VertexIndex::from(0);
-        let v1 = VertexIndex::from(1);
-        let v2 = VertexIndex::from(2);
-        let v4 = VertexIndex::from(3);
 
         assert!(complement.edge_index_any(&v0, &v1).is_none());
         assert!(complement.edge_index_any(&v1, &v2).is_none());

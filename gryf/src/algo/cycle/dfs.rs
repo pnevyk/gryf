@@ -1,9 +1,9 @@
 use crate::{
+    adapt::Undirect,
     core::{
         marker::EdgeType, EdgesBase, EdgesBaseWeak, GraphBase, Neighbors, VerticesBase,
         VerticesBaseWeak,
     },
-    ops::Undirect,
     visit::Visitor,
     visit::{DfsEvent, DfsEvents},
 };

@@ -19,8 +19,6 @@ use crate::core::{
     VerticesBaseWeak, VerticesMut, VerticesWeak,
 };
 
-use super::OpOwned;
-
 #[derive(
     Debug,
     GraphBase,
@@ -49,13 +47,11 @@ where
     pub fn into_inner(self) -> G {
         self.graph
     }
-}
 
-impl<E, G, S: Stability> OpOwned<G, (E, S)> for Transpose<G>
-where
-    G: EdgesMut<E, Directed> + StableIndices<G::EdgeIndex, S>,
-{
-    fn apply(self) -> G {
+    pub fn apply<E, S: Stability>(self) -> G
+    where
+        G: EdgesMut<E, Directed> + StableIndices<G::EdgeIndex, S>,
+    {
         let mut graph = self.graph;
 
         let edges = graph

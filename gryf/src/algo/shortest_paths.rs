@@ -111,18 +111,20 @@ impl<'a, G: GraphBase> Iterator for PathReconstruction<'a, G> {
 
 #[cfg(test)]
 mod tests {
+    use assert_matches::assert_matches;
+    use proptest::prelude::*;
+
     use crate::{
         core::{
             index::{DefaultIndexing, EdgeIndex, VertexIndex},
             marker::{Directed, Undirected},
-            EdgesMut, VerticesMut,
+            EdgesMut, VerticesBase, VerticesMut,
         },
+        infra::proptest::graph_undirected,
         storage::AdjList,
     };
 
     use super::*;
-
-    use assert_matches::assert_matches;
 
     fn create_basic_graph() -> AdjList<(), i32, Undirected, DefaultIndexing> {
         let mut graph = AdjList::default();
@@ -335,5 +337,29 @@ mod tests {
             .run(v(0));
 
         assert_matches!(shortest_paths, Err(Error::GoalNotReached));
+    }
+
+    proptest! {
+        #[test]
+        #[cfg_attr(not(proptest), ignore = "compile with --cfg proptest")]
+        fn dijkstra_any(graph in graph_undirected(any::<()>(), any::<u16>().prop_map(|e| e as u32)), start: u64) {
+            let n = graph.vertex_count() as u64;
+            prop_assume!(n > 0);
+
+            let start = VertexIndex(start % n);
+            let _ = ShortestPaths::on(&graph).with(Algo::Dijkstra).run(start);
+            // Check for panics only for now.
+        }
+
+        #[test]
+        #[cfg_attr(not(proptest), ignore = "compile with --cfg proptest")]
+        fn bellman_ford_any(graph in graph_undirected(any::<()>(), any::<i16>().prop_map(|e| e as i32)).max_size(128), start: u64) {
+            let n = graph.vertex_count() as u64;
+            prop_assume!(n > 0);
+
+            let start = VertexIndex(start % n);
+            let _ = ShortestPaths::on(&graph).with(Algo::BellmanFord).run(start);
+            // Check for panics only for now.
+        }
     }
 }

@@ -34,10 +34,16 @@ where
 
         for edge in graph.edges() {
             let u = vertex_map.virt(*edge.src()).unwrap();
+
+            let short_dist = &dist[u.to_usize()];
+            if short_dist == &W::inf() {
+                continue;
+            }
+
             let v = vertex_map.virt(*edge.dst()).unwrap();
 
             let edge_dist = edge_weight.get(edge.data());
-            let next_dist = dist[u.to_usize()].clone() + edge_dist;
+            let next_dist = short_dist.clone() + edge_dist;
 
             // Relax if better.
             if next_dist < dist[v.to_usize()] {
@@ -60,11 +66,18 @@ where
     if !terminated_early {
         for edge in graph.edges() {
             let u = vertex_map.virt(*edge.src()).unwrap();
+
+            let short_dist = &dist[u.to_usize()];
+            if short_dist == &W::inf() {
+                continue;
+            }
+
             let v = vertex_map.virt(*edge.dst()).unwrap();
 
             let edge_dist = edge_weight.get(edge.data());
+            let next_dist = short_dist.clone() + edge_dist;
 
-            if dist[u.to_usize()].clone() + edge_dist < dist[v.to_usize()] {
+            if next_dist < dist[v.to_usize()] {
                 return Err(Error::NegativeCycle);
             }
         }

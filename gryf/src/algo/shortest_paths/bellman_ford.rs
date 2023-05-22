@@ -1,8 +1,12 @@
-use crate::core::{
-    index::{NumIndexType, Virtual},
-    marker::EdgeType,
-    weights::GetWeight,
-    EdgeRef, Edges, VerticesBase, Weight,
+use crate::{
+    common::CompactIndexMap,
+    core::{
+        index::{IndexType, NumIndexType, Virtual},
+        marker::EdgeType,
+        weights::GetWeight,
+        EdgeRef, Edges, VerticesBase, Weight,
+    },
+    ops::transpose::TransposeRef,
 };
 
 use super::{Error, ShortestPaths};
@@ -33,23 +37,23 @@ where
         let mut relaxed = false;
 
         for edge in graph.edges() {
-            let u = vertex_map.virt(*edge.src()).unwrap();
-
-            let short_dist = &dist[u.to_usize()];
-            if short_dist == &W::inf() {
-                continue;
-            }
-
-            let v = vertex_map.virt(*edge.dst()).unwrap();
-
-            let edge_dist = edge_weight.get(edge.data());
-            let next_dist = short_dist.clone() + edge_dist;
-
-            // Relax if better.
-            if next_dist < dist[v.to_usize()] {
+            if let Some((next_dist, u, v)) = process_edge(&edge, &edge_weight, &vertex_map, &dist) {
+                // Relax if better.
                 dist[v.to_usize()] = next_dist;
                 pred[v.to_usize()] = u;
                 relaxed = true;
+            }
+
+            if !Ty::is_directed() {
+                // For undirected graph, we need to consider also the other
+                // "direction" of the edge.
+                if let Some((next_dist, u, v)) =
+                    process_edge(&TransposeRef::new(edge), &edge_weight, &vertex_map, &dist)
+                {
+                    dist[v.to_usize()] = next_dist;
+                    pred[v.to_usize()] = u;
+                    relaxed = true;
+                }
             }
         }
 
@@ -65,19 +69,15 @@ where
     // the absence of cycle is guaranteed.
     if !terminated_early {
         for edge in graph.edges() {
-            let u = vertex_map.virt(*edge.src()).unwrap();
-
-            let short_dist = &dist[u.to_usize()];
-            if short_dist == &W::inf() {
-                continue;
+            if process_edge(&edge, &edge_weight, &vertex_map, &dist).is_some() {
+                // Could be still relaxed, there is a negative cycle.
+                return Err(Error::NegativeCycle);
             }
 
-            let v = vertex_map.virt(*edge.dst()).unwrap();
-
-            let edge_dist = edge_weight.get(edge.data());
-            let next_dist = short_dist.clone() + edge_dist;
-
-            if next_dist < dist[v.to_usize()] {
+            if !Ty::is_directed()
+                && process_edge(&TransposeRef::new(edge), &edge_weight, &vertex_map, &dist)
+                    .is_some()
+            {
                 return Err(Error::NegativeCycle);
             }
         }
@@ -117,4 +117,37 @@ where
         .collect();
 
     Ok(ShortestPaths { start, dist, pred })
+}
+
+#[inline(always)]
+fn process_edge<VI, EI, ER, E, W, F>(
+    edge: &ER,
+    edge_weight: &F,
+    vertex_map: &CompactIndexMap<VI>,
+    dist: &[W],
+) -> Option<(W, Virtual<VI>, Virtual<VI>)>
+where
+    VI: NumIndexType,
+    EI: IndexType,
+    ER: EdgeRef<VI, EI, E>,
+    W: Weight,
+    F: GetWeight<E, W>,
+{
+    let u = vertex_map.virt(*edge.src()).unwrap();
+
+    let short_dist = &dist[u.to_usize()];
+    if short_dist == &W::inf() {
+        return None;
+    }
+
+    let v = vertex_map.virt(*edge.dst()).unwrap();
+
+    let edge_dist = edge_weight.get(edge.data());
+    let next_dist = short_dist.clone() + edge_dist;
+
+    if next_dist < dist[v.to_usize()] {
+        Some((next_dist, u, v))
+    } else {
+        None
+    }
 }

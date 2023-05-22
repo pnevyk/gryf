@@ -185,6 +185,12 @@ where
 
 pub struct TransposeRef<R>(R);
 
+impl<R> TransposeRef<R> {
+    pub fn new(inner: R) -> Self {
+        Self(inner)
+    }
+}
+
 impl<VI, EI, E, R> EdgeRef<VI, EI, E> for TransposeRef<R>
 where
     VI: IndexType,

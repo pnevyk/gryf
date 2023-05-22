@@ -120,7 +120,7 @@ mod tests {
             marker::{Directed, Undirected},
             EdgesMut, VerticesBase, VerticesMut,
         },
-        infra::proptest::graph_undirected,
+        infra::proptest::{graph_directed, graph_undirected},
         storage::AdjList,
     };
 
@@ -245,8 +245,23 @@ mod tests {
 
     #[test]
     fn bellman_ford_negative_edge() {
-        let mut graph = create_basic_graph();
-        graph.replace_edge(&e(2), -1);
+        let mut graph = AdjList::<_, _, Directed, _>::default();
+
+        let v0 = graph.add_vertex(());
+        let v1 = graph.add_vertex(());
+        let v2 = graph.add_vertex(());
+        let v3 = graph.add_vertex(());
+        let v4 = graph.add_vertex(());
+        let v5 = graph.add_vertex(());
+
+        graph.add_edge(&v0, &v1, 3);
+        graph.add_edge(&v0, &v2, 2);
+        graph.add_edge(&v1, &v2, -1);
+        graph.add_edge(&v1, &v3, 2);
+        graph.add_edge(&v1, &v4, 7);
+        graph.add_edge(&v2, &v3, 5);
+        graph.add_edge(&v3, &v4, 3);
+        graph.add_edge(&v4, &v5, 10);
 
         let shortest_paths = ShortestPaths::on(&graph)
             .with(Algo::BellmanFord)
@@ -339,6 +354,20 @@ mod tests {
         assert_matches!(shortest_paths, Err(Error::GoalNotReached));
     }
 
+    #[test]
+    fn prefer_dijkstra_for_undirected() {
+        let mut graph = AdjList::<_, _, Directed, _>::default();
+
+        let v0 = graph.add_vertex(());
+        let v1 = graph.add_vertex(());
+
+        graph.add_edge(&v0, &v1, -1);
+
+        let shortest_paths = ShortestPaths::on(&graph).goal(v(1)).run(v(1)).unwrap();
+
+        assert_eq!(shortest_paths.dist(v(1)), Some(&0));
+    }
+
     proptest! {
         #[test]
         #[cfg_attr(not(proptest), ignore = "compile with --cfg proptest")]
@@ -353,7 +382,7 @@ mod tests {
 
         #[test]
         #[cfg_attr(not(proptest), ignore = "compile with --cfg proptest")]
-        fn bellman_ford_any(graph in graph_undirected(any::<()>(), any::<i16>().prop_map(|e| e as i32)).max_size(128), start: u64) {
+        fn bellman_ford_any(graph in graph_directed(any::<()>(), any::<i16>().prop_map(|e| e as i32)).max_size(128), start: u64) {
             let n = graph.vertex_count() as u64;
             prop_assume!(n > 0);
 

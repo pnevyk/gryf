@@ -318,12 +318,21 @@ where
             // any overhead.
             AlgoExt::Bfs
         } else if !W::is_unsigned() {
-            // There is a possibility that a negative weight is encountered,
-            // so we conservatively use Bellman-Ford.
-            AlgoExt::Algo(Algo::BellmanFord)
+            if Ty::is_directed() {
+                // There is a possibility that a negative weight is encountered,
+                // so, for directed graphs, we conservatively use Bellman-Ford.
+                AlgoExt::Algo(Algo::BellmanFord)
+            } else {
+                // Although Bellman-Ford is implemented such that it somehow
+                // handles undirected graphs, any negative edge creates negative
+                // cycle, which is an error. Hence we use Dijkstra, which
+                // returns negative edge error when one is encountered, but has
+                // better runtime in the happy case.
+                AlgoExt::Algo(Algo::Dijkstra)
+            }
         } else if goal.is_some() {
-            // If the goal is specified, Dijkstra's algorithm likely
-            // finishes without the need of traversing the entire graph.
+            // If the goal is specified, Dijkstra's algorithm likely finishes
+            // without the need of traversing the entire graph.
             AlgoExt::Algo(Algo::Dijkstra)
         } else {
             let v = graph.vertex_count();

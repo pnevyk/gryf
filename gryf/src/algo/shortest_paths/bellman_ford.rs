@@ -26,9 +26,9 @@ where
     let vertex_map = graph.vertex_id_map();
 
     let mut dist = vec![W::inf(); vertex_map.len()];
-    let mut pred = vec![Virtual::null(); vertex_map.len()];
+    let mut pred = vec![Virtual::sentinel(); vertex_map.len()];
 
-    dist[vertex_map.virt(start).unwrap().to_usize()] = W::zero();
+    dist[vertex_map.virt(start).unwrap().as_usize()] = W::zero();
 
     let mut terminated_early = false;
 
@@ -39,8 +39,8 @@ where
         for edge in graph.edges() {
             if let Some((next_dist, u, v)) = process_edge(&edge, &edge_weight, &vertex_map, &dist) {
                 // Relax if better.
-                dist[v.to_usize()] = next_dist;
-                pred[v.to_usize()] = u;
+                dist[v.as_usize()] = next_dist;
+                pred[v.as_usize()] = u;
                 relaxed = true;
             }
 
@@ -50,8 +50,8 @@ where
                 if let Some((next_dist, u, v)) =
                     process_edge(&TransposeRef::new(edge), &edge_weight, &vertex_map, &dist)
                 {
-                    dist[v.to_usize()] = next_dist;
-                    pred[v.to_usize()] = u;
+                    dist[v.as_usize()] = next_dist;
+                    pred[v.as_usize()] = u;
                     relaxed = true;
                 }
             }
@@ -84,7 +84,7 @@ where
     }
 
     if let Some(goal) = goal {
-        if dist[vertex_map.virt(goal).unwrap().to_usize()] == W::inf() {
+        if dist[vertex_map.virt(goal).unwrap().as_usize()] == W::inf() {
             return Err(Error::GoalNotReached);
         }
     }
@@ -105,7 +105,7 @@ where
         .into_iter()
         .enumerate()
         .filter_map(|(i, p)| {
-            if !p.is_null() {
+            if !p.is_sentinel() {
                 Some((
                     vertex_map.real(Virtual::from(i)).unwrap(),
                     vertex_map.real(p).unwrap(),
@@ -135,7 +135,7 @@ where
 {
     let u = vertex_map.virt(*edge.src()).unwrap();
 
-    let short_dist = &dist[u.to_usize()];
+    let short_dist = &dist[u.as_usize()];
     if short_dist == &W::inf() {
         return None;
     }
@@ -145,7 +145,7 @@ where
     let edge_dist = edge_weight.get(edge.data());
     let next_dist = short_dist.clone() + edge_dist;
 
-    if next_dist < dist[v.to_usize()] {
+    if next_dist < dist[v.as_usize()] {
         Some((next_dist, u, v))
     } else {
         None

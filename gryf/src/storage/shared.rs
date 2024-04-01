@@ -6,7 +6,7 @@ use std::{
 };
 
 use crate::core::{
-    id::{GraphIdTypes, IntegerIdType},
+    id::{GraphIdTypes, IdType, IntegerIdType},
     marker::EdgeType,
 };
 
@@ -71,7 +71,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         self.inner
             .next()
-            .map(|(id, vertex)| (IntegerIdType::from_usize(id), vertex))
+            .map(|(id, vertex)| (IdType::from_usize(id), vertex))
     }
 }
 
@@ -96,7 +96,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         self.inner
             .next()
-            .map(|(id, vertex)| (IntegerIdType::from_usize(id), &vertex.data))
+            .map(|(id, vertex)| (IdType::from_usize(id), &vertex.data))
     }
 }
 
@@ -122,12 +122,7 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner.next().map(|(index, (edge, endpoints))| {
-            (
-                IntegerIdType::from_usize(index),
-                edge,
-                endpoints[0],
-                endpoints[1],
-            )
+            (IdType::from_usize(index), edge, endpoints[0], endpoints[1])
         })
     }
 }

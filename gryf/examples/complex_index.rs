@@ -10,7 +10,23 @@ use gryf::{
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct ChessSquare(pub usize, pub usize);
 
-impl IdType for ChessSquare {}
+impl IdType for ChessSquare {
+    fn sentinel() -> Self {
+        Self(usize::MAX, usize::MAX)
+    }
+
+    fn is_integer() -> bool {
+        false
+    }
+
+    fn as_bits(&self) -> u64 {
+        panic!("unsupported")
+    }
+
+    fn from_bits(_: u64) -> Self {
+        panic!("unsupported")
+    }
+}
 
 struct Chessboard;
 

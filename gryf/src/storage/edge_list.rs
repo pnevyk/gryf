@@ -2,7 +2,7 @@ use std::{iter::Enumerate, marker::PhantomData, slice};
 
 use crate::common::CompactIdMap;
 use crate::core::{
-    id::{DefaultId, GraphIdTypes, IntegerIdType},
+    id::{DefaultId, GraphIdTypes, IdType, IntegerIdType},
     marker::{Direction, EdgeType},
     AddEdgeError, AddEdgeErrorKind, AddVertexError, ConnectVertices, Create, Edges, EdgesBase,
     EdgesMut, GraphBase, Guarantee, MultiEdges, Neighbors, Vertices, VerticesBase, VerticesMut,
@@ -105,7 +105,7 @@ where
         V: 'a;
 
     fn vertex(&self, id: &Self::VertexId) -> Option<&V> {
-        self.vertices.get(id.to_usize())
+        self.vertices.get(id.as_usize())
     }
 
     fn vertices(&self) -> Self::VerticesIter<'_> {
@@ -118,7 +118,7 @@ where
     Id::VertexId: IntegerIdType,
 {
     fn vertex_mut(&mut self, id: &Self::VertexId) -> Option<&mut V> {
-        self.vertices.get_mut(id.to_usize())
+        self.vertices.get_mut(id.as_usize())
     }
 
     fn try_add_vertex(&mut self, vertex: V) -> Result<Self::VertexId, AddVertexError<V>> {
@@ -143,11 +143,11 @@ where
         }
 
         // Remove the vertex from the graph.
-        let vertex = self.vertices.swap_remove(id.to_usize());
+        let vertex = self.vertices.swap_remove(id.as_usize());
 
         // If `swap_remove` actually moved an existing vertex somewhere, we need
         // to fix its id in the entire graph.
-        if id.to_usize() < self.vertices.len() {
+        if id.as_usize() < self.vertices.len() {
             self.relocate_vertex(Id::VertexId::from_usize(self.vertices.len()), *id);
         }
 
@@ -183,7 +183,7 @@ where
 
     fn endpoints(&self, id: &Id::EdgeId) -> Option<(Self::VertexId, Self::VertexId)> {
         self.endpoints
-            .get(id.to_usize())
+            .get(id.as_usize())
             .map(|endpoints| (endpoints[0], endpoints[1]))
     }
 
@@ -224,7 +224,7 @@ where
         E: 'a;
 
     fn edge(&self, id: &Self::EdgeId) -> Option<&E> {
-        self.edges.get(id.to_usize())
+        self.edges.get(id.as_usize())
     }
 
     fn edges(&self) -> Self::EdgesIter<'_> {
@@ -238,7 +238,7 @@ where
     Id::EdgeId: IntegerIdType,
 {
     fn edge_mut(&mut self, id: &Self::EdgeId) -> Option<&mut E> {
-        self.edges.get_mut(id.to_usize())
+        self.edges.get_mut(id.as_usize())
     }
 
     fn try_add_edge(
@@ -247,11 +247,11 @@ where
         dst: &Self::VertexId,
         edge: E,
     ) -> Result<Self::EdgeId, AddEdgeError<E>> {
-        if src.to_usize() >= self.vertices.len() {
+        if src.as_usize() >= self.vertices.len() {
             return Err(AddEdgeError::new(edge, AddEdgeErrorKind::SourceAbsent));
         }
 
-        if dst.to_usize() >= self.vertices.len() {
+        if dst.as_usize() >= self.vertices.len() {
             return Err(AddEdgeError::new(edge, AddEdgeErrorKind::DestinationAbsent));
         }
 
@@ -263,8 +263,8 @@ where
 
     fn remove_edge(&mut self, id: &Self::EdgeId) -> Option<E> {
         self.edge(id)?;
-        self.endpoints.swap_remove(id.to_usize());
-        Some(self.edges.swap_remove(id.to_usize()))
+        self.endpoints.swap_remove(id.as_usize());
+        Some(self.edges.swap_remove(id.as_usize()))
     }
 
     fn clear_edges(&mut self) {

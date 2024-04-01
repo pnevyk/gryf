@@ -199,7 +199,23 @@ impl<V: fmt::Debug, E: fmt::Debug> fmt::Debug for MutOpsSeq<V, E> {
     }
 }
 
-impl IdType for Index {}
+impl IdType for Index {
+    fn sentinel() -> Self {
+        Self(usize::MAX)
+    }
+
+    fn is_integer() -> bool {
+        true
+    }
+
+    fn as_bits(&self) -> u64 {
+        self.0 as u64
+    }
+
+    fn from_bits(bits: u64) -> Self {
+        Self(bits as usize)
+    }
+}
 
 impl From<usize> for Index {
     fn from(value: usize) -> Self {
@@ -213,19 +229,7 @@ impl From<Index> for usize {
     }
 }
 
-impl IntegerIdType for Index {
-    fn to_bits(self) -> u64 {
-        self.0 as u64
-    }
-
-    fn from_bits(bits: u64) -> Self {
-        Self(bits as usize)
-    }
-
-    fn null() -> Self {
-        Self(usize::MAX)
-    }
-}
+impl IntegerIdType for Index {}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum ArbitraryId {}

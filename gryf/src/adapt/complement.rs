@@ -2,7 +2,7 @@ use rustc_hash::FxHashSet;
 
 use crate::core::{
     facts,
-    id::IntegerIdType,
+    id::{IdType, IntegerIdType},
     marker::{Direction, Undirected},
     EdgesBase, EdgesMut, Neighbors, Vertices, VerticesBase, VerticesMut, WeakRef,
 };
@@ -127,7 +127,7 @@ where
             let v = self.vertices.next()?;
 
             if v != self.src && !self.neighbors.contains(&v) {
-                return Some((v, G::EdgeId::null(), self.src.clone(), self.dir));
+                return Some((v, IdType::sentinel(), self.src.clone(), self.dir));
             }
         }
     }

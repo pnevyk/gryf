@@ -18,7 +18,7 @@ fn to_vertex(n: u64) -> VertexId {
 }
 
 fn to_num(v: VertexId) -> u64 {
-    v.to_bits()
+    v.as_bits()
 }
 
 struct Neighbor {
@@ -27,13 +27,13 @@ struct Neighbor {
 
 impl NeighborRef<VertexId, EdgeId> for Neighbor {
     fn id(&self) -> WeakRef<'_, VertexId> {
-        let n = self.src.to_bits();
+        let n = self.src.as_bits();
         let c = if n % 2 == 0 { n / 2 } else { 3 * n + 1 };
         WeakRef::Owned(to_vertex(c))
     }
 
     fn edge(&self) -> WeakRef<'_, EdgeId> {
-        WeakRef::Owned(EdgeId::from_bits(self.src.to_bits()))
+        WeakRef::Owned(EdgeId::from_bits(self.src.as_bits()))
     }
 
     fn src(&self) -> WeakRef<'_, VertexId> {
@@ -80,7 +80,7 @@ impl VerticesBaseWeak for Collatz {
 
 impl VerticesWeak<u64> for Collatz {
     fn vertex_weak(&self, id: &VertexId) -> Option<WeakRef<'_, u64>> {
-        Some(id.to_bits().into())
+        Some(id.as_bits().into())
     }
 }
 

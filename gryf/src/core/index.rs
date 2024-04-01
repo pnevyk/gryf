@@ -110,6 +110,7 @@ impl<Ix: Indexing> UseIndex<Ix> for UseVertexIndex {
     type Index = Ix::VertexIndex;
 }
 
+#[allow(unused)]
 pub(crate) enum UseEdgeIndex {}
 
 impl<Ix: Indexing> UseIndex<Ix> for UseEdgeIndex {

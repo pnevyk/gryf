@@ -166,12 +166,12 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         self.storage.vertex_ids()
     }
 
-    pub fn vertex<VId>(&self, index: VId) -> Option<&V>
+    pub fn vertex<VId>(&self, id: VId) -> Option<&V>
     where
         G: Vertices<V>,
         VId: Borrow<G::VertexId>,
     {
-        self.storage.vertex(index.borrow())
+        self.storage.vertex(id.borrow())
     }
 
     pub fn vertices(&self) -> G::VerticesIter<'_>
@@ -189,12 +189,12 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         self.storage.find_vertex(vertex)
     }
 
-    pub fn vertex_mut<VId>(&mut self, index: VId) -> Option<&mut V>
+    pub fn vertex_mut<VId>(&mut self, id: VId) -> Option<&mut V>
     where
         G: VerticesMut<V>,
         VId: Borrow<G::VertexId>,
     {
-        self.storage.vertex_mut(index.borrow())
+        self.storage.vertex_mut(id.borrow())
     }
 
     pub fn add_vertex(&mut self, vertex: V) -> G::VertexId
@@ -211,32 +211,32 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         self.storage.try_add_vertex(vertex)
     }
 
-    pub fn remove_vertex<VId>(&mut self, index: VId) -> Option<V>
+    pub fn remove_vertex<VId>(&mut self, id: VId) -> Option<V>
     where
         G: VerticesMut<V>,
         VId: Borrow<G::VertexId>,
     {
-        self.storage.remove_vertex(index.borrow())
+        self.storage.remove_vertex(id.borrow())
     }
 
-    pub fn replace_vertex<VId>(&mut self, index: VId, vertex: V) -> V
+    pub fn replace_vertex<VId>(&mut self, id: VId, vertex: V) -> V
     where
         G: VerticesMut<V>,
         VId: Borrow<G::VertexId>,
     {
-        self.storage.replace_vertex(index.borrow(), vertex)
+        self.storage.replace_vertex(id.borrow(), vertex)
     }
 
     pub fn try_replace_vertex<VId>(
         &mut self,
-        index: VId,
+        id: VId,
         vertex: V,
     ) -> Result<V, ReplaceVertexError<V>>
     where
         G: VerticesMut<V>,
         VId: Borrow<G::VertexId>,
     {
-        self.storage.try_replace_vertex(index.borrow(), vertex)
+        self.storage.try_replace_vertex(id.borrow(), vertex)
     }
 
     pub fn clear(&mut self)
@@ -276,12 +276,12 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         self.storage.edge_bound()
     }
 
-    pub fn endpoints<EId>(&self, index: EId) -> Option<(G::VertexId, G::VertexId)>
+    pub fn endpoints<EId>(&self, id: EId) -> Option<(G::VertexId, G::VertexId)>
     where
         G: EdgesBase<Ty>,
         EId: Borrow<G::EdgeId>,
     {
-        self.storage.endpoints(index.borrow())
+        self.storage.endpoints(id.borrow())
     }
 
     pub fn edge_id<VId>(&self, src: VId, dst: VId) -> G::EdgeIdIter<'_>
@@ -307,12 +307,12 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         self.storage.edge_ids()
     }
 
-    pub fn contains_edge<EId>(&self, index: EId) -> bool
+    pub fn contains_edge<EId>(&self, id: EId) -> bool
     where
         G: EdgesBase<Ty>,
         EId: Borrow<G::EdgeId>,
     {
-        self.storage.contains_edge(index.borrow())
+        self.storage.contains_edge(id.borrow())
     }
 
     pub fn is_directed(&self) -> bool
@@ -322,12 +322,12 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         self.storage.is_directed()
     }
 
-    pub fn edge<EId>(&self, index: EId) -> Option<&E>
+    pub fn edge<EId>(&self, id: EId) -> Option<&E>
     where
         G: Edges<E, Ty>,
         EId: Borrow<G::EdgeId>,
     {
-        self.storage.edge(index.borrow())
+        self.storage.edge(id.borrow())
     }
 
     pub fn edges(&self) -> G::EdgesIter<'_>
@@ -337,12 +337,12 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         self.storage.edges()
     }
 
-    pub fn edge_mut<EId>(&mut self, index: EId) -> Option<&mut E>
+    pub fn edge_mut<EId>(&mut self, id: EId) -> Option<&mut E>
     where
         G: EdgesMut<E, Ty>,
         EId: Borrow<G::EdgeId>,
     {
-        self.storage.edge_mut(index.borrow())
+        self.storage.edge_mut(id.borrow())
     }
 
     pub fn add_edge<VId>(&mut self, src: VId, dst: VId, edge: E) -> G::EdgeId
@@ -388,17 +388,17 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         V: Eq,
     {
         match self.try_add_edge_connecting(src, dst, edge) {
-            Ok(index) => index,
+            Ok(id) => id,
             Err(error) => panic!("{error}"),
         }
     }
 
-    pub fn remove_edge<EId>(&mut self, index: EId) -> Option<E>
+    pub fn remove_edge<EId>(&mut self, id: EId) -> Option<E>
     where
         G: EdgesMut<E, Ty>,
         EId: Borrow<G::EdgeId>,
     {
-        self.storage.remove_edge(index.borrow())
+        self.storage.remove_edge(id.borrow())
     }
 
     pub fn remove_edge_between<VId>(&mut self, src: VId, dst: VId) -> Option<E>
@@ -409,20 +409,20 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         self.storage.remove_edge_between(src.borrow(), dst.borrow())
     }
 
-    pub fn replace_edge<EId>(&mut self, index: EId, edge: E) -> E
+    pub fn replace_edge<EId>(&mut self, id: EId, edge: E) -> E
     where
         G: EdgesMut<E, Ty>,
         EId: Borrow<G::EdgeId>,
     {
-        self.storage.replace_edge(index.borrow(), edge)
+        self.storage.replace_edge(id.borrow(), edge)
     }
 
-    pub fn try_replace_edge<EId>(&mut self, index: EId, edge: E) -> Result<E, ReplaceEdgeError<E>>
+    pub fn try_replace_edge<EId>(&mut self, id: EId, edge: E) -> Result<E, ReplaceEdgeError<E>>
     where
         G: EdgesMut<E, Ty>,
         EId: Borrow<G::EdgeId>,
     {
-        self.storage.try_replace_edge(index.borrow(), edge)
+        self.storage.try_replace_edge(id.borrow(), edge)
     }
 
     pub fn clear_edges(&mut self)
@@ -514,8 +514,8 @@ where
 {
     type Output = V;
 
-    fn index(&self, index: VId) -> &Self::Output {
-        self.vertex(index).expect("vertex does not exist")
+    fn index(&self, id: VId) -> &Self::Output {
+        self.vertex(id).expect("vertex does not exist")
     }
 }
 
@@ -524,7 +524,7 @@ where
     G: VerticesMut<V>,
     VId: Borrow<G::VertexId>,
 {
-    fn index_mut(&mut self, index: VId) -> &mut Self::Output {
-        self.vertex_mut(index).expect("vertex does not exist")
+    fn index_mut(&mut self, id: VId) -> &mut Self::Output {
+        self.vertex_mut(id).expect("vertex does not exist")
     }
 }

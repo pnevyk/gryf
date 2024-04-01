@@ -45,8 +45,8 @@ where
     Id::VertexId: NumIdType,
     Id::EdgeId: NumIdType,
 {
-    fn remove_edge_inner(&mut self, index: Id::EdgeId, cause: Option<Id::VertexId>) -> Option<E> {
-        let endpoints = self.endpoints.get(index.to_usize())?;
+    fn remove_edge_inner(&mut self, id: Id::EdgeId, cause: Option<Id::VertexId>) -> Option<E> {
+        let endpoints = self.endpoints.get(id.to_usize())?;
 
         for (i, dir) in Self::directions().iter().enumerate() {
             let endpoint = endpoints[i];
@@ -57,51 +57,51 @@ where
             if Some(endpoint) != cause {
                 Self::disconnect(
                     &mut self.vertices[endpoint.to_usize()].edges[dir.index()],
-                    index,
+                    id,
                 );
             }
         }
 
         // Remove the edge from the graph.
-        let edge = self.edges.swap_remove(index.to_usize());
-        self.endpoints.swap_remove(index.to_usize());
+        let edge = self.edges.swap_remove(id.to_usize());
+        self.endpoints.swap_remove(id.to_usize());
 
         // If `swap_remove` actually moved an existing edge somewhere, we need
-        // to fix its index in the entire graph.
-        if index.to_usize() < self.edges.len() {
-            self.relocate_edge(NumIdType::from_usize(self.edges.len()), index);
+        // to fix its id in the entire graph.
+        if id.to_usize() < self.edges.len() {
+            self.relocate_edge(NumIdType::from_usize(self.edges.len()), id);
         }
 
         Some(edge)
     }
 
-    fn relocate_vertex(&mut self, old_index: Id::VertexId, new_index: Id::VertexId) {
-        let vertex = &mut self.vertices[new_index.to_usize()];
+    fn relocate_vertex(&mut self, old_id: Id::VertexId, new_id: Id::VertexId) {
+        let vertex = &mut self.vertices[new_id.to_usize()];
 
-        // Fix the index of the vertex in all edges it has.
+        // Fix the id of the vertex in all edges it has.
         for dir in Ty::directions() {
-            for edge_index in vertex.edges[dir.index()].iter() {
-                let endpoints = &mut self.endpoints[edge_index.to_usize()];
+            for edge_id in vertex.edges[dir.index()].iter() {
+                let endpoints = &mut self.endpoints[edge_id.to_usize()];
                 for endpoint in endpoints.iter_mut() {
-                    if *endpoint == old_index {
-                        *endpoint = new_index;
+                    if *endpoint == old_id {
+                        *endpoint = new_id;
                     }
                 }
             }
         }
     }
 
-    fn relocate_edge(&mut self, old_index: Id::EdgeId, new_index: Id::EdgeId) {
-        let endpoints = &mut self.endpoints[new_index.to_usize()];
+    fn relocate_edge(&mut self, old_id: Id::EdgeId, new_id: Id::EdgeId) {
+        let endpoints = &mut self.endpoints[new_id.to_usize()];
 
-        // Fix the index of the edge in all vertices it is incident with.
+        // Fix the id of the edge in all vertices it is incident with.
         for i in 0..=1 {
             let vertex = &mut self.vertices[endpoints[i].to_usize()];
 
             for dir in Ty::directions() {
-                for edge_index in &mut vertex.edges[dir.index()] {
-                    if *edge_index == old_index {
-                        *edge_index = new_index;
+                for edge_id in &mut vertex.edges[dir.index()] {
+                    if *edge_id == old_id {
+                        *edge_id = new_id;
                     }
                 }
             }
@@ -114,9 +114,9 @@ where
         }
     }
 
-    fn disconnect(edges: &mut Vec<Id::EdgeId>, index: Id::EdgeId) {
+    fn disconnect(edges: &mut Vec<Id::EdgeId>, id: Id::EdgeId) {
         for i in 0..edges.len() {
-            if edges[i] == index {
+            if edges[i] == id {
                 edges.swap_remove(i);
                 break;
             }
@@ -184,10 +184,8 @@ where
     where
         Self: 'a;
 
-    fn vertex(&self, index: &Self::VertexId) -> Option<&V> {
-        self.vertices
-            .get(index.to_usize())
-            .map(|vertex| &vertex.data)
+    fn vertex(&self, id: &Self::VertexId) -> Option<&V> {
+        self.vertices.get(id.to_usize()).map(|vertex| &vertex.data)
     }
 
     fn vertices(&self) -> Self::VerticesIter<'_> {
@@ -200,9 +198,9 @@ where
     Id::VertexId: NumIdType,
     Id::EdgeId: NumIdType,
 {
-    fn vertex_mut(&mut self, index: &Self::VertexId) -> Option<&mut V> {
+    fn vertex_mut(&mut self, id: &Self::VertexId) -> Option<&mut V> {
         self.vertices
-            .get_mut(index.to_usize())
+            .get_mut(id.to_usize())
             .map(|vertex| &mut vertex.data)
     }
 
@@ -212,29 +210,29 @@ where
         Ok(index.into())
     }
 
-    fn remove_vertex(&mut self, index: &Self::VertexId) -> Option<V> {
+    fn remove_vertex(&mut self, id: &Self::VertexId) -> Option<V> {
         for dir in Ty::directions() {
             // Remove all edges connected to this vertex in this direction.
             loop {
-                let vertex = self.vertices.get_mut(index.to_usize())?;
+                let vertex = self.vertices.get_mut(id.to_usize())?;
                 if vertex.edges[dir.index()].is_empty() {
                     break;
                 }
 
                 // Remove the edge from the list of this vertex.
-                let edge_index = vertex.edges[dir.index()].swap_remove(0);
+                let edge_id = vertex.edges[dir.index()].swap_remove(0);
                 // Remove the edge from the whole graph.
-                self.remove_edge_inner(edge_index, Some(*index));
+                self.remove_edge_inner(edge_id, Some(*id));
             }
         }
 
         // Remove the vertex from the graph.
-        let vertex = self.vertices.swap_remove(index.to_usize());
+        let vertex = self.vertices.swap_remove(id.to_usize());
 
         // If `swap_remove` actually moved an existing vertex somewhere, we need
-        // to fix its index in the entire graph.
-        if index.to_usize() < self.vertices.len() {
-            self.relocate_vertex(NumIdType::from_usize(self.vertices.len()), *index);
+        // to fix its id in the entire graph.
+        if id.to_usize() < self.vertices.len() {
+            self.relocate_vertex(NumIdType::from_usize(self.vertices.len()), *id);
         }
 
         Some(vertex.data)
@@ -267,9 +265,9 @@ where
         self.edge_count()
     }
 
-    fn endpoints(&self, index: &Self::EdgeId) -> Option<(Self::VertexId, Self::VertexId)> {
+    fn endpoints(&self, id: &Self::EdgeId) -> Option<(Self::VertexId, Self::VertexId)> {
         self.endpoints
-            .get(index.to_usize())
+            .get(id.to_usize())
             .map(|endpoints| (endpoints[0], endpoints[1]))
     }
 
@@ -315,8 +313,8 @@ where
     where
         Self: 'a;
 
-    fn edge(&self, index: &Self::EdgeId) -> Option<&E> {
-        self.edges.get(index.to_usize())
+    fn edge(&self, id: &Self::EdgeId) -> Option<&E> {
+        self.edges.get(id.to_usize())
     }
 
     fn edges(&self) -> Self::EdgesIter<'_> {
@@ -329,8 +327,8 @@ where
     Id::VertexId: NumIdType,
     Id::EdgeId: NumIdType,
 {
-    fn edge_mut(&mut self, index: &Self::EdgeId) -> Option<&mut E> {
-        self.edges.get_mut(index.to_usize())
+    fn edge_mut(&mut self, id: &Self::EdgeId) -> Option<&mut E> {
+        self.edges.get_mut(id.to_usize())
     }
 
     fn try_add_edge(
@@ -347,19 +345,19 @@ where
             return Err(AddEdgeError::new(edge, AddEdgeErrorKind::DestinationAbsent));
         }
 
-        let index = NumIdType::from_usize(self.edges.len());
+        let id = NumIdType::from_usize(self.edges.len());
         self.edges.push(edge);
         self.endpoints.push([*src, *dst]);
 
         let directions = Self::directions();
-        self.vertices[src.to_usize()].edges[directions[0].index()].push(index);
-        self.vertices[dst.to_usize()].edges[directions[1].index()].push(index);
+        self.vertices[src.to_usize()].edges[directions[0].index()].push(id);
+        self.vertices[dst.to_usize()].edges[directions[1].index()].push(id);
 
-        Ok(index)
+        Ok(id)
     }
 
-    fn remove_edge(&mut self, index: &Self::EdgeId) -> Option<E> {
-        self.remove_edge_inner(*index, None)
+    fn remove_edge(&mut self, id: &Self::EdgeId) -> Option<E> {
+        self.remove_edge_inner(*id, None)
     }
 
     fn clear_edges(&mut self) {
@@ -435,17 +433,17 @@ where
         }
     }
 
-    fn degree(&self, index: &Self::VertexId) -> usize {
+    fn degree(&self, id: &Self::VertexId) -> usize {
         Ty::directions()
             .iter()
-            .map(|dir| self.degree_directed(index, *dir))
+            .map(|dir| self.degree_directed(id, *dir))
             .sum()
     }
 
-    fn degree_directed(&self, index: &Self::VertexId, dir: Direction) -> usize {
+    fn degree_directed(&self, id: &Self::VertexId, dir: Direction) -> usize {
         let vertex = self
             .vertices
-            .get(index.to_usize())
+            .get(id.to_usize())
             .expect("vertex does not exist");
 
         let adj_dir = if !Ty::is_directed() {

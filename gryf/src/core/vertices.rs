@@ -23,8 +23,8 @@ pub trait VerticesBase: GraphBase {
     fn vertex_bound(&self) -> usize;
     fn vertex_ids(&self) -> Self::VertexIdsIter<'_>;
 
-    fn contains_vertex(&self, index: &Self::VertexId) -> bool {
-        self.vertex_ids().any(|v| &v == index)
+    fn contains_vertex(&self, id: &Self::VertexId) -> bool {
+        self.vertex_ids().any(|v| &v == id)
     }
 
     fn vertex_id_map(&self) -> CompactIdMap<Self::VertexId>
@@ -47,7 +47,7 @@ pub trait Vertices<V>: VerticesBase {
         Self: 'a,
         V: 'a;
 
-    fn vertex(&self, index: &Self::VertexId) -> Option<&V>;
+    fn vertex(&self, id: &Self::VertexId) -> Option<&V>;
     fn vertices(&self) -> Self::VerticesIter<'_>;
 
     fn find_vertex(&self, vertex: &V) -> Option<Self::VertexId>
@@ -99,30 +99,30 @@ impl fmt::Display for AddVertexErrorKind {
 pub struct ReplaceVertexError<V>(pub V);
 
 pub trait VerticesMut<V>: Vertices<V> {
-    fn vertex_mut(&mut self, index: &Self::VertexId) -> Option<&mut V>;
+    fn vertex_mut(&mut self, id: &Self::VertexId) -> Option<&mut V>;
     fn try_add_vertex(&mut self, vertex: V) -> Result<Self::VertexId, AddVertexError<V>>;
-    fn remove_vertex(&mut self, index: &Self::VertexId) -> Option<V>;
+    fn remove_vertex(&mut self, id: &Self::VertexId) -> Option<V>;
 
     fn add_vertex(&mut self, vertex: V) -> Self::VertexId {
         match self.try_add_vertex(vertex) {
-            Ok(index) => index,
+            Ok(id) => id,
             Err(error) => panic!("{error}"),
         }
     }
 
     fn try_replace_vertex(
         &mut self,
-        index: &Self::VertexId,
+        id: &Self::VertexId,
         vertex: V,
     ) -> Result<V, ReplaceVertexError<V>> {
-        match self.vertex_mut(index) {
+        match self.vertex_mut(id) {
             Some(slot) => Ok(mem::replace(slot, vertex)),
             None => Err(ReplaceVertexError(vertex)),
         }
     }
 
-    fn replace_vertex(&mut self, index: &Self::VertexId, vertex: V) -> V {
-        match self.try_replace_vertex(index, vertex) {
+    fn replace_vertex(&mut self, id: &Self::VertexId, vertex: V) -> V {
+        match self.try_replace_vertex(id, vertex) {
             Ok(original) => original,
             Err(error) => panic!("{error}"),
         }
@@ -154,7 +154,7 @@ pub trait VerticesMut<V>: Vertices<V> {
         V: Eq,
     {
         match self.try_get_or_add_vertex(vertex) {
-            Ok(index) => index,
+            Ok(id) => id,
             Err(error) => panic!("{error}"),
         }
     }
@@ -171,7 +171,7 @@ pub trait VerticesBaseWeak: GraphBase {
 }
 
 pub trait VerticesWeak<V>: VerticesBaseWeak {
-    fn vertex_weak(&self, index: &Self::VertexId) -> Option<WeakRef<'_, V>>;
+    fn vertex_weak(&self, id: &Self::VertexId) -> Option<WeakRef<'_, V>>;
 }
 
 impl<'a, VId: IdType, V> VertexRef<VId, V> for (VId, &'a V) {
@@ -206,8 +206,8 @@ macro_rules! deref_vertices_base {
                 (**self).vertex_ids()
             }
 
-            fn contains_vertex(&self, index: &Self::VertexId) -> bool {
-                (**self).contains_vertex(index)
+            fn contains_vertex(&self, id: &Self::VertexId) -> bool {
+                (**self).contains_vertex(id)
             }
 
             fn vertex_id_map(&self) -> CompactIdMap<Self::VertexId>
@@ -239,8 +239,8 @@ macro_rules! deref_vertices {
                 Self: 'a,
                 V: 'a;
 
-            fn vertex(&self, index: &Self::VertexId) -> Option<&V> {
-                (**self).vertex(index)
+            fn vertex(&self, id: &Self::VertexId) -> Option<&V> {
+                (**self).vertex(id)
             }
 
             fn vertices(&self) -> Self::VerticesIter<'_> {
@@ -257,20 +257,20 @@ impl<V, G> VerticesMut<V> for &mut G
 where
     G: VerticesMut<V>,
 {
-    fn vertex_mut(&mut self, index: &Self::VertexId) -> Option<&mut V> {
-        (**self).vertex_mut(index)
+    fn vertex_mut(&mut self, id: &Self::VertexId) -> Option<&mut V> {
+        (**self).vertex_mut(id)
     }
 
     fn try_add_vertex(&mut self, vertex: V) -> Result<Self::VertexId, AddVertexError<V>> {
         (**self).try_add_vertex(vertex)
     }
 
-    fn remove_vertex(&mut self, index: &Self::VertexId) -> Option<V> {
-        (**self).remove_vertex(index)
+    fn remove_vertex(&mut self, id: &Self::VertexId) -> Option<V> {
+        (**self).remove_vertex(id)
     }
 
-    fn replace_vertex(&mut self, index: &Self::VertexId, vertex: V) -> V {
-        (**self).replace_vertex(index, vertex)
+    fn replace_vertex(&mut self, id: &Self::VertexId, vertex: V) -> V {
+        (**self).replace_vertex(id, vertex)
     }
 
     fn clear(&mut self) {
@@ -304,8 +304,8 @@ macro_rules! deref_vertices_weak {
             where
                 G: VerticesWeak<V>,
             {
-                fn vertex_weak(&self, index: &Self::VertexId) -> Option<WeakRef<'_, V>> {
-                    (**self).vertex_weak(index)
+                fn vertex_weak(&self, id: &Self::VertexId) -> Option<WeakRef<'_, V>> {
+                    (**self).vertex_weak(id)
                 }
             }
         }

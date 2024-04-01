@@ -47,25 +47,25 @@ mod tests {
         assert_eq!(graph.edge_ids().count(), graph.edge_count());
         assert_eq!(graph.edges().count(), graph.edge_count());
 
-        let valid_edge_indices = graph.edge_ids().all(|edge_index| {
-            let (src, dst) = graph.endpoints(&edge_index).unwrap();
-            graph.edge_id_any(&src, &dst) == Some(edge_index)
+        let valid_edge_ids = graph.edge_ids().all(|edge_id| {
+            let (src, dst) = graph.endpoints(&edge_id).unwrap();
+            graph.edge_id_any(&src, &dst) == Some(edge_id)
         });
-        assert!(valid_edge_indices);
+        assert!(valid_edge_ids);
 
         let mut deg = graph
             .vertex_ids()
-            .map(|index| graph.degree(&index))
+            .map(|id| graph.degree(&id))
             .collect::<Vec<_>>();
 
         let mut out_deg = graph
             .vertex_ids()
-            .map(|index| graph.degree_directed(&index, Direction::Outgoing))
+            .map(|id| graph.degree_directed(&id, Direction::Outgoing))
             .collect::<Vec<_>>();
 
         let mut in_deg = graph
             .vertex_ids()
-            .map(|index| graph.degree_directed(&index, Direction::Incoming))
+            .map(|id| graph.degree_directed(&id, Direction::Incoming))
             .collect::<Vec<_>>();
 
         deg.sort_unstable();

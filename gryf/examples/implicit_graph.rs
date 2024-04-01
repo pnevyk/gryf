@@ -79,8 +79,8 @@ impl VerticesBaseWeak for Collatz {
 }
 
 impl VerticesWeak<u64> for Collatz {
-    fn vertex_weak(&self, index: &VertexId) -> Option<WeakRef<'_, u64>> {
-        Some(index.to_bits().into())
+    fn vertex_weak(&self, id: &VertexId) -> Option<WeakRef<'_, u64>> {
+        Some(id.to_bits().into())
     }
 }
 

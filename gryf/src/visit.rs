@@ -80,7 +80,7 @@ where
     G: VerticesBase,
 {
     graph: &'a G,
-    indices: G::VertexIdsIter<'a>,
+    ids: G::VertexIdsIter<'a>,
 }
 
 impl<'a, G> VisitAll<'a, G>
@@ -90,7 +90,7 @@ where
     pub fn new(graph: &'a G) -> Self {
         Self {
             graph,
-            indices: graph.vertex_ids(),
+            ids: graph.vertex_ids(),
         }
     }
 }
@@ -100,7 +100,7 @@ where
     G: VerticesBase,
 {
     fn get_next(&mut self) -> Option<G::VertexId> {
-        self.indices.next()
+        self.ids.next()
     }
 
     fn is_done(&mut self, visited: &impl VisitSet<G::VertexId>) -> bool {

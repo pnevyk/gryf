@@ -101,11 +101,11 @@ where
         }
     }
 
-    fn contains_vertex(&self, index: &G::VertexId) -> bool {
-        if self.removed_vertices.contains(index) {
+    fn contains_vertex(&self, id: &G::VertexId) -> bool {
+        if self.removed_vertices.contains(id) {
             false
         } else {
-            self.inner.contains_vertex(index)
+            self.inner.contains_vertex(id)
         }
     }
 
@@ -135,11 +135,11 @@ where
         Self: 'a,
         V: 'a;
 
-    fn vertex(&self, index: &G::VertexId) -> Option<&V> {
-        if self.removed_vertices.contains(index) {
+    fn vertex(&self, id: &G::VertexId) -> Option<&V> {
+        if self.removed_vertices.contains(id) {
             None
         } else {
-            self.inner.vertex(index)
+            self.inner.vertex(id)
         }
     }
 
@@ -156,11 +156,11 @@ where
     G: VerticesMut<V> + Neighbors,
     V: Clone,
 {
-    fn vertex_mut(&mut self, index: &G::VertexId) -> Option<&mut V> {
-        if self.removed_vertices.contains(index) {
+    fn vertex_mut(&mut self, id: &G::VertexId) -> Option<&mut V> {
+        if self.removed_vertices.contains(id) {
             None
         } else {
-            self.inner.vertex_mut(index)
+            self.inner.vertex_mut(id)
         }
     }
 
@@ -168,8 +168,8 @@ where
         self.inner.try_add_vertex(vertex)
     }
 
-    fn remove_vertex(&mut self, index: &G::VertexId) -> Option<V> {
-        if let Some(data) = self.vertex(index) {
+    fn remove_vertex(&mut self, id: &G::VertexId) -> Option<V> {
+        if let Some(data) = self.vertex(id) {
             let data = data.clone();
 
             // Iterate over remaining neighbors only to get edges to be marked
@@ -178,11 +178,11 @@ where
             // may cause unnecessary overhead if a lot of edges incident to the
             // vertex has been removed.
             let mut removed_edges = BTreeSet::default();
-            for neighbor in self.neighbors(index) {
+            for neighbor in self.neighbors(id) {
                 removed_edges.insert(neighbor.edge().into_owned());
             }
 
-            self.removed_vertices.insert(index.clone());
+            self.removed_vertices.insert(id.clone());
 
             for edge in removed_edges {
                 self.removed_edges.insert(edge);
@@ -224,11 +224,11 @@ where
         self.inner.edge_bound()
     }
 
-    fn endpoints(&self, index: &G::EdgeId) -> Option<(G::VertexId, G::VertexId)> {
-        if self.removed_edges.contains(index) {
+    fn endpoints(&self, id: &G::EdgeId) -> Option<(G::VertexId, G::VertexId)> {
+        if self.removed_edges.contains(id) {
             None
         } else {
-            self.inner.endpoints(index)
+            self.inner.endpoints(id)
         }
     }
 
@@ -249,11 +249,11 @@ where
         }
     }
 
-    fn contains_edge(&self, index: &G::EdgeId) -> bool {
-        if self.removed_edges.contains(index) {
+    fn contains_edge(&self, id: &G::EdgeId) -> bool {
+        if self.removed_edges.contains(id) {
             false
         } else {
-            self.inner.contains_edge(index)
+            self.inner.contains_edge(id)
         }
     }
 
@@ -283,11 +283,11 @@ where
         Self: 'a,
         E: 'a;
 
-    fn edge(&self, index: &G::EdgeId) -> Option<&E> {
-        if self.removed_edges.contains(index) {
+    fn edge(&self, id: &G::EdgeId) -> Option<&E> {
+        if self.removed_edges.contains(id) {
             None
         } else {
-            self.inner.edge(index)
+            self.inner.edge(id)
         }
     }
 
@@ -304,11 +304,11 @@ where
     G: EdgesMut<E, Ty>,
     E: Clone,
 {
-    fn edge_mut(&mut self, index: &G::EdgeId) -> Option<&mut E> {
-        if self.removed_edges.contains(index) {
+    fn edge_mut(&mut self, id: &G::EdgeId) -> Option<&mut E> {
+        if self.removed_edges.contains(id) {
             None
         } else {
-            self.inner.edge_mut(index)
+            self.inner.edge_mut(id)
         }
     }
 
@@ -329,10 +329,10 @@ where
         self.inner.try_add_edge(src, dst, edge)
     }
 
-    fn remove_edge(&mut self, index: &G::EdgeId) -> Option<E> {
-        if let Some(data) = self.edge(index) {
+    fn remove_edge(&mut self, id: &G::EdgeId) -> Option<E> {
+        if let Some(data) = self.edge(id) {
             let data = data.clone();
-            self.removed_edges.insert(index.clone());
+            self.removed_edges.insert(id.clone());
             Some(data)
         } else {
             None
@@ -426,7 +426,7 @@ impl<'a, G: VerticesBase> Iterator for VertexIds<'a, G> {
     fn next(&mut self) -> Option<Self::Item> {
         self.inner
             .by_ref()
-            .find(|index| !self.removed_vertices.contains(index))
+            .find(|id| !self.removed_vertices.contains(id))
     }
 }
 
@@ -456,7 +456,7 @@ impl<'a, Ty: EdgeType, G: EdgesBase<Ty>> Iterator for EdgeIdsIter<'a, Ty, G> {
     fn next(&mut self) -> Option<Self::Item> {
         self.inner
             .by_ref()
-            .find(|index| !self.removed_edges.contains(index))
+            .find(|id| !self.removed_edges.contains(id))
     }
 }
 
@@ -488,7 +488,7 @@ impl<'a, Ty: EdgeType, G: EdgesBase<Ty>> Iterator for EdgeIdIter<'a, Ty, G> {
         if self.endpoints_exist {
             self.inner
                 .by_ref()
-                .find(|index| !self.removed_edges.contains(index))
+                .find(|id| !self.removed_edges.contains(id))
         } else {
             None
         }

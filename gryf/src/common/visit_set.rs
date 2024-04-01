@@ -10,19 +10,19 @@ use fixedbitset::FixedBitSet;
 use crate::core::id::{IdType, NumIdType};
 
 pub trait VisitSet<I: IdType> {
-    fn visit(&mut self, index: I) -> bool;
-    fn is_visited(&self, index: &I) -> bool;
+    fn visit(&mut self, id: I) -> bool;
+    fn is_visited(&self, id: &I) -> bool;
     fn visited_count(&self) -> usize;
     fn reset_visited(&mut self);
 }
 
 impl<I: IdType> VisitSet<I> for BTreeSet<I> {
-    fn visit(&mut self, index: I) -> bool {
-        self.insert(index)
+    fn visit(&mut self, id: I) -> bool {
+        self.insert(id)
     }
 
-    fn is_visited(&self, index: &I) -> bool {
-        self.contains(index)
+    fn is_visited(&self, id: &I) -> bool {
+        self.contains(id)
     }
 
     fn visited_count(&self) -> usize {
@@ -35,12 +35,12 @@ impl<I: IdType> VisitSet<I> for BTreeSet<I> {
 }
 
 impl<I: IdType, S: BuildHasher> VisitSet<I> for HashSet<I, S> {
-    fn visit(&mut self, index: I) -> bool {
-        self.insert(index)
+    fn visit(&mut self, id: I) -> bool {
+        self.insert(id)
     }
 
-    fn is_visited(&self, index: &I) -> bool {
-        self.contains(index)
+    fn is_visited(&self, id: &I) -> bool {
+        self.contains(id)
     }
 
     fn visited_count(&self) -> usize {
@@ -53,15 +53,15 @@ impl<I: IdType, S: BuildHasher> VisitSet<I> for HashSet<I, S> {
 }
 
 impl<I: NumIdType> VisitSet<I> for FixedBitSet {
-    fn visit(&mut self, index: I) -> bool {
-        if self.len() < index.to_usize() {
-            self.grow(index.to_usize() - self.len());
+    fn visit(&mut self, id: I) -> bool {
+        if self.len() < id.to_usize() {
+            self.grow(id.to_usize() - self.len());
         }
-        !self.put(index.to_usize())
+        !self.put(id.to_usize())
     }
 
-    fn is_visited(&self, index: &I) -> bool {
-        self.contains(index.to_usize())
+    fn is_visited(&self, id: &I) -> bool {
+        self.contains(id.to_usize())
     }
 
     fn visited_count(&self) -> usize {
@@ -74,12 +74,12 @@ impl<I: NumIdType> VisitSet<I> for FixedBitSet {
 }
 
 impl<I: NumIdType> VisitSet<I> for TypedBitSet<I> {
-    fn visit(&mut self, index: I) -> bool {
-        (**self).visit(index)
+    fn visit(&mut self, id: I) -> bool {
+        (**self).visit(id)
     }
 
-    fn is_visited(&self, index: &I) -> bool {
-        (**self).is_visited(index)
+    fn is_visited(&self, id: &I) -> bool {
+        (**self).is_visited(id)
     }
 
     fn visited_count(&self) -> usize {

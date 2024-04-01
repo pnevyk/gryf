@@ -369,13 +369,13 @@ where
             self.vertices.len() - removed_vertices.len(),
             self.edges.len() - removed_edges.len(),
         );
-        let mut indices = Vec::with_capacity(self.vertices.len());
+        let mut ids = Vec::with_capacity(self.vertices.len());
 
         for (v, vertex) in self.vertices.iter().enumerate() {
             if !removed_vertices.contains(&v) {
-                indices.push(Some(graph.add_vertex(vertex.current())));
+                ids.push(Some(graph.add_vertex(vertex.current())));
             } else {
-                indices.push(None);
+                ids.push(None);
             }
         }
 
@@ -384,8 +384,8 @@ where
                 && !removed_vertices.contains(src)
                 && !removed_vertices.contains(dst)
             {
-                let src = indices[*src].as_ref().unwrap();
-                let dst = indices[*dst].as_ref().unwrap();
+                let src = ids[*src].as_ref().unwrap();
+                let dst = ids[*dst].as_ref().unwrap();
                 graph.add_edge(src, dst, edge.current());
             }
         }

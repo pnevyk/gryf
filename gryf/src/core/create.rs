@@ -1,7 +1,8 @@
 use std::cmp::max;
 
 use super::{
-    edges::{EdgesMut, IntoEdge},
+    base::IntoEdge,
+    edges::EdgesMut,
     id::{IdType, IntegerIdType},
     marker::EdgeType,
     vertices::VerticesMut,

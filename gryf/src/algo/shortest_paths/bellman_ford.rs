@@ -142,7 +142,7 @@ where
 
     let v = vertex_map.virt(*edge.dst()).unwrap();
 
-    let edge_dist = edge_weight.get(edge.data());
+    let edge_dist = edge_weight.get(edge.attr());
     let next_dist = short_dist.clone() + edge_dist;
 
     if next_dist < dist[v.as_usize()] {

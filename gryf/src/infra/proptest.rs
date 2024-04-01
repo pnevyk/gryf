@@ -42,7 +42,7 @@ pub struct GraphValueTree<V: ValueTree, E: ValueTree, Ty: EdgeType, G> {
     vertices: Vec<V>,
     edges: Vec<(usize, usize, E)>,
     structure: Option<ShrinkStructureState>,
-    data: Option<ShrinkDataState>,
+    attr: Option<ShrinkAttrState>,
     ty: PhantomData<Ty>,
     graph: PhantomData<G>,
 }
@@ -342,7 +342,7 @@ where
             vertices,
             edges,
             structure: None,
-            data: None,
+            attr: None,
             ty: PhantomData,
             graph: PhantomData,
         })
@@ -396,15 +396,15 @@ where
     fn simplify(&mut self) -> bool {
         // The strategy is fundamentally the same as for example default
         // strategy for Vec. First, we try to simplify the structure as much as
-        // possible, then we switch to simplifying the data of vertices and
-        // edges.
+        // possible, then we switch to simplifying the attributes of vertices
+        // and edges.
         //
         // The structure simplification starts with removing all vertices with
         // low degree. The idea is that this should get rid off uninteresting
         // parts of the graph very quickly thanks to its agresivity (many
         // vertices at once). Then we apply the standard strategy of simplifying
         // vertex and edge one by one, respectively. The same strategy is then
-        // applied on the data.
+        // applied on the attributes.
         //
         // It is useful to start with vertices and then move to edges, because
         // successful removals of vertices may also remove some edges, having
@@ -413,19 +413,19 @@ where
         let structure = self
             .structure
             .get_or_insert_with(|| ShrinkStructureState::new(&self.vertices, &self.edges));
-        let data = self.data.get_or_insert_with(ShrinkDataState::new);
+        let attr = self.attr.get_or_insert_with(ShrinkAttrState::new);
 
         structure.simplify(&self.vertices, &self.edges)
-            || data.simplify(&mut self.vertices, &mut self.edges, structure)
+            || attr.simplify(&mut self.vertices, &mut self.edges, structure)
     }
 
     fn complicate(&mut self) -> bool {
         // The state is available, because it is initialized in simplify.
         let structure = self.structure.as_mut().unwrap();
-        let data = self.data.as_mut().unwrap();
+        let attr = self.attr.as_mut().unwrap();
 
         structure.complicate(&self.vertices, &self.edges)
-            || data.complicate(&mut self.vertices, &mut self.edges)
+            || attr.complicate(&mut self.vertices, &mut self.edges)
     }
 }
 
@@ -587,23 +587,23 @@ impl ShrinkStructureState {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ShrinkData {
+enum ShrinkAttr {
     Vertex(usize),
     Edge(usize),
 }
 
 #[derive(Debug, Clone)]
-struct ShrinkDataState {
-    command: ShrinkData,
-    previous: Option<ShrinkData>,
+struct ShrinkAttrState {
+    command: ShrinkAttr,
+    previous: Option<ShrinkAttr>,
 }
 
 // The implementation is adapted from VecValueTree
 // (https://github.com/proptest-rs/proptest/blob/ef305c4fadd7c0ba13a349f542da00d290116ccb/proptest/src/collection.rs#L603-L672).
-impl ShrinkDataState {
+impl ShrinkAttrState {
     pub fn new() -> Self {
         Self {
-            command: ShrinkData::Vertex(0),
+            command: ShrinkAttr::Vertex(0),
             previous: None,
         }
     }
@@ -620,17 +620,17 @@ impl ShrinkDataState {
     {
         loop {
             match self.command {
-                ShrinkData::Vertex(v) => {
+                ShrinkAttr::Vertex(v) => {
                     if v >= vertices.len() {
-                        self.command = ShrinkData::Edge(0);
+                        self.command = ShrinkAttr::Edge(0);
                     } else if structure.vertex_exists(v) && vertices[v].simplify() {
                         self.previous = Some(self.command);
                         return true;
                     } else {
-                        self.command = ShrinkData::Vertex(v + 1);
+                        self.command = ShrinkAttr::Vertex(v + 1);
                     }
                 }
-                ShrinkData::Edge(e) => {
+                ShrinkAttr::Edge(e) => {
                     if e >= edges.len() {
                         return false;
                     } else {
@@ -639,7 +639,7 @@ impl ShrinkDataState {
                             self.previous = Some(self.command);
                             return true;
                         } else {
-                            self.command = ShrinkData::Edge(e + 1);
+                            self.command = ShrinkAttr::Edge(e + 1);
                         }
                     }
                 }
@@ -654,7 +654,7 @@ impl ShrinkDataState {
     {
         match self.previous {
             None => false,
-            Some(ShrinkData::Vertex(v)) => {
+            Some(ShrinkAttr::Vertex(v)) => {
                 if vertices[v].complicate() {
                     true
                 } else {
@@ -662,7 +662,7 @@ impl ShrinkDataState {
                     false
                 }
             }
-            Some(ShrinkData::Edge(e)) => {
+            Some(ShrinkAttr::Edge(e)) => {
                 if edges[e].2.complicate() {
                     true
                 } else {
@@ -711,13 +711,13 @@ mod tests {
         assert_eq!(graph.vertex_count(), 2);
         assert_eq!(graph.edge_count(), 1);
 
-        // Data simplified too.
+        // Attributes simplified too.
         for vertex in graph.vertices() {
-            assert_eq!(*vertex.data(), 0);
+            assert_eq!(*vertex.attr(), 0);
         }
 
         for edge in graph.edges() {
-            assert_eq!(*edge.data(), 0);
+            assert_eq!(*edge.attr(), 0);
         }
     }
 }

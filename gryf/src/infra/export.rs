@@ -71,7 +71,7 @@ where
                 format!(
                     "    v{} [label={:?}];\n",
                     indexer.get(vertex.id()),
-                    (self.get_vertex_label)(vertex.data())
+                    (self.get_vertex_label)(vertex.attr())
                 )
                 .as_bytes(),
             )?;
@@ -85,7 +85,7 @@ where
                     indexer.get(edge.src()),
                     line,
                     indexer.get(edge.dst()),
-                    (self.get_edge_label)(edge.data())
+                    (self.get_edge_label)(edge.attr())
                 )
                 .as_bytes(),
             )?;

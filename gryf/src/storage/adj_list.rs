@@ -186,7 +186,7 @@ where
         Self: 'a;
 
     fn vertex(&self, id: &Self::VertexId) -> Option<&V> {
-        self.vertices.get(id.as_usize()).map(|vertex| &vertex.data)
+        self.vertices.get(id.as_usize()).map(|vertex| &vertex.attr)
     }
 
     fn vertices(&self) -> Self::VerticesIter<'_> {
@@ -202,7 +202,7 @@ where
     fn vertex_mut(&mut self, id: &Self::VertexId) -> Option<&mut V> {
         self.vertices
             .get_mut(id.as_usize())
-            .map(|vertex| &mut vertex.data)
+            .map(|vertex| &mut vertex.attr)
     }
 
     fn try_add_vertex(&mut self, vertex: V) -> Result<Self::VertexId, AddVertexError<V>> {
@@ -236,7 +236,7 @@ where
             self.relocate_vertex(IdType::from_usize(self.vertices.len()), *id);
         }
 
-        Some(vertex.data)
+        Some(vertex.attr)
     }
 
     fn clear(&mut self) {
@@ -485,8 +485,8 @@ where
         F: FnMut(&V, &V) -> Option<E>,
     {
         shared::connect_vertices::<Ty>(self.vertices.len(), |i, j| {
-            let src = &self.vertices[i].data;
-            let dst = &self.vertices[j].data;
+            let src = &self.vertices[i].attr;
+            let dst = &self.vertices[j].attr;
 
             if let Some(edge) = connect(src, dst) {
                 let src = Id::VertexId::from_usize(i);

@@ -50,7 +50,7 @@ pub trait Vertices<V>: VerticesBase {
         V: Eq,
     {
         self.vertices().find_map(|v| {
-            if v.data() == vertex {
+            if v.attr() == vertex {
                 Some(v.id().clone())
             } else {
                 None

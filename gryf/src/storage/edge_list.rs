@@ -507,10 +507,7 @@ where
 mod tests {
     use super::*;
     use crate::{
-        core::{
-            index::DefaultIndexing,
-            marker::{Directed, Undirected},
-        },
+        core::marker::{Directed, Undirected},
         infra::arbitrary::{ArbitraryIndexing, Index},
         storage::tests::*,
     };

@@ -1,9 +1,9 @@
 use std::marker::PhantomData;
 
 use crate::{
-    common::CompactIndexMap,
+    common::CompactIdMap,
     core::{
-        index::{DefaultIndexing, Indexing, NumIndexType},
+        id::{DefaultId, GraphIdTypes, NumIdType},
         marker::{Direction, EdgeType},
         AddEdgeError, AddEdgeErrorKind, AddVertexError, ConnectVertices, Create, Edges, EdgesBase,
         EdgesMut, GraphBase, Guarantee, Neighbors, Vertices, VerticesBase, VerticesMut,
@@ -16,19 +16,19 @@ use gryf_derive::{EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak};
 use crate::core::{EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak, WeakRef};
 
 use super::shared;
-pub use super::shared::{RangeIndices as VertexIndices, VerticesIter};
+pub use super::shared::{RangeIds as VertexIds, VerticesIter};
 
 #[derive(Debug, VerticesBaseWeak, VerticesWeak, EdgesBaseWeak, EdgesWeak)]
-pub struct AdjMatrix<V, E, Ty, Ix> {
-    matrix: raw::Matrix<E, Ty, Ix>,
+pub struct AdjMatrix<V, E, Ty, Id> {
+    matrix: raw::Matrix<E, Ty, Id>,
     vertices: Vec<V>,
     n_edges: usize,
 }
 
-impl<V, E, Ty: EdgeType, Ix: Indexing> AdjMatrix<V, E, Ty, Ix>
+impl<V, E, Ty: EdgeType, Id: GraphIdTypes> AdjMatrix<V, E, Ty, Id>
 where
-    Ix::VertexIndex: NumIndexType,
-    Ix::EdgeIndex: NumIndexType,
+    Id::VertexId: NumIdType,
+    Id::EdgeId: NumIdType,
 {
     pub fn new() -> Self {
         Self {
@@ -39,23 +39,23 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType> Default for AdjMatrix<V, E, Ty, DefaultIndexing> {
+impl<V, E, Ty: EdgeType> Default for AdjMatrix<V, E, Ty, DefaultId> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<V, E, Ty: EdgeType, Ix: Indexing> GraphBase for AdjMatrix<V, E, Ty, Ix> {
-    type VertexIndex = Ix::VertexIndex;
-    type EdgeIndex = Ix::EdgeIndex;
+impl<V, E, Ty: EdgeType, Id: GraphIdTypes> GraphBase for AdjMatrix<V, E, Ty, Id> {
+    type VertexId = Id::VertexId;
+    type EdgeId = Id::EdgeId;
     type EdgeType = Ty;
 }
 
-impl<V, E, Ty: EdgeType, Ix: Indexing> VerticesBase for AdjMatrix<V, E, Ty, Ix>
+impl<V, E, Ty: EdgeType, Id: GraphIdTypes> VerticesBase for AdjMatrix<V, E, Ty, Id>
 where
-    Ix::VertexIndex: NumIndexType,
+    Id::VertexId: NumIdType,
 {
-    type VertexIndicesIter<'a> = VertexIndices<Self::VertexIndex>
+    type VertexIdsIter<'a> = VertexIds<Self::VertexId>
     where
         Self: 'a;
 
@@ -67,33 +67,33 @@ where
         self.vertex_count()
     }
 
-    fn vertex_indices(&self) -> Self::VertexIndicesIter<'_> {
+    fn vertex_ids(&self) -> Self::VertexIdsIter<'_> {
         (0..self.vertex_bound()).into()
     }
 
-    fn vertex_index_map(&self) -> CompactIndexMap<Self::VertexIndex>
+    fn vertex_id_map(&self) -> CompactIdMap<Self::VertexId>
     where
-        Ix::VertexIndex: NumIndexType,
+        Id::VertexId: NumIdType,
     {
-        CompactIndexMap::isomorphic(self.vertex_count())
+        CompactIdMap::isomorphic(self.vertex_count())
     }
 }
 
-impl<V, E, Ty: EdgeType, Ix: Indexing> Vertices<V> for AdjMatrix<V, E, Ty, Ix>
+impl<V, E, Ty: EdgeType, Id: GraphIdTypes> Vertices<V> for AdjMatrix<V, E, Ty, Id>
 where
-    Ix::VertexIndex: NumIndexType,
+    Id::VertexId: NumIdType,
 {
-    type VertexRef<'a> = (Self::VertexIndex, &'a V)
+    type VertexRef<'a> = (Self::VertexId, &'a V)
     where
         Self: 'a,
         V: 'a;
 
-    type VerticesIter<'a> = VerticesIter<'a, Ix, V>
+    type VerticesIter<'a> = VerticesIter<'a, Id, V>
     where
         Self: 'a,
         V: 'a;
 
-    fn vertex(&self, index: &Self::VertexIndex) -> Option<&V> {
+    fn vertex(&self, index: &Self::VertexId) -> Option<&V> {
         self.vertices.get(index.to_usize())
     }
 
@@ -102,16 +102,16 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, Ix: Indexing> VerticesMut<V> for AdjMatrix<V, E, Ty, Ix>
+impl<V, E, Ty: EdgeType, Id: GraphIdTypes> VerticesMut<V> for AdjMatrix<V, E, Ty, Id>
 where
-    Ix::VertexIndex: NumIndexType,
-    Ix::EdgeIndex: NumIndexType,
+    Id::VertexId: NumIdType,
+    Id::EdgeId: NumIdType,
 {
-    fn vertex_mut(&mut self, index: &Self::VertexIndex) -> Option<&mut V> {
+    fn vertex_mut(&mut self, index: &Self::VertexId) -> Option<&mut V> {
         self.vertices.get_mut(index.to_usize())
     }
 
-    fn try_add_vertex(&mut self, vertex: V) -> Result<Self::VertexIndex, AddVertexError<V>> {
+    fn try_add_vertex(&mut self, vertex: V) -> Result<Self::VertexId, AddVertexError<V>> {
         self.matrix.ensure_capacity(self.vertex_count() + 1);
 
         let index = self.vertices.len();
@@ -119,7 +119,7 @@ where
         Ok(index.into())
     }
 
-    fn remove_vertex(&mut self, index: &Self::VertexIndex) -> Option<V> {
+    fn remove_vertex(&mut self, index: &Self::VertexId) -> Option<V> {
         self.vertex(index)?;
 
         let index = index.to_usize();
@@ -180,15 +180,15 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, Ix: Indexing> EdgesBase<Ty> for AdjMatrix<V, E, Ty, Ix>
+impl<V, E, Ty: EdgeType, Id: GraphIdTypes> EdgesBase<Ty> for AdjMatrix<V, E, Ty, Id>
 where
-    Ix::VertexIndex: NumIndexType,
-    Ix::EdgeIndex: NumIndexType,
+    Id::VertexId: NumIdType,
+    Id::EdgeId: NumIdType,
 {
-    type EdgeIndicesIter<'a> = EdgeIndicesIter<'a, Ty, Ix>
+    type EdgeIdsIter<'a> = EdgeIdsIter<'a, Ty, Id>
     where
         Self: 'a;
-    type EdgeIndexIter<'a> = std::option::IntoIter<Self::EdgeIndex>
+    type EdgeIdIter<'a> = std::option::IntoIter<Self::EdgeId>
     where
         Self: 'a;
 
@@ -200,7 +200,7 @@ where
         self.matrix.index(self.vertex_count(), 0).to_usize()
     }
 
-    fn endpoints(&self, index: &Self::EdgeIndex) -> Option<(Self::VertexIndex, Self::VertexIndex)> {
+    fn endpoints(&self, index: &Self::EdgeId) -> Option<(Self::VertexId, Self::VertexId)> {
         let (row, col) = self.matrix.coords(*index);
         if row < self.vertex_count() {
             Some((row.into(), col.into()))
@@ -209,17 +209,13 @@ where
         }
     }
 
-    fn edge_index(
-        &self,
-        src: &Self::VertexIndex,
-        dst: &Self::VertexIndex,
-    ) -> Self::EdgeIndexIter<'_> {
+    fn edge_id(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Self::EdgeIdIter<'_> {
         let index = self.matrix.index(src.to_usize(), dst.to_usize());
         self.matrix.get(index).map(|_| index).into_iter()
     }
 
-    fn edge_indices(&self) -> Self::EdgeIndicesIter<'_> {
-        EdgeIndicesIter {
+    fn edge_ids(&self) -> Self::EdgeIdsIter<'_> {
+        EdgeIdsIter {
             matrix: self.matrix.detach(),
             index: 0,
             edge_bound: self.edge_bound(),
@@ -228,22 +224,22 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, Ix: Indexing> Edges<E, Ty> for AdjMatrix<V, E, Ty, Ix>
+impl<V, E, Ty: EdgeType, Id: GraphIdTypes> Edges<E, Ty> for AdjMatrix<V, E, Ty, Id>
 where
-    Ix::VertexIndex: NumIndexType,
-    Ix::EdgeIndex: NumIndexType,
+    Id::VertexId: NumIdType,
+    Id::EdgeId: NumIdType,
 {
-    type EdgeRef<'a> = (Self::EdgeIndex, &'a E, Self::VertexIndex, Self::VertexIndex)
+    type EdgeRef<'a> = (Self::EdgeId, &'a E, Self::VertexId, Self::VertexId)
     where
         Self: 'a,
         E: 'a;
 
-    type EdgesIter<'a> = EdgesIter<'a, E, Ty, Ix>
+    type EdgesIter<'a> = EdgesIter<'a, E, Ty, Id>
     where
         Self: 'a,
         E:'a;
 
-    fn edge(&self, index: &Self::EdgeIndex) -> Option<&E> {
+    fn edge(&self, index: &Self::EdgeId) -> Option<&E> {
         self.matrix.get(*index)
     }
 
@@ -257,21 +253,21 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, Ix: Indexing> EdgesMut<E, Ty> for AdjMatrix<V, E, Ty, Ix>
+impl<V, E, Ty: EdgeType, Id: GraphIdTypes> EdgesMut<E, Ty> for AdjMatrix<V, E, Ty, Id>
 where
-    Ix::VertexIndex: NumIndexType,
-    Ix::EdgeIndex: NumIndexType,
+    Id::VertexId: NumIdType,
+    Id::EdgeId: NumIdType,
 {
-    fn edge_mut(&mut self, index: &Ix::EdgeIndex) -> Option<&mut E> {
+    fn edge_mut(&mut self, index: &Id::EdgeId) -> Option<&mut E> {
         self.matrix.get_mut(*index)
     }
 
     fn try_add_edge(
         &mut self,
-        src: &Self::VertexIndex,
-        dst: &Self::VertexIndex,
+        src: &Self::VertexId,
+        dst: &Self::VertexId,
         edge: E,
-    ) -> Result<Self::EdgeIndex, AddEdgeError<E>> {
+    ) -> Result<Self::EdgeId, AddEdgeError<E>> {
         if src.to_usize() >= self.vertices.len() {
             return Err(AddEdgeError::new(edge, AddEdgeErrorKind::SourceAbsent));
         }
@@ -292,7 +288,7 @@ where
         Ok(index)
     }
 
-    fn remove_edge(&mut self, index: &Self::EdgeIndex) -> Option<E> {
+    fn remove_edge(&mut self, index: &Self::EdgeId) -> Option<E> {
         match self.matrix.remove(*index) {
             Some(edge) => {
                 self.n_edges -= 1;
@@ -308,20 +304,20 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, Ix: Indexing> Neighbors for AdjMatrix<V, E, Ty, Ix>
+impl<V, E, Ty: EdgeType, Id: GraphIdTypes> Neighbors for AdjMatrix<V, E, Ty, Id>
 where
-    Ix::VertexIndex: NumIndexType,
-    Ix::EdgeIndex: NumIndexType,
+    Id::VertexId: NumIdType,
+    Id::EdgeId: NumIdType,
 {
-    type NeighborRef<'a> = (Self::VertexIndex, Self::EdgeIndex, Self::VertexIndex, Direction)
+    type NeighborRef<'a> = (Self::VertexId, Self::EdgeId, Self::VertexId, Direction)
     where
         Self: 'a;
 
-    type NeighborsIter<'a> = NeighborsIter<'a, Ty, Ix>
+    type NeighborsIter<'a> = NeighborsIter<'a, Ty, Id>
     where
         Self: 'a;
 
-    fn neighbors(&self, src: &Self::VertexIndex) -> Self::NeighborsIter<'_> {
+    fn neighbors(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_> {
         self.vertex(src).expect("vertex does not exist");
 
         let filter = if Ty::is_directed() {
@@ -341,11 +337,7 @@ where
         }
     }
 
-    fn neighbors_directed(
-        &self,
-        src: &Self::VertexIndex,
-        dir: Direction,
-    ) -> Self::NeighborsIter<'_> {
+    fn neighbors_directed(&self, src: &Self::VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
         self.vertex(src).expect("vertex does not exist");
 
         NeighborsIter {
@@ -358,14 +350,14 @@ where
         }
     }
 
-    fn degree(&self, index: &Self::VertexIndex) -> usize {
+    fn degree(&self, index: &Self::VertexId) -> usize {
         Ty::directions()
             .iter()
             .map(|dir| self.degree_directed(index, *dir))
             .sum()
     }
 
-    fn degree_directed(&self, index: &Self::VertexIndex, dir: Direction) -> usize {
+    fn degree_directed(&self, index: &Self::VertexId, dir: Direction) -> usize {
         self.vertex(index).expect("vertex does not exist");
 
         self.matrix
@@ -373,10 +365,10 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, Ix: Indexing> Create<V, E, Ty> for AdjMatrix<V, E, Ty, Ix>
+impl<V, E, Ty: EdgeType, Id: GraphIdTypes> Create<V, E, Ty> for AdjMatrix<V, E, Ty, Id>
 where
-    Ix::VertexIndex: NumIndexType,
-    Ix::EdgeIndex: NumIndexType,
+    Id::VertexId: NumIdType,
+    Id::EdgeId: NumIdType,
 {
     fn with_capacity(vertex_count: usize, _edge_count: usize) -> Self {
         Self {
@@ -387,10 +379,10 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, Ix: Indexing> ConnectVertices<V, E, Ty> for AdjMatrix<V, E, Ty, Ix>
+impl<V, E, Ty: EdgeType, Id: GraphIdTypes> ConnectVertices<V, E, Ty> for AdjMatrix<V, E, Ty, Id>
 where
-    Ix::VertexIndex: NumIndexType,
-    Ix::EdgeIndex: NumIndexType,
+    Id::VertexId: NumIdType,
+    Id::EdgeId: NumIdType,
 {
     fn connect_vertices<F>(&mut self, mut connect: F)
     where
@@ -401,8 +393,8 @@ where
             let dst = &self.vertices[j];
 
             if let Some(edge) = connect(src, dst) {
-                let src = Ix::VertexIndex::from_usize(i);
-                let dst = Ix::VertexIndex::from_usize(j);
+                let src = Id::VertexId::from_usize(i);
+                let dst = Id::VertexId::from_usize(j);
 
                 self.add_edge(&src, &dst, edge);
             }
@@ -410,20 +402,20 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, Ix: Indexing> Guarantee for AdjMatrix<V, E, Ty, Ix> {}
+impl<V, E, Ty: EdgeType, Id: GraphIdTypes> Guarantee for AdjMatrix<V, E, Ty, Id> {}
 
-pub struct EdgeIndicesIter<'a, Ty, Ix> {
-    matrix: raw::DetachedMatrix<'a, Ty, Ix>,
+pub struct EdgeIdsIter<'a, Ty, Id> {
+    matrix: raw::DetachedMatrix<'a, Ty, Id>,
     index: usize,
     edge_bound: usize,
-    ty: PhantomData<fn() -> Ix>,
+    ty: PhantomData<fn() -> Id>,
 }
 
-impl<'a, Ty: EdgeType, Ix: Indexing> Iterator for EdgeIndicesIter<'a, Ty, Ix>
+impl<'a, Ty: EdgeType, Id: GraphIdTypes> Iterator for EdgeIdsIter<'a, Ty, Id>
 where
-    Ix::EdgeIndex: NumIndexType,
+    Id::EdgeId: NumIdType,
 {
-    type Item = Ix::EdgeIndex;
+    type Item = Id::EdgeId;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -431,7 +423,7 @@ where
                 return None;
             }
 
-            let index = Ix::EdgeIndex::from_usize(self.index);
+            let index = Id::EdgeId::from_usize(self.index);
             self.index += 1;
 
             if self.matrix.contains(index) {
@@ -441,19 +433,19 @@ where
     }
 }
 
-pub struct EdgesIter<'a, E, Ty, Ix> {
-    matrix: &'a raw::Matrix<E, Ty, Ix>,
+pub struct EdgesIter<'a, E, Ty, Id> {
+    matrix: &'a raw::Matrix<E, Ty, Id>,
     index: usize,
     edge_bound: usize,
-    ty: PhantomData<fn() -> Ix>,
+    ty: PhantomData<fn() -> Id>,
 }
 
-impl<'a, E, Ty: EdgeType, Ix: Indexing> Iterator for EdgesIter<'a, E, Ty, Ix>
+impl<'a, E, Ty: EdgeType, Id: GraphIdTypes> Iterator for EdgesIter<'a, E, Ty, Id>
 where
-    Ix::VertexIndex: NumIndexType,
-    Ix::EdgeIndex: NumIndexType,
+    Id::VertexId: NumIdType,
+    Id::EdgeId: NumIdType,
 {
-    type Item = (Ix::EdgeIndex, &'a E, Ix::VertexIndex, Ix::VertexIndex);
+    type Item = (Id::EdgeId, &'a E, Id::VertexId, Id::VertexId);
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -461,7 +453,7 @@ where
                 return None;
             }
 
-            let index = Ix::EdgeIndex::from_usize(self.index);
+            let index = Id::EdgeId::from_usize(self.index);
             self.index += 1;
 
             if let Some(edge) = self.matrix.get(index) {
@@ -472,21 +464,21 @@ where
     }
 }
 
-pub struct NeighborsIter<'a, Ty, Ix: Indexing> {
-    matrix: raw::DetachedMatrix<'a, Ty, Ix>,
-    src: Ix::VertexIndex,
+pub struct NeighborsIter<'a, Ty, Id: GraphIdTypes> {
+    matrix: raw::DetachedMatrix<'a, Ty, Id>,
+    src: Id::VertexId,
     other: usize,
     vertex_count: usize,
     filter: Option<Direction>,
     dir: Direction,
 }
 
-impl<'a, Ty: EdgeType, Ix: Indexing> Iterator for NeighborsIter<'a, Ty, Ix>
+impl<'a, Ty: EdgeType, Id: GraphIdTypes> Iterator for NeighborsIter<'a, Ty, Id>
 where
-    Ix::VertexIndex: NumIndexType,
-    Ix::EdgeIndex: NumIndexType,
+    Id::VertexId: NumIdType,
+    Id::EdgeId: NumIdType,
 {
-    type Item = (Ix::VertexIndex, Ix::EdgeIndex, Ix::VertexIndex, Direction);
+    type Item = (Id::VertexId, Id::EdgeId, Id::VertexId, Direction);
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -512,7 +504,7 @@ where
                 };
 
                 if self.matrix.contains(index) {
-                    return Some((Ix::VertexIndex::from_usize(dst), index, self.src, self.dir));
+                    return Some((Id::VertexId::from_usize(dst), index, self.src, self.dir));
                 }
             }
         }
@@ -526,7 +518,7 @@ mod raw {
     use bitvec::prelude::*;
 
     use crate::common::matrix::*;
-    use crate::core::index::{Indexing, NumIndexType};
+    use crate::core::id::{GraphIdTypes, NumIdType};
     use crate::core::marker::{Direction, EdgeType};
 
     #[derive(Debug)]
@@ -722,16 +714,16 @@ mod raw {
     // problem. Unfortunately, it brings unsafe code and a bit more logic
     // complexity. We hide this unsafe code behind FlaggedVec abstraction.
     #[derive(Debug)]
-    pub struct Matrix<E, Ty, Ix> {
+    pub struct Matrix<E, Ty, Id> {
         data: FlaggedVec<E>,
         capacity: usize,
-        ty: PhantomData<(Ty, Ix)>,
+        ty: PhantomData<(Ty, Id)>,
     }
 
-    impl<E, Ty: EdgeType, Ix: Indexing> Matrix<E, Ty, Ix>
+    impl<E, Ty: EdgeType, Id: GraphIdTypes> Matrix<E, Ty, Id>
     where
-        Ix::VertexIndex: NumIndexType,
-        Ix::EdgeIndex: NumIndexType,
+        Id::VertexId: NumIdType,
+        Id::EdgeId: NumIdType,
     {
         pub fn with_capacity(capacity: usize) -> Self {
             if capacity == 0 {
@@ -761,40 +753,35 @@ mod raw {
             }
         }
 
-        pub fn contains(&self, index: Ix::EdgeIndex) -> bool {
+        pub fn contains(&self, index: Id::EdgeId) -> bool {
             self.data.contains(index.to_usize())
         }
 
-        pub fn get(&self, index: Ix::EdgeIndex) -> Option<&E> {
+        pub fn get(&self, index: Id::EdgeId) -> Option<&E> {
             self.data.get(index.to_usize())
         }
 
-        pub fn get_mut(&mut self, index: Ix::EdgeIndex) -> Option<&mut E> {
+        pub fn get_mut(&mut self, index: Id::EdgeId) -> Option<&mut E> {
             self.data.get_mut(index.to_usize())
         }
 
-        pub fn insert(&mut self, index: Ix::EdgeIndex, edge: E) {
+        pub fn insert(&mut self, index: Id::EdgeId, edge: E) {
             self.data.insert(index.to_usize(), edge);
         }
 
-        pub fn remove(&mut self, index: Ix::EdgeIndex) -> Option<E> {
+        pub fn remove(&mut self, index: Id::EdgeId) -> Option<E> {
             self.data.remove(index.to_usize())
         }
 
-        pub fn index(&self, row: usize, col: usize) -> Ix::EdgeIndex {
-            Ix::EdgeIndex::from_usize(index::<Ty>(row, col, self.capacity))
+        pub fn index(&self, row: usize, col: usize) -> Id::EdgeId {
+            Id::EdgeId::from_usize(index::<Ty>(row, col, self.capacity))
         }
 
-        pub fn coords(&self, index: Ix::EdgeIndex) -> (usize, usize) {
+        pub fn coords(&self, index: Id::EdgeId) -> (usize, usize) {
             coords::<Ty>(index.to_usize(), self.capacity)
         }
 
-        pub fn degree_directed(
-            &self,
-            v: Ix::VertexIndex,
-            dir: Direction,
-            n_vertices: usize,
-        ) -> usize {
+        pub fn degree_directed(&self, v: Id::VertexId, dir: Direction, n_vertices: usize) -> usize {
             let v = v.to_usize();
             let mut degree = 0;
 
@@ -827,7 +814,7 @@ mod raw {
             degree
         }
 
-        pub fn detach(&self) -> DetachedMatrix<'_, Ty, Ix> {
+        pub fn detach(&self) -> DetachedMatrix<'_, Ty, Id> {
             DetachedMatrix {
                 data: self.data.detach(),
                 capacity: self.capacity,
@@ -836,37 +823,37 @@ mod raw {
         }
     }
 
-    impl<E, Ty: EdgeType, Ix: Indexing> Matrix<E, Ty, Ix> {
+    impl<E, Ty: EdgeType, Id: GraphIdTypes> Matrix<E, Ty, Id> {
         pub fn clear(&mut self) {
             self.data.clear();
         }
     }
 
-    pub struct DetachedMatrix<'a, Ty, Ix> {
+    pub struct DetachedMatrix<'a, Ty, Id> {
         data: &'a BitVec,
         capacity: usize,
-        ty: PhantomData<(Ty, Ix)>,
+        ty: PhantomData<(Ty, Id)>,
     }
 
-    impl<Ty: EdgeType, Ix: Indexing> DetachedMatrix<'_, Ty, Ix>
+    impl<Ty: EdgeType, Id: GraphIdTypes> DetachedMatrix<'_, Ty, Id>
     where
-        Ix::EdgeIndex: NumIndexType,
+        Id::EdgeId: NumIdType,
     {
-        pub fn contains(&self, index: Ix::EdgeIndex) -> bool {
+        pub fn contains(&self, index: Id::EdgeId) -> bool {
             self.data[index.to_usize()]
         }
 
-        pub fn index(&self, row: usize, col: usize) -> Ix::EdgeIndex {
-            Ix::EdgeIndex::from_usize(index::<Ty>(row, col, self.capacity))
+        pub fn index(&self, row: usize, col: usize) -> Id::EdgeId {
+            Id::EdgeId::from_usize(index::<Ty>(row, col, self.capacity))
         }
 
         #[allow(unused)]
-        pub fn coords(&self, index: Ix::EdgeIndex) -> (usize, usize) {
+        pub fn coords(&self, index: Id::EdgeId) -> (usize, usize) {
             coords::<Ty>(index.to_usize(), self.capacity)
         }
     }
 
-    impl<Ty: EdgeType, Ix> std::fmt::Debug for DetachedMatrix<'_, Ty, Ix> {
+    impl<Ty: EdgeType, Id> std::fmt::Debug for DetachedMatrix<'_, Ty, Id> {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             if f.alternate() {
                 writeln!(f, "DetachedMatrix {{")?;
@@ -899,7 +886,7 @@ mod tests {
     use crate::{
         core::marker::{Directed, Undirected},
         infra::{
-            arbitrary::{ArbitraryIndexing, Index},
+            arbitrary::{ArbitraryId, Index},
             testing::check_consistency,
         },
         storage::tests::*,
@@ -907,37 +894,37 @@ mod tests {
 
     #[test]
     fn basic_undirected() {
-        test_basic::<Undirected, AdjMatrix<_, _, _, DefaultIndexing>>();
+        test_basic::<Undirected, AdjMatrix<_, _, _, DefaultId>>();
     }
 
     #[test]
     fn basic_directed() {
-        test_basic::<Directed, AdjMatrix<_, _, _, DefaultIndexing>>();
+        test_basic::<Directed, AdjMatrix<_, _, _, DefaultId>>();
     }
 
     #[test]
     fn connect_vertices_undirected() {
-        test_connect_vertices::<Undirected, AdjMatrix<_, _, _, DefaultIndexing>>();
+        test_connect_vertices::<Undirected, AdjMatrix<_, _, _, DefaultId>>();
     }
 
     #[test]
     fn connect_vertices_directed() {
-        test_connect_vertices::<Directed, AdjMatrix<_, _, _, DefaultIndexing>>();
+        test_connect_vertices::<Directed, AdjMatrix<_, _, _, DefaultId>>();
     }
 
     #[test]
     fn neighbors_edge_cases_undirected() {
-        test_neighbors_edge_cases::<Undirected, AdjMatrix<_, _, _, DefaultIndexing>>();
+        test_neighbors_edge_cases::<Undirected, AdjMatrix<_, _, _, DefaultId>>();
     }
 
     #[test]
     fn neighbors_edge_cases_directed() {
-        test_neighbors_edge_cases::<Directed, AdjMatrix<_, _, _, DefaultIndexing>>();
+        test_neighbors_edge_cases::<Directed, AdjMatrix<_, _, _, DefaultId>>();
     }
 
     #[test]
     fn fuzz_trophy1() {
-        let mut graph = AdjMatrix::<_, _, Undirected, ArbitraryIndexing>::new();
+        let mut graph = AdjMatrix::<_, _, Undirected, ArbitraryId>::new();
 
         graph.add_vertex(10);
         graph.add_edge(&Index(0), &Index(0), 0);
@@ -947,7 +934,7 @@ mod tests {
 
     #[test]
     fn fuzz_trophy2() {
-        let mut graph = AdjMatrix::<_, _, Undirected, ArbitraryIndexing>::new();
+        let mut graph = AdjMatrix::<_, _, Undirected, ArbitraryId>::new();
 
         graph.add_vertex(1);
         graph.add_vertex(100);
@@ -959,7 +946,7 @@ mod tests {
 
     #[test]
     fn fuzz_trophy3() {
-        let mut graph = AdjMatrix::<_, _, Directed, ArbitraryIndexing>::new();
+        let mut graph = AdjMatrix::<_, _, Directed, ArbitraryId>::new();
 
         graph.add_vertex(1);
         graph.add_vertex(42);
@@ -977,7 +964,7 @@ mod tests {
 
     #[test]
     fn fuzz_trophy4() {
-        let mut graph = AdjMatrix::<_, _, Directed, ArbitraryIndexing>::new();
+        let mut graph = AdjMatrix::<_, _, Directed, ArbitraryId>::new();
 
         graph.add_vertex(-55);
         graph.add_vertex(-127);

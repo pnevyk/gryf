@@ -7,7 +7,7 @@ use std::{
 
 use super::{
     edges::{EdgesMut, IntoEdge},
-    index::{IndexType, Indexing, NumIndexType},
+    id::{GraphIdTypes, IdType, NumIdType},
     marker::EdgeType,
     vertices::VerticesMut,
 };
@@ -104,8 +104,8 @@ impl<T> Borrow<T> for WeakRef<'_, T> {
 }
 
 pub trait GraphBase {
-    type VertexIndex: IndexType;
-    type EdgeIndex: IndexType;
+    type VertexId: IdType;
+    type EdgeId: IdType;
     type EdgeType: EdgeType;
 }
 
@@ -113,8 +113,8 @@ impl<G> GraphBase for &G
 where
     G: GraphBase,
 {
-    type VertexIndex = G::VertexIndex;
-    type EdgeIndex = G::EdgeIndex;
+    type VertexId = G::VertexId;
+    type EdgeId = G::EdgeId;
     type EdgeType = G::EdgeType;
 }
 
@@ -122,17 +122,17 @@ impl<G> GraphBase for &mut G
 where
     G: GraphBase,
 {
-    type VertexIndex = G::VertexIndex;
-    type EdgeIndex = G::EdgeIndex;
+    type VertexId = G::VertexId;
+    type EdgeId = G::EdgeId;
     type EdgeType = G::EdgeType;
 }
 
-impl<G> Indexing for G
+impl<G> GraphIdTypes for G
 where
     G: GraphBase,
 {
-    type VertexIndex = G::VertexIndex;
-    type EdgeIndex = G::EdgeIndex;
+    type VertexId = G::VertexId;
+    type EdgeId = G::EdgeId;
 }
 
 pub trait Create<V, E, Ty: EdgeType>: VerticesMut<V> + EdgesMut<E, Ty> + Sized {
@@ -172,7 +172,7 @@ where
     T: IntoEdge<Self, E, Ty>,
     V: Default,
     G: Create<V, E, Ty>,
-    Self::VertexIndex: NumIndexType,
+    Self::VertexId: NumIdType,
 {
     fn extend_with_edges<I>(&mut self, iter: I)
     where

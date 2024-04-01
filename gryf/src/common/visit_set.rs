@@ -7,16 +7,16 @@ use std::{
 
 use fixedbitset::FixedBitSet;
 
-use crate::core::index::{IndexType, NumIndexType};
+use crate::core::id::{IdType, NumIdType};
 
-pub trait VisitSet<I: IndexType> {
+pub trait VisitSet<I: IdType> {
     fn visit(&mut self, index: I) -> bool;
     fn is_visited(&self, index: &I) -> bool;
     fn visited_count(&self) -> usize;
     fn reset_visited(&mut self);
 }
 
-impl<I: IndexType> VisitSet<I> for BTreeSet<I> {
+impl<I: IdType> VisitSet<I> for BTreeSet<I> {
     fn visit(&mut self, index: I) -> bool {
         self.insert(index)
     }
@@ -34,7 +34,7 @@ impl<I: IndexType> VisitSet<I> for BTreeSet<I> {
     }
 }
 
-impl<I: IndexType, S: BuildHasher> VisitSet<I> for HashSet<I, S> {
+impl<I: IdType, S: BuildHasher> VisitSet<I> for HashSet<I, S> {
     fn visit(&mut self, index: I) -> bool {
         self.insert(index)
     }
@@ -52,7 +52,7 @@ impl<I: IndexType, S: BuildHasher> VisitSet<I> for HashSet<I, S> {
     }
 }
 
-impl<I: NumIndexType> VisitSet<I> for FixedBitSet {
+impl<I: NumIdType> VisitSet<I> for FixedBitSet {
     fn visit(&mut self, index: I) -> bool {
         if self.len() < index.to_usize() {
             self.grow(index.to_usize() - self.len());
@@ -73,7 +73,7 @@ impl<I: NumIndexType> VisitSet<I> for FixedBitSet {
     }
 }
 
-impl<I: NumIndexType> VisitSet<I> for TypedBitSet<I> {
+impl<I: NumIdType> VisitSet<I> for TypedBitSet<I> {
     fn visit(&mut self, index: I) -> bool {
         (**self).visit(index)
     }

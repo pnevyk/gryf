@@ -3,7 +3,7 @@ use std::iter;
 use gryf::prelude::*;
 use gryf::{
     core::{
-        index::{EdgeIndex, VertexIndex},
+        id::{EdgeId, VertexId},
         marker::{Directed, Direction},
         GraphBase, Neighbors, VerticesBaseWeak, VerticesWeak, WeakRef,
     },
@@ -13,30 +13,30 @@ use gryf::{
 // https://stackoverflow.com/questions/58870416/can-you-explain-implicit-graphsin-graph-theory-with-a-simple-example/58887179#58887179
 struct Collatz;
 
-fn to_vertex(n: u64) -> VertexIndex {
-    VertexIndex::from_bits(n)
+fn to_vertex(n: u64) -> VertexId {
+    VertexId::from_bits(n)
 }
 
-fn to_num(v: VertexIndex) -> u64 {
+fn to_num(v: VertexId) -> u64 {
     v.to_bits()
 }
 
 struct Neighbor {
-    src: VertexIndex,
+    src: VertexId,
 }
 
-impl NeighborRef<VertexIndex, EdgeIndex> for Neighbor {
-    fn index(&self) -> WeakRef<'_, VertexIndex> {
+impl NeighborRef<VertexId, EdgeId> for Neighbor {
+    fn id(&self) -> WeakRef<'_, VertexId> {
         let n = self.src.to_bits();
         let c = if n % 2 == 0 { n / 2 } else { 3 * n + 1 };
         WeakRef::Owned(to_vertex(c))
     }
 
-    fn edge(&self) -> WeakRef<'_, EdgeIndex> {
-        WeakRef::Owned(EdgeIndex::from_bits(self.src.to_bits()))
+    fn edge(&self) -> WeakRef<'_, EdgeId> {
+        WeakRef::Owned(EdgeId::from_bits(self.src.to_bits()))
     }
 
-    fn src(&self) -> WeakRef<'_, VertexIndex> {
+    fn src(&self) -> WeakRef<'_, VertexId> {
         self.src.into()
     }
 
@@ -46,8 +46,8 @@ impl NeighborRef<VertexIndex, EdgeIndex> for Neighbor {
 }
 
 impl GraphBase for Collatz {
-    type VertexIndex = VertexIndex;
-    type EdgeIndex = EdgeIndex;
+    type VertexId = VertexId;
+    type EdgeId = EdgeId;
     type EdgeType = Directed;
 }
 
@@ -58,11 +58,11 @@ impl Neighbors for Collatz {
     where
         Self: 'a;
 
-    fn neighbors(&self, src: &VertexIndex) -> Self::NeighborsIter<'_> {
+    fn neighbors(&self, src: &VertexId) -> Self::NeighborsIter<'_> {
         iter::once(Neighbor { src: *src })
     }
 
-    fn neighbors_directed(&self, src: &VertexIndex, dir: Direction) -> Self::NeighborsIter<'_> {
+    fn neighbors_directed(&self, src: &VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
         assert_eq!(dir, Direction::Outgoing, "incoming edges are not available");
         iter::once(Neighbor { src: *src })
     }
@@ -79,7 +79,7 @@ impl VerticesBaseWeak for Collatz {
 }
 
 impl VerticesWeak<u64> for Collatz {
-    fn vertex_weak(&self, index: &VertexIndex) -> Option<WeakRef<'_, u64>> {
+    fn vertex_weak(&self, index: &VertexId) -> Option<WeakRef<'_, u64>> {
         Some(index.to_bits().into())
     }
 }

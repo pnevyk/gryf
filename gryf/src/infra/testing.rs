@@ -14,11 +14,10 @@ use gryf_derive::{
 };
 
 // TODO: Remove these imports once hygiene of procedural macros is fixed.
-use crate::common::CompactIndexMap;
+use crate::common::CompactIdMap;
 use crate::core::{
-    index::NumIndexType, AddEdgeError, AddVertexError, EdgesBase, EdgesBaseWeak, EdgesMut,
-    EdgesWeak, GraphBase, MultiEdges, VerticesBase, VerticesBaseWeak, VerticesMut, VerticesWeak,
-    WeakRef,
+    id::NumIdType, AddEdgeError, AddVertexError, EdgesBase, EdgesBaseWeak, EdgesMut, EdgesWeak,
+    GraphBase, MultiEdges, VerticesBase, VerticesBaseWeak, VerticesMut, VerticesWeak, WeakRef,
 };
 
 use super::export::Dot;
@@ -63,7 +62,7 @@ pub fn create_bipartite<V, E, Ty: EdgeType, G, F>(
 where
     V: Default,
     G: Create<V, E, Ty>,
-    F: Fn(&G::VertexIndex, &G::VertexIndex, Direction) -> Option<E>,
+    F: Fn(&G::VertexId, &G::VertexId, Direction) -> Option<E>,
 {
     let vertex_count = vertex_count_lhs + vertex_count_rhs;
 
@@ -124,20 +123,20 @@ fn degree_dir(dir: Direction) -> &'static str {
 
 #[derive(Debug, Clone, PartialEq, Error)]
 pub enum ConsistencyCheckError {
-    #[error("vertex indices iterator count ({0}) is not equal to vertex count ({1})")]
-    VertexIndicesVertexCountMismatch(usize, usize),
+    #[error("vertex ids iterator count ({0}) is not equal to vertex count ({1})")]
+    VertexIdsVertexCountMismatch(usize, usize),
     #[error("vertices iterator count ({0}) is not equal to vertex count ({1})")]
     VerticesVertexCountMismatch(usize, usize),
     #[error("vertex bound ({0}) is less than vertex count ({1})")]
     VertexBoundInvalid(usize, usize),
-    #[error("edge indices iterator count ({0}) is not equal to edge count ({1})")]
-    EdgeIndicesEdgeCountMismatch(usize, usize),
+    #[error("edge ids iterator count ({0}) is not equal to edge count ({1})")]
+    EdgeIdsEdgeCountMismatch(usize, usize),
     #[error("edges iterator count ({0}) is not equal to edge count ({1})")]
     EdgesEdgeCountMismatch(usize, usize),
     #[error("edge bound ({0}) is less than edge count ({1})")]
     EdgeBoundInvalid(usize, usize),
-    #[error("edge index {0} (zero-based) is invalid, either edge does not exist or is different")]
-    EdgeIndicesInvalid(usize),
+    #[error("edge id {0} (zero-based) is invalid, either edge does not exist or is different")]
+    EdgeIdsInvalid(usize),
     #[error("sum of directed degrees ({0}) is not equal to sum of undirected degrees ({1})")]
     DirectedUndirectedDegreeMismatch(usize, usize),
     #[error("sum of degrees ({0}) is not equal to doubled edge count ({1})")]
@@ -183,10 +182,10 @@ where
     let vertex_count = graph.vertex_count();
 
     cmp(
-        graph.vertex_indices().count(),
+        graph.vertex_ids().count(),
         vertex_count,
         Equal,
-        ConsistencyCheckError::VertexIndicesVertexCountMismatch,
+        ConsistencyCheckError::VertexIdsVertexCountMismatch,
     )?;
     cmp(
         graph.vertices().count(),
@@ -204,10 +203,10 @@ where
     let edge_count = graph.edge_count();
 
     cmp(
-        graph.edge_indices().count(),
+        graph.edge_ids().count(),
         edge_count,
         Equal,
-        ConsistencyCheckError::EdgeIndicesEdgeCountMismatch,
+        ConsistencyCheckError::EdgeIdsEdgeCountMismatch,
     )?;
     cmp(
         graph.edges().count(),
@@ -222,33 +221,33 @@ where
         ConsistencyCheckError::EdgeBoundInvalid,
     )?;
 
-    let invalid_edge_index = graph.edge_indices().enumerate().find_map(|(i, index)| {
+    let invalid_edge_index = graph.edge_ids().enumerate().find_map(|(i, index)| {
         graph
             .endpoints(&index)
             // Ideally we would check `== Some(index)` but for that we would
             // need to use multi edge iterator, which is not implemented for all
             // storages.
-            .filter(|(src, dst)| graph.edge_index(src, dst).any(|e| e == index))
+            .filter(|(src, dst)| graph.edge_id(src, dst).any(|e| e == index))
             .is_none()
             .then_some(i)
     });
 
     if let Some(index) = invalid_edge_index {
-        return Err(ConsistencyCheckError::EdgeIndicesInvalid(index));
+        return Err(ConsistencyCheckError::EdgeIdsInvalid(index));
     }
 
     let deg_sum = graph
-        .vertex_indices()
+        .vertex_ids()
         .map(|index| graph.degree(&index))
         .sum::<usize>();
 
     let out_deg_sum = graph
-        .vertex_indices()
+        .vertex_ids()
         .map(|index| graph.degree_directed(&index, Direction::Outgoing))
         .sum::<usize>();
 
     let in_deg_sum = graph
-        .vertex_indices()
+        .vertex_ids()
         .map(|index| graph.degree_directed(&index, Direction::Incoming))
         .sum::<usize>();
 
@@ -316,12 +315,12 @@ where
     }
 
     let mut deg_seq_lhs = lhs
-        .vertex_indices()
+        .vertex_ids()
         .map(|index| lhs.degree_directed(&index, Direction::Outgoing))
         .collect::<Vec<_>>();
 
     let mut deg_seq_rhs = rhs
-        .vertex_indices()
+        .vertex_ids()
         .map(|index| rhs.degree_directed(&index, Direction::Outgoing))
         .collect::<Vec<_>>();
 

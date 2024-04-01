@@ -26,9 +26,9 @@ where
     })
 }
 
-fn find<EI, Ty: EdgeType, G>(graph: &G) -> Option<EI>
+fn find<EId, Ty: EdgeType, G>(graph: &G) -> Option<EId>
 where
-    G: Neighbors + VerticesBase + VerticesBaseWeak + EdgesBaseWeak<Ty> + GraphBase<EdgeIndex = EI>,
+    G: Neighbors + VerticesBase + VerticesBaseWeak + EdgesBaseWeak<Ty> + GraphBase<EdgeId = EId>,
 {
     DfsEvents::new(graph)
         .start_all(graph)

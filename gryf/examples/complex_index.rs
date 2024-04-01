@@ -10,13 +10,13 @@ use gryf::{
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct ChessSquare(pub usize, pub usize);
 
-impl IndexType for ChessSquare {}
+impl IdType for ChessSquare {}
 
 struct Chessboard;
 
 impl GraphBase for Chessboard {
-    type VertexIndex = ChessSquare;
-    type EdgeIndex = (ChessSquare, ChessSquare);
+    type VertexId = ChessSquare;
+    type EdgeId = (ChessSquare, ChessSquare);
     type EdgeType = Undirected;
 }
 
@@ -33,22 +33,18 @@ impl VerticesBaseWeak for Chessboard {
 impl EdgesBaseWeak<Undirected> for Chessboard {
     fn endpoints_weak(
         &self,
-        &(src, dst): &Self::EdgeIndex,
-    ) -> Option<(Self::VertexIndex, Self::VertexIndex)> {
+        &(src, dst): &Self::EdgeId,
+    ) -> Option<(Self::VertexId, Self::VertexId)> {
         Some((src, dst))
     }
 
-    fn edge_index_weak(
-        &self,
-        src: &Self::VertexIndex,
-        dst: &Self::VertexIndex,
-    ) -> Option<Self::EdgeIndex> {
+    fn edge_id_weak(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Option<Self::EdgeId> {
         Some((*src, *dst))
     }
 }
 
 impl EdgesWeak<(), Undirected> for Chessboard {
-    fn edge_weak(&self, _index: &Self::EdgeIndex) -> Option<WeakRef<'_, ()>> {
+    fn edge_weak(&self, _index: &Self::EdgeId) -> Option<WeakRef<'_, ()>> {
         None
     }
 }
@@ -62,7 +58,7 @@ impl Neighbors for Chessboard {
     where
         Self: 'a;
 
-    fn neighbors(&self, src: &Self::VertexIndex) -> Self::NeighborsIter<'_> {
+    fn neighbors(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_> {
         ChessNeighborsIter {
             src: *src,
             index: 0,
@@ -70,11 +66,7 @@ impl Neighbors for Chessboard {
         }
     }
 
-    fn neighbors_directed(
-        &self,
-        src: &Self::VertexIndex,
-        dir: Direction,
-    ) -> Self::NeighborsIter<'_> {
+    fn neighbors_directed(&self, src: &Self::VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
         ChessNeighborsIter {
             src: *src,
             index: 0,

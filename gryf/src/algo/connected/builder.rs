@@ -7,7 +7,7 @@ where
     G: GraphBase,
 {
     graph: &'a G,
-    between: Option<(&'a G::VertexIndex, &'a G::VertexIndex)>,
+    between: Option<(&'a G::VertexId, &'a G::VertexId)>,
     as_undirected: bool,
 }
 
@@ -28,7 +28,7 @@ impl<'a, G> ConnectedBuilder<'a, G>
 where
     G: GraphBase,
 {
-    pub fn between(self, src: &'a G::VertexIndex, dst: &'a G::VertexIndex) -> Self {
+    pub fn between(self, src: &'a G::VertexId, dst: &'a G::VertexId) -> Self {
         Self {
             between: Some((src, dst)),
             ..self

@@ -1,4 +1,4 @@
-use super::index::IndexType;
+use super::id::IdType;
 
 pub trait Stability: private::Sealed + 'static {
     fn can_replace_removed() -> bool;
@@ -22,7 +22,7 @@ impl Stability for ReplaceRemoved {
     }
 }
 
-pub trait StableIndices<T: IndexType, S: Stability> {}
+pub trait StableId<T: IdType, S: Stability> {}
 
 pub trait Guarantee {
     fn is_loop_free() -> bool {

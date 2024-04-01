@@ -6,17 +6,17 @@ use std::{
 };
 
 use crate::core::{
-    index::{Indexing, NumIndexType},
+    id::{GraphIdTypes, NumIdType},
     marker::EdgeType,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AdjVertex<Ix: Indexing, V> {
+pub struct AdjVertex<Id: GraphIdTypes, V> {
     pub data: V,
-    pub edges: [Vec<Ix::EdgeIndex>; 2],
+    pub edges: [Vec<Id::EdgeId>; 2],
 }
 
-impl<Ix: Indexing, V> AdjVertex<Ix, V> {
+impl<Id: GraphIdTypes, V> AdjVertex<Id, V> {
     pub fn new(data: V) -> Self {
         Self {
             data,
@@ -26,12 +26,12 @@ impl<Ix: Indexing, V> AdjVertex<Ix, V> {
 }
 
 #[derive(Debug)]
-pub struct RangeIndices<I: NumIndexType> {
+pub struct RangeIds<I: NumIdType> {
     range: Range<usize>,
     ty: PhantomData<I>,
 }
 
-impl<I: NumIndexType> Iterator for RangeIndices<I> {
+impl<I: NumIdType> Iterator for RangeIds<I> {
     type Item = I;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -39,7 +39,7 @@ impl<I: NumIndexType> Iterator for RangeIndices<I> {
     }
 }
 
-impl<I: NumIndexType> From<Range<usize>> for RangeIndices<I> {
+impl<I: NumIdType> From<Range<usize>> for RangeIds<I> {
     fn from(range: Range<usize>) -> Self {
         Self {
             range,
@@ -48,12 +48,12 @@ impl<I: NumIndexType> From<Range<usize>> for RangeIndices<I> {
     }
 }
 
-pub struct VerticesIter<'a, Ix, V> {
+pub struct VerticesIter<'a, Id, V> {
     inner: Enumerate<Iter<'a, V>>,
-    ty: PhantomData<fn() -> Ix>,
+    ty: PhantomData<fn() -> Id>,
 }
 
-impl<'a, Ix, V> VerticesIter<'a, Ix, V> {
+impl<'a, Id, V> VerticesIter<'a, Id, V> {
     pub fn new(inner: Iter<'a, V>) -> Self {
         Self {
             inner: inner.enumerate(),
@@ -62,68 +62,68 @@ impl<'a, Ix, V> VerticesIter<'a, Ix, V> {
     }
 }
 
-impl<'a, Ix: Indexing, V> Iterator for VerticesIter<'a, Ix, V>
+impl<'a, Id: GraphIdTypes, V> Iterator for VerticesIter<'a, Id, V>
 where
-    Ix::VertexIndex: NumIndexType,
+    Id::VertexId: NumIdType,
 {
-    type Item = (Ix::VertexIndex, &'a V);
+    type Item = (Id::VertexId, &'a V);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner
             .next()
-            .map(|(index, vertex)| (NumIndexType::from_usize(index), vertex))
+            .map(|(index, vertex)| (NumIdType::from_usize(index), vertex))
     }
 }
 
-pub struct AdjVerticesIter<'a, Ix: Indexing, V> {
-    inner: Enumerate<Iter<'a, AdjVertex<Ix, V>>>,
+pub struct AdjVerticesIter<'a, Id: GraphIdTypes, V> {
+    inner: Enumerate<Iter<'a, AdjVertex<Id, V>>>,
 }
 
-impl<'a, Ix: Indexing, V> AdjVerticesIter<'a, Ix, V> {
-    pub fn new(inner: Iter<'a, AdjVertex<Ix, V>>) -> Self {
+impl<'a, Id: GraphIdTypes, V> AdjVerticesIter<'a, Id, V> {
+    pub fn new(inner: Iter<'a, AdjVertex<Id, V>>) -> Self {
         Self {
             inner: inner.enumerate(),
         }
     }
 }
 
-impl<'a, Ix: Indexing, V> Iterator for AdjVerticesIter<'a, Ix, V>
+impl<'a, Id: GraphIdTypes, V> Iterator for AdjVerticesIter<'a, Id, V>
 where
-    Ix::VertexIndex: NumIndexType,
+    Id::VertexId: NumIdType,
 {
-    type Item = (Ix::VertexIndex, &'a V);
+    type Item = (Id::VertexId, &'a V);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner
             .next()
-            .map(|(index, vertex)| (NumIndexType::from_usize(index), &vertex.data))
+            .map(|(index, vertex)| (NumIdType::from_usize(index), &vertex.data))
     }
 }
 
-pub struct EdgesIter<'a, Ix: Indexing, E> {
+pub struct EdgesIter<'a, Id: GraphIdTypes, E> {
     #[allow(clippy::type_complexity)]
-    inner: Enumerate<Zip<Iter<'a, E>, Iter<'a, [Ix::VertexIndex; 2]>>>,
+    inner: Enumerate<Zip<Iter<'a, E>, Iter<'a, [Id::VertexId; 2]>>>,
 }
 
-impl<'a, Ix: Indexing, E> EdgesIter<'a, Ix, E> {
-    pub fn new(edges: Iter<'a, E>, endpoints: Iter<'a, [Ix::VertexIndex; 2]>) -> Self {
+impl<'a, Id: GraphIdTypes, E> EdgesIter<'a, Id, E> {
+    pub fn new(edges: Iter<'a, E>, endpoints: Iter<'a, [Id::VertexId; 2]>) -> Self {
         Self {
             inner: edges.zip(endpoints).enumerate(),
         }
     }
 }
 
-impl<'a, Ix: Indexing, E> Iterator for EdgesIter<'a, Ix, E>
+impl<'a, Id: GraphIdTypes, E> Iterator for EdgesIter<'a, Id, E>
 where
-    Ix::VertexIndex: NumIndexType,
-    Ix::EdgeIndex: NumIndexType,
+    Id::VertexId: NumIdType,
+    Id::EdgeId: NumIdType,
 {
-    type Item = (Ix::EdgeIndex, &'a E, Ix::VertexIndex, Ix::VertexIndex);
+    type Item = (Id::EdgeId, &'a E, Id::VertexId, Id::VertexId);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner.next().map(|(index, (edge, endpoints))| {
             (
-                NumIndexType::from_usize(index),
+                NumIdType::from_usize(index),
                 edge,
                 endpoints[0],
                 endpoints[1],

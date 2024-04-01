@@ -19,8 +19,8 @@ use super::{Error, ShortestPaths};
 
 pub fn dijkstra<E, Ty: EdgeType, G, W, F>(
     graph: &G,
-    start: G::VertexIndex,
-    goal: Option<G::VertexIndex>,
+    start: G::VertexId,
+    goal: Option<G::VertexId>,
     edge_weight: F,
 ) -> Result<ShortestPaths<W, G>, Error>
 where
@@ -61,7 +61,7 @@ where
         }
 
         for neighbor in graph.neighbors_directed(&vertex, Direction::Outgoing) {
-            let next = neighbor.index();
+            let next = neighbor.id();
 
             if visited.is_visited(&next) {
                 continue;

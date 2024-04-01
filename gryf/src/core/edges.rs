@@ -2,58 +2,50 @@ use std::{fmt, mem};
 
 use thiserror::Error;
 
-use crate::common::CompactIndexMap;
+use crate::common::CompactIdMap;
 
 use super::{
     base::{GraphBase, WeakRef},
-    index::{IndexType, Indexing, NumIndexType},
+    id::{GraphIdTypes, IdType, NumIdType},
     marker::EdgeType,
 };
 
-pub trait EdgeRef<VI: IndexType, EI: IndexType, E> {
-    fn index(&self) -> &EI;
+pub trait EdgeRef<VId: IdType, EId: IdType, E> {
+    fn id(&self) -> &EId;
     fn data(&self) -> &E;
-    fn src(&self) -> &VI;
-    fn dst(&self) -> &VI;
+    fn src(&self) -> &VId;
+    fn dst(&self) -> &VId;
 }
 
 pub trait EdgesBase<Ty: EdgeType>: GraphBase {
-    type EdgeIndicesIter<'a>: Iterator<Item = Self::EdgeIndex>
+    type EdgeIdsIter<'a>: Iterator<Item = Self::EdgeId>
     where
         Self: 'a;
 
-    type EdgeIndexIter<'a>: Iterator<Item = Self::EdgeIndex>
+    type EdgeIdIter<'a>: Iterator<Item = Self::EdgeId>
     where
         Self: 'a;
 
     fn edge_count(&self) -> usize;
     fn edge_bound(&self) -> usize;
-    fn endpoints(&self, index: &Self::EdgeIndex) -> Option<(Self::VertexIndex, Self::VertexIndex)>;
-    fn edge_index(
-        &self,
-        src: &Self::VertexIndex,
-        dst: &Self::VertexIndex,
-    ) -> Self::EdgeIndexIter<'_>;
-    fn edge_indices(&self) -> Self::EdgeIndicesIter<'_>;
+    fn endpoints(&self, index: &Self::EdgeId) -> Option<(Self::VertexId, Self::VertexId)>;
+    fn edge_id(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Self::EdgeIdIter<'_>;
+    fn edge_ids(&self) -> Self::EdgeIdsIter<'_>;
 
-    fn contains_edge(&self, index: &Self::EdgeIndex) -> bool {
+    fn contains_edge(&self, index: &Self::EdgeId) -> bool {
         self.endpoints(index).is_some()
     }
 
-    fn edge_index_any(
-        &self,
-        src: &Self::VertexIndex,
-        dst: &Self::VertexIndex,
-    ) -> Option<Self::EdgeIndex> {
-        self.edge_index(src, dst).next()
+    fn edge_id_any(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Option<Self::EdgeId> {
+        self.edge_id(src, dst).next()
     }
 
-    fn edge_index_map(&self) -> CompactIndexMap<Self::EdgeIndex>
+    fn edge_id_map(&self) -> CompactIdMap<Self::EdgeId>
     where
-        Self::EdgeIndex: NumIndexType,
+        Self::EdgeId: NumIdType,
     {
         // Should be overridden to use `isomorphic` whenever possible.
-        CompactIndexMap::new(self.edge_indices())
+        CompactIdMap::new(self.edge_ids())
     }
 
     fn is_directed(&self) -> bool {
@@ -62,7 +54,7 @@ pub trait EdgesBase<Ty: EdgeType>: GraphBase {
 }
 
 pub trait Edges<E, Ty: EdgeType>: EdgesBase<Ty> {
-    type EdgeRef<'a>: EdgeRef<Self::VertexIndex, Self::EdgeIndex, E>
+    type EdgeRef<'a>: EdgeRef<Self::VertexId, Self::EdgeId, E>
     where
         Self: 'a,
         E: 'a;
@@ -72,7 +64,7 @@ pub trait Edges<E, Ty: EdgeType>: EdgesBase<Ty> {
         Self: 'a,
         E: 'a;
 
-    fn edge(&self, index: &Self::EdgeIndex) -> Option<&E>;
+    fn edge(&self, index: &Self::EdgeId) -> Option<&E>;
     fn edges(&self) -> Self::EdgesIter<'_>;
 }
 
@@ -116,39 +108,30 @@ impl fmt::Display for AddEdgeErrorKind {
 pub struct ReplaceEdgeError<E>(pub E);
 
 pub trait EdgesMut<E, Ty: EdgeType>: Edges<E, Ty> {
-    fn edge_mut(&mut self, index: &Self::EdgeIndex) -> Option<&mut E>;
+    fn edge_mut(&mut self, index: &Self::EdgeId) -> Option<&mut E>;
     fn try_add_edge(
         &mut self,
-        src: &Self::VertexIndex,
-        dst: &Self::VertexIndex,
+        src: &Self::VertexId,
+        dst: &Self::VertexId,
         edge: E,
-    ) -> Result<Self::EdgeIndex, AddEdgeError<E>>;
-    fn remove_edge(&mut self, index: &Self::EdgeIndex) -> Option<E>;
+    ) -> Result<Self::EdgeId, AddEdgeError<E>>;
+    fn remove_edge(&mut self, index: &Self::EdgeId) -> Option<E>;
 
-    fn add_edge(
-        &mut self,
-        src: &Self::VertexIndex,
-        dst: &Self::VertexIndex,
-        edge: E,
-    ) -> Self::EdgeIndex {
+    fn add_edge(&mut self, src: &Self::VertexId, dst: &Self::VertexId, edge: E) -> Self::EdgeId {
         match self.try_add_edge(src, dst, edge) {
             Ok(index) => index,
             Err(error) => panic!("{error}"),
         }
     }
 
-    fn remove_edge_between(
-        &mut self,
-        src: &Self::VertexIndex,
-        dst: &Self::VertexIndex,
-    ) -> Option<E> {
-        let index = self.edge_index_any(src, dst)?;
+    fn remove_edge_between(&mut self, src: &Self::VertexId, dst: &Self::VertexId) -> Option<E> {
+        let index = self.edge_id_any(src, dst)?;
         self.remove_edge(&index)
     }
 
     fn try_replace_edge(
         &mut self,
-        index: &Self::EdgeIndex,
+        index: &Self::EdgeId,
         edge: E,
     ) -> Result<E, ReplaceEdgeError<E>> {
         match self.edge_mut(index) {
@@ -157,7 +140,7 @@ pub trait EdgesMut<E, Ty: EdgeType>: Edges<E, Ty> {
         }
     }
 
-    fn replace_edge(&mut self, index: &Self::EdgeIndex, edge: E) -> E {
+    fn replace_edge(&mut self, index: &Self::EdgeId, edge: E) -> E {
         match self.try_replace_edge(index, edge) {
             Ok(original) => original,
             Err(error) => panic!("{error}"),
@@ -167,7 +150,7 @@ pub trait EdgesMut<E, Ty: EdgeType>: Edges<E, Ty> {
     fn clear_edges(&mut self) {
         // Should be overridden by an efficient implementation whenever
         // possible.
-        let mut edges = self.edge_indices().collect::<Vec<_>>();
+        let mut edges = self.edge_ids().collect::<Vec<_>>();
         edges.reverse();
 
         for e in edges {
@@ -177,15 +160,8 @@ pub trait EdgesMut<E, Ty: EdgeType>: Edges<E, Ty> {
 }
 
 pub trait EdgesBaseWeak<Ty: EdgeType>: GraphBase {
-    fn endpoints_weak(
-        &self,
-        index: &Self::EdgeIndex,
-    ) -> Option<(Self::VertexIndex, Self::VertexIndex)>;
-    fn edge_index_weak(
-        &self,
-        src: &Self::VertexIndex,
-        dst: &Self::VertexIndex,
-    ) -> Option<Self::EdgeIndex>;
+    fn endpoints_weak(&self, index: &Self::EdgeId) -> Option<(Self::VertexId, Self::VertexId)>;
+    fn edge_id_weak(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Option<Self::EdgeId>;
 
     fn edge_count_hint(&self) -> Option<usize> {
         None
@@ -201,17 +177,17 @@ pub trait EdgesBaseWeak<Ty: EdgeType>: GraphBase {
 }
 
 pub trait EdgesWeak<E, Ty: EdgeType>: EdgesBaseWeak<Ty> {
-    fn edge_weak(&self, index: &Self::EdgeIndex) -> Option<WeakRef<'_, E>>;
+    fn edge_weak(&self, index: &Self::EdgeId) -> Option<WeakRef<'_, E>>;
 }
 
 pub trait MultiEdges<Ty: EdgeType>: EdgesBase<Ty> {}
 
-pub trait IntoEdge<Ix: Indexing, E, Ty: EdgeType> {
-    fn unpack(self) -> (Ix::VertexIndex, Ix::VertexIndex, E);
+pub trait IntoEdge<Id: GraphIdTypes, E, Ty: EdgeType> {
+    fn unpack(self) -> (Id::VertexId, Id::VertexId, E);
 }
 
-impl<'a, VI: IndexType, EI: IndexType, E> EdgeRef<VI, EI, E> for (EI, &'a E, VI, VI) {
-    fn index(&self) -> &EI {
+impl<'a, VId: IdType, EId: IdType, E> EdgeRef<VId, EId, E> for (EId, &'a E, VId, VId) {
+    fn id(&self) -> &EId {
         &self.0
     }
 
@@ -219,41 +195,41 @@ impl<'a, VI: IndexType, EI: IndexType, E> EdgeRef<VI, EI, E> for (EI, &'a E, VI,
         self.1
     }
 
-    fn src(&self) -> &VI {
+    fn src(&self) -> &VId {
         &self.2
     }
 
-    fn dst(&self) -> &VI {
+    fn dst(&self) -> &VId {
         &self.3
     }
 }
 
-impl<Ix: Indexing, E, Ty: EdgeType, I: Into<Ix::VertexIndex>> IntoEdge<Ix, E, Ty> for (I, I, E) {
-    fn unpack(self) -> (Ix::VertexIndex, Ix::VertexIndex, E) {
+impl<Id: GraphIdTypes, E, Ty: EdgeType, I: Into<Id::VertexId>> IntoEdge<Id, E, Ty> for (I, I, E) {
+    fn unpack(self) -> (Id::VertexId, Id::VertexId, E) {
         (self.0.into(), self.1.into(), self.2)
     }
 }
 
-impl<Ix: Indexing, E: Clone, Ty: EdgeType, I: Into<Ix::VertexIndex> + Clone> IntoEdge<Ix, E, Ty>
+impl<Id: GraphIdTypes, E: Clone, Ty: EdgeType, I: Into<Id::VertexId> + Clone> IntoEdge<Id, E, Ty>
     for &(I, I, E)
 {
-    fn unpack(self) -> (Ix::VertexIndex, Ix::VertexIndex, E) {
+    fn unpack(self) -> (Id::VertexId, Id::VertexId, E) {
         (self.0.clone().into(), self.1.clone().into(), self.2.clone())
     }
 }
 
-impl<Ix: Indexing, E: Default, Ty: EdgeType, I: Into<Ix::VertexIndex>> IntoEdge<Ix, E, Ty>
+impl<Id: GraphIdTypes, E: Default, Ty: EdgeType, I: Into<Id::VertexId>> IntoEdge<Id, E, Ty>
     for (I, I)
 {
-    fn unpack(self) -> (Ix::VertexIndex, Ix::VertexIndex, E) {
+    fn unpack(self) -> (Id::VertexId, Id::VertexId, E) {
         (self.0.into(), self.1.into(), E::default())
     }
 }
 
-impl<Ix: Indexing, E: Default, Ty: EdgeType, I: Into<Ix::VertexIndex> + Clone> IntoEdge<Ix, E, Ty>
+impl<Id: GraphIdTypes, E: Default, Ty: EdgeType, I: Into<Id::VertexId> + Clone> IntoEdge<Id, E, Ty>
     for &(I, I)
 {
-    fn unpack(self) -> (Ix::VertexIndex, Ix::VertexIndex, E) {
+    fn unpack(self) -> (Id::VertexId, Id::VertexId, E) {
         (self.0.clone().into(), self.1.clone().into(), E::default())
     }
 }
@@ -264,10 +240,10 @@ macro_rules! deref_edges_base {
         where
             G: EdgesBase<Ty>,
         {
-            type EdgeIndicesIter<'a> = G::EdgeIndicesIter<'a>
+            type EdgeIdsIter<'a> = G::EdgeIdsIter<'a>
             where
                 Self: 'a;
-            type EdgeIndexIter<'a> = G::EdgeIndexIter<'a>
+            type EdgeIdIter<'a> = G::EdgeIdIter<'a>
             where
                 Self: 'a;
 
@@ -279,31 +255,31 @@ macro_rules! deref_edges_base {
                 (**self).edge_bound()
             }
 
-            fn endpoints(&self, index: &Self::EdgeIndex) -> Option<(Self::VertexIndex, Self::VertexIndex)> {
+            fn endpoints(&self, index: &Self::EdgeId) -> Option<(Self::VertexId, Self::VertexId)> {
                 (**self).endpoints(index)
             }
 
-            fn edge_index(&self, src: &Self::VertexIndex, dst: &Self::VertexIndex) -> Self::EdgeIndexIter<'_> {
-                (**self).edge_index(src, dst)
+            fn edge_id(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Self::EdgeIdIter<'_> {
+                (**self).edge_id(src, dst)
             }
 
-            fn edge_index_any(&self, src: &Self::VertexIndex, dst: &Self::VertexIndex) -> Option<Self::EdgeIndex> {
-                (**self).edge_index_any(src, dst)
+            fn edge_id_any(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Option<Self::EdgeId> {
+                (**self).edge_id_any(src, dst)
             }
 
-            fn edge_indices(&self) -> Self::EdgeIndicesIter<'_> {
-                (**self).edge_indices()
+            fn edge_ids(&self) -> Self::EdgeIdsIter<'_> {
+                (**self).edge_ids()
             }
 
-            fn contains_edge(&self, index: &Self::EdgeIndex) -> bool {
+            fn contains_edge(&self, index: &Self::EdgeId) -> bool {
                 (**self).contains_edge(index)
             }
 
-            fn edge_index_map(&self) -> CompactIndexMap<Self::EdgeIndex>
+            fn edge_id_map(&self) -> CompactIdMap<Self::EdgeId>
             where
-                Self::EdgeIndex: NumIndexType
+                Self::EdgeId: NumIdType
             {
-                (**self).edge_index_map()
+                (**self).edge_id_map()
             }
 
             fn is_directed(&self) -> bool {
@@ -332,7 +308,7 @@ macro_rules! deref_edges {
                 Self: 'a,
                 E: 'a;
 
-            fn edge(&self, index: &Self::EdgeIndex) -> Option<&E> {
+            fn edge(&self, index: &Self::EdgeId) -> Option<&E> {
                 (**self).edge(index)
             }
 
@@ -350,24 +326,24 @@ impl<E, Ty: EdgeType, G> EdgesMut<E, Ty> for &mut G
 where
     G: EdgesMut<E, Ty>,
 {
-    fn edge_mut(&mut self, index: &Self::EdgeIndex) -> Option<&mut E> {
+    fn edge_mut(&mut self, index: &Self::EdgeId) -> Option<&mut E> {
         (**self).edge_mut(index)
     }
 
     fn try_add_edge(
         &mut self,
-        src: &Self::VertexIndex,
-        dst: &Self::VertexIndex,
+        src: &Self::VertexId,
+        dst: &Self::VertexId,
         edge: E,
-    ) -> Result<Self::EdgeIndex, AddEdgeError<E>> {
+    ) -> Result<Self::EdgeId, AddEdgeError<E>> {
         (**self).try_add_edge(src, dst, edge)
     }
 
-    fn remove_edge(&mut self, index: &Self::EdgeIndex) -> Option<E> {
+    fn remove_edge(&mut self, index: &Self::EdgeId) -> Option<E> {
         (**self).remove_edge(index)
     }
 
-    fn replace_edge(&mut self, index: &Self::EdgeIndex, edge: E) -> E {
+    fn replace_edge(&mut self, index: &Self::EdgeId, edge: E) -> E {
         (**self).replace_edge(index, edge)
     }
 
@@ -392,17 +368,17 @@ macro_rules! deref_edges_base_weak {
 
             fn endpoints_weak(
                 &self,
-                index: &Self::EdgeIndex,
-            ) -> Option<(Self::VertexIndex, Self::VertexIndex)> {
+                index: &Self::EdgeId,
+            ) -> Option<(Self::VertexId, Self::VertexId)> {
                 (**self).endpoints_weak(index)
             }
 
-            fn edge_index_weak(
+            fn edge_id_weak(
                 &self,
-                src: &Self::VertexIndex,
-                dst: &Self::VertexIndex,
-            ) -> Option<Self::EdgeIndex> {
-                (**self).edge_index_weak(src, dst)
+                src: &Self::VertexId,
+                dst: &Self::VertexId,
+            ) -> Option<Self::EdgeId> {
+                (**self).edge_id_weak(src, dst)
             }
 
             fn is_directed_weak(&self) -> bool {
@@ -421,7 +397,7 @@ macro_rules! deref_edges_weak {
         where
             G: EdgesWeak<E, Ty>,
         {
-            fn edge_weak(&self, index: &Self::EdgeIndex) -> Option<WeakRef<'_, E>> {
+            fn edge_weak(&self, index: &Self::EdgeId) -> Option<WeakRef<'_, E>> {
                 (**self).edge_weak(index)
             }
         }

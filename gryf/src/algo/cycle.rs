@@ -12,7 +12,7 @@ mod builder;
 mod dfs;
 
 pub struct Cycle<G: GraphBase> {
-    pub edge: G::EdgeIndex,
+    pub edge: G::EdgeId,
     as_undirected: bool,
 }
 
@@ -52,14 +52,14 @@ where
 impl<G> Eq for Cycle<G> where G: GraphBase {}
 
 impl<G: GraphBase> Cycle<G> {
-    pub(crate) fn new(edge: G::EdgeIndex, as_undirected: bool) -> Self {
+    pub(crate) fn new(edge: G::EdgeId, as_undirected: bool) -> Self {
         Self {
             edge,
             as_undirected,
         }
     }
 
-    pub fn collect<Ty: EdgeType>(self, graph: &G) -> Vec<G::EdgeIndex>
+    pub fn collect<Ty: EdgeType>(self, graph: &G) -> Vec<G::EdgeId>
     where
         G: Neighbors + VerticesBase + VerticesBaseWeak + EdgesBase<Ty> + EdgesBaseWeak<Ty>,
     {
@@ -96,7 +96,7 @@ mod tests {
 
     use super::*;
 
-    fn assert_collected<Ty: EdgeType, G>(cycle: Cycle<G>, graph: &G, expected: Vec<G::EdgeIndex>)
+    fn assert_collected<Ty: EdgeType, G>(cycle: Cycle<G>, graph: &G, expected: Vec<G::EdgeId>)
     where
         G: Neighbors + VerticesBase + VerticesBaseWeak + EdgesBase<Ty> + EdgesBaseWeak<Ty>,
     {

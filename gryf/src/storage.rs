@@ -40,31 +40,31 @@ mod tests {
         graph.remove_vertex(&v1);
 
         assert_eq!(graph.vertex_count(), 3);
-        assert_eq!(graph.vertex_indices().count(), graph.vertex_count());
+        assert_eq!(graph.vertex_ids().count(), graph.vertex_count());
         assert_eq!(graph.vertices().count(), graph.vertex_count());
 
         assert_eq!(graph.edge_count(), 2);
-        assert_eq!(graph.edge_indices().count(), graph.edge_count());
+        assert_eq!(graph.edge_ids().count(), graph.edge_count());
         assert_eq!(graph.edges().count(), graph.edge_count());
 
-        let valid_edge_indices = graph.edge_indices().all(|edge_index| {
+        let valid_edge_indices = graph.edge_ids().all(|edge_index| {
             let (src, dst) = graph.endpoints(&edge_index).unwrap();
-            graph.edge_index_any(&src, &dst) == Some(edge_index)
+            graph.edge_id_any(&src, &dst) == Some(edge_index)
         });
         assert!(valid_edge_indices);
 
         let mut deg = graph
-            .vertex_indices()
+            .vertex_ids()
             .map(|index| graph.degree(&index))
             .collect::<Vec<_>>();
 
         let mut out_deg = graph
-            .vertex_indices()
+            .vertex_ids()
             .map(|index| graph.degree_directed(&index, Direction::Outgoing))
             .collect::<Vec<_>>();
 
         let mut in_deg = graph
-            .vertex_indices()
+            .vertex_ids()
             .map(|index| graph.degree_directed(&index, Direction::Incoming))
             .collect::<Vec<_>>();
 
@@ -109,14 +109,14 @@ mod tests {
         graph.add_edge(&v0, &v1, 2);
 
         let mut e01 = graph
-            .edge_index(&v0, &v1)
+            .edge_id(&v0, &v1)
             .map(|e| graph.edge(&e))
             .collect::<Vec<_>>();
 
         e01.sort();
 
         let e02 = graph
-            .edge_index(&v0, &v2)
+            .edge_id(&v0, &v2)
             .map(|e| graph.edge(&e))
             .collect::<Vec<_>>();
 

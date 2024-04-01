@@ -11,7 +11,7 @@ use thiserror::Error;
 use crate::{
     common::VisitSet,
     core::{
-        index::DefaultIndexing,
+        id::DefaultId,
         marker::{Directed, Direction, EdgeType, Undirected},
         AddEdgeError, AddVertexError, Constrained, Create, Edges, EdgesBase, EdgesMut, GraphBase,
         Guarantee, NeighborRef, Neighbors, ReplaceEdgeError, ReplaceVertexError, Vertices,
@@ -26,9 +26,9 @@ use gryf_derive::{
 };
 
 // TODO: Remove these imports once hygiene of procedural macros is fixed.
-use crate::common::CompactIndexMap;
+use crate::common::CompactIdMap;
 use crate::core::{
-    index::NumIndexType, EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak, WeakRef,
+    id::NumIdType, EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak, WeakRef,
 };
 
 use super::generic::Graph;
@@ -47,13 +47,13 @@ use super::generic::Graph;
     EdgesBaseWeak,
     EdgesWeak,
 )]
-pub struct Path<V, E, Ty: EdgeType, G = AdjList<V, E, Ty, DefaultIndexing>>
+pub struct Path<V, E, Ty: EdgeType, G = AdjList<V, E, Ty, DefaultId>>
 where
     G: GraphBase,
 {
     #[graph]
     storage: G,
-    ends: Option<[G::VertexIndex; 2]>,
+    ends: Option<[G::VertexId; 2]>,
     ty: PhantomData<(V, E, Ty)>,
 }
 
@@ -101,7 +101,7 @@ impl<V, E> Path<V, E, Undirected> {
     }
 }
 
-impl<V, E> Path<V, E, Directed, AdjList<V, E, Directed, DefaultIndexing>> {
+impl<V, E> Path<V, E, Directed, AdjList<V, E, Directed, DefaultId>> {
     pub fn new_directed() -> Self {
         Self::new_unchecked(AdjList::new(), None)
     }
@@ -120,7 +120,7 @@ impl<V, E, Ty: EdgeType, G> Path<V, E, Ty, G>
 where
     G: GraphBase,
 {
-    fn new_unchecked(storage: G, ends: Option<[G::VertexIndex; 2]>) -> Self {
+    fn new_unchecked(storage: G, ends: Option<[G::VertexId; 2]>) -> Self {
         Self {
             storage,
             ends,
@@ -128,11 +128,11 @@ where
         }
     }
 
-    fn check_runtime(storage: &G) -> Result<Option<[G::VertexIndex; 2]>, PathError<V, E>>
+    fn check_runtime(storage: &G) -> Result<Option<[G::VertexId; 2]>, PathError<V, E>>
     where
         G: Vertices<V> + Neighbors,
     {
-        let v = match storage.vertex_indices().next() {
+        let v = match storage.vertex_ids().next() {
             Some(v) => v,
             // Empty graph.
             None => return Ok(None),
@@ -145,33 +145,32 @@ where
 
         visited.visit(v.clone());
 
-        let mut check_segment = |mut v: G::VertexIndex,
-                                 mut prev: G::VertexIndex|
-         -> Result<G::VertexIndex, PathError<V, E>> {
-            visited.visit(v.clone());
+        let mut check_segment =
+            |mut v: G::VertexId, mut prev: G::VertexId| -> Result<G::VertexId, PathError<V, E>> {
+                visited.visit(v.clone());
 
-            loop {
-                match storage.degree(&v) {
-                    1 => return Ok(v),
-                    2 => {
-                        let u = storage
-                            .neighbors(&v)
-                            .find(|n| n.index().as_ref() != &prev)
-                            .ok_or(PathError::Cycle)?
-                            .index()
-                            .into_owned();
+                loop {
+                    match storage.degree(&v) {
+                        1 => return Ok(v),
+                        2 => {
+                            let u = storage
+                                .neighbors(&v)
+                                .find(|n| n.id().as_ref() != &prev)
+                                .ok_or(PathError::Cycle)?
+                                .id()
+                                .into_owned();
 
-                        if visited.visit(u.clone()) {
-                            prev = v;
-                            v = u;
-                        } else {
-                            return Err(PathError::Cycle);
+                            if visited.visit(u.clone()) {
+                                prev = v;
+                                v = u;
+                            } else {
+                                return Err(PathError::Cycle);
+                            }
                         }
+                        _ => return Err(PathError::HigherDegree),
                     }
-                    _ => return Err(PathError::HigherDegree),
                 }
-            }
-        };
+            };
 
         // Based on what vertex we picked, check the rest of the path from an
         // end or both segments from the middle.
@@ -182,7 +181,7 @@ where
             }
             1 => {
                 let u = check_segment(
-                    storage.neighbors(&v).next().unwrap().index().into_owned(),
+                    storage.neighbors(&v).next().unwrap().id().into_owned(),
                     v.clone(),
                 )?;
                 [v, u]
@@ -190,9 +189,9 @@ where
             2 => {
                 let mut iter = storage.neighbors(&v);
                 let u = iter.next().unwrap();
-                let u1 = check_segment(u.index().into_owned(), v.clone())?;
+                let u1 = check_segment(u.id().into_owned(), v.clone())?;
                 let u = iter.next().unwrap();
-                let u2 = check_segment(u.index().into_owned(), v)?;
+                let u2 = check_segment(u.id().into_owned(), v)?;
                 [u1, u2]
             }
             _ => return Err(PathError::HigherDegree),
@@ -221,7 +220,7 @@ where
                 vertex = storage
                     .neighbors_directed(&v, Direction::Outgoing)
                     .next()
-                    .map(|n| n.index().into_owned());
+                    .map(|n| n.id().into_owned());
                 visited.visit(v);
             }
 
@@ -247,17 +246,17 @@ where
         self.storage.vertex_bound()
     }
 
-    pub fn vertex_indices(&self) -> G::VertexIndicesIter<'_>
+    pub fn vertex_ids(&self) -> G::VertexIdsIter<'_>
     where
         G: VerticesBase,
     {
-        self.storage.vertex_indices()
+        self.storage.vertex_ids()
     }
 
-    pub fn vertex<VI>(&self, index: VI) -> Option<&V>
+    pub fn vertex<VId>(&self, index: VId) -> Option<&V>
     where
         G: Vertices<V>,
-        VI: Borrow<G::VertexIndex>,
+        VId: Borrow<G::VertexId>,
     {
         self.storage.vertex(index.borrow())
     }
@@ -269,23 +268,23 @@ where
         self.storage.vertices()
     }
 
-    pub fn vertex_mut<VI>(&mut self, index: VI) -> Option<&mut V>
+    pub fn vertex_mut<VId>(&mut self, index: VId) -> Option<&mut V>
     where
         G: VerticesMut<V>,
-        VI: Borrow<G::VertexIndex>,
+        VId: Borrow<G::VertexId>,
     {
         self.storage.vertex_mut(index.borrow())
     }
 
-    pub fn try_add_vertex<VI>(
+    pub fn try_add_vertex<VId>(
         &mut self,
         vertex: V,
         edge: Option<E>,
-        end: VI,
-    ) -> Result<G::VertexIndex, PathError<V, E>>
+        end: VId,
+    ) -> Result<G::VertexId, PathError<V, E>>
     where
         G: VerticesMut<V> + EdgesMut<E, Ty> + Neighbors,
-        VI: Borrow<G::VertexIndex>,
+        VId: Borrow<G::VertexId>,
     {
         let end = end.borrow();
 
@@ -298,7 +297,7 @@ where
                     // should change the "second" end, not the "first".
                     [_, u] | [u, _] if u == end => u,
                     _ => {
-                        let error = if self.storage.vertex_indices().any(|v| &v == end) {
+                        let error = if self.storage.vertex_ids().any(|v| &v == end) {
                             PathError::HigherDegree
                         } else {
                             PathError::Disconnected
@@ -337,11 +336,11 @@ where
         }
     }
 
-    pub fn add_vertex<VI>(&mut self, vertex: V, end: VI) -> G::VertexIndex
+    pub fn add_vertex<VId>(&mut self, vertex: V, end: VId) -> G::VertexId
     where
         E: Default,
         G: VerticesMut<V> + EdgesMut<E, Ty> + Neighbors,
-        VI: Borrow<G::VertexIndex>,
+        VId: Borrow<G::VertexId>,
     {
         let end = end.borrow();
 
@@ -365,10 +364,10 @@ where
         }
     }
 
-    pub fn remove_vertex<VI>(&mut self, index: VI, edge: Option<E>) -> Option<V>
+    pub fn remove_vertex<VId>(&mut self, index: VId, edge: Option<E>) -> Option<V>
     where
         G: VerticesMut<V> + EdgesMut<E, Ty> + Neighbors,
-        VI: Borrow<G::VertexIndex>,
+        VId: Borrow<G::VertexId>,
     {
         let index = index.borrow();
 
@@ -389,7 +388,7 @@ where
                         .neighbors(index)
                         .next()
                         .unwrap()
-                        .index()
+                        .id()
                         .into_owned();
                     self.storage.remove_vertex(index)
                 }
@@ -401,20 +400,20 @@ where
                             .neighbors_directed(index, Direction::Incoming)
                             .next()
                             .unwrap()
-                            .index()
+                            .id()
                             .into_owned();
                         let v = self
                             .storage
                             .neighbors_directed(index, Direction::Outgoing)
                             .next()
                             .unwrap()
-                            .index()
+                            .id()
                             .into_owned();
                         (u, v)
                     } else {
                         let mut neighbors = self.storage.neighbors(index);
-                        let u = neighbors.next().unwrap().index().into_owned();
-                        let v = neighbors.next().unwrap().index().into_owned();
+                        let u = neighbors.next().unwrap().id().into_owned();
+                        let v = neighbors.next().unwrap().id().into_owned();
                         (u, v)
                     };
 
@@ -442,22 +441,22 @@ where
         }
     }
 
-    pub fn replace_vertex<VI>(&mut self, index: VI, vertex: V) -> V
+    pub fn replace_vertex<VId>(&mut self, index: VId, vertex: V) -> V
     where
         G: VerticesMut<V>,
-        VI: Borrow<G::VertexIndex>,
+        VId: Borrow<G::VertexId>,
     {
         self.storage.replace_vertex(index.borrow(), vertex)
     }
 
-    pub fn try_replace_vertex<VI>(
+    pub fn try_replace_vertex<VId>(
         &mut self,
-        index: VI,
+        index: VId,
         vertex: V,
     ) -> Result<V, ReplaceVertexError<V>>
     where
         G: VerticesMut<V>,
-        VI: Borrow<G::VertexIndex>,
+        VId: Borrow<G::VertexId>,
     {
         self.storage.try_replace_vertex(index.borrow(), vertex)
     }
@@ -484,41 +483,41 @@ where
         self.storage.edge_bound()
     }
 
-    pub fn endpoints<EI>(&self, index: EI) -> Option<(G::VertexIndex, G::VertexIndex)>
+    pub fn endpoints<EId>(&self, index: EId) -> Option<(G::VertexId, G::VertexId)>
     where
         G: EdgesBase<Ty>,
-        EI: Borrow<G::EdgeIndex>,
+        EId: Borrow<G::EdgeId>,
     {
         self.storage.endpoints(index.borrow())
     }
 
-    pub fn edge_index<VI>(&self, src: VI, dst: VI) -> G::EdgeIndexIter<'_>
+    pub fn edge_id<VId>(&self, src: VId, dst: VId) -> G::EdgeIdIter<'_>
     where
         G: EdgesBase<Ty>,
-        VI: Borrow<G::VertexIndex>,
+        VId: Borrow<G::VertexId>,
     {
-        self.storage.edge_index(src.borrow(), dst.borrow())
+        self.storage.edge_id(src.borrow(), dst.borrow())
     }
 
-    pub fn edge_index_any<VI>(&self, src: VI, dst: VI) -> Option<G::EdgeIndex>
+    pub fn edge_id_any<VId>(&self, src: VId, dst: VId) -> Option<G::EdgeId>
     where
         G: EdgesBase<Ty>,
-        VI: Borrow<G::VertexIndex>,
+        VId: Borrow<G::VertexId>,
     {
-        self.storage.edge_index_any(src.borrow(), dst.borrow())
+        self.storage.edge_id_any(src.borrow(), dst.borrow())
     }
 
-    pub fn edge_indices(&self) -> G::EdgeIndicesIter<'_>
+    pub fn edge_ids(&self) -> G::EdgeIdsIter<'_>
     where
         G: EdgesBase<Ty>,
     {
-        self.storage.edge_indices()
+        self.storage.edge_ids()
     }
 
-    pub fn contains_edge<EI>(&self, index: EI) -> bool
+    pub fn contains_edge<EId>(&self, index: EId) -> bool
     where
         G: EdgesBase<Ty>,
-        EI: Borrow<G::EdgeIndex>,
+        EId: Borrow<G::EdgeId>,
     {
         self.storage.contains_edge(index.borrow())
     }
@@ -530,10 +529,10 @@ where
         self.storage.is_directed()
     }
 
-    pub fn edge<EI>(&self, index: EI) -> Option<&E>
+    pub fn edge<EId>(&self, index: EId) -> Option<&E>
     where
         G: Edges<E, Ty>,
-        EI: Borrow<G::EdgeIndex>,
+        EId: Borrow<G::EdgeId>,
     {
         self.storage.edge(index.borrow())
     }
@@ -545,63 +544,63 @@ where
         self.storage.edges()
     }
 
-    pub fn edge_mut<EI>(&mut self, index: EI) -> Option<&mut E>
+    pub fn edge_mut<EId>(&mut self, index: EId) -> Option<&mut E>
     where
         G: EdgesMut<E, Ty>,
-        EI: Borrow<G::EdgeIndex>,
+        EId: Borrow<G::EdgeId>,
     {
         self.storage.edge_mut(index.borrow())
     }
 
-    pub fn replace_edge<EI>(&mut self, index: EI, edge: E) -> E
+    pub fn replace_edge<EId>(&mut self, index: EId, edge: E) -> E
     where
         G: EdgesMut<E, Ty>,
-        EI: Borrow<G::EdgeIndex>,
+        EId: Borrow<G::EdgeId>,
     {
         self.storage.replace_edge(index.borrow(), edge)
     }
 
-    pub fn try_replace_edge<EI>(&mut self, index: EI, edge: E) -> Result<E, ReplaceEdgeError<E>>
+    pub fn try_replace_edge<EId>(&mut self, index: EId, edge: E) -> Result<E, ReplaceEdgeError<E>>
     where
         G: EdgesMut<E, Ty>,
-        EI: Borrow<G::EdgeIndex>,
+        EId: Borrow<G::EdgeId>,
     {
         self.storage.try_replace_edge(index.borrow(), edge)
     }
 
-    pub fn neighbors<VI>(&self, src: VI) -> G::NeighborsIter<'_>
+    pub fn neighbors<VId>(&self, src: VId) -> G::NeighborsIter<'_>
     where
         G: Neighbors,
-        VI: Borrow<G::VertexIndex>,
+        VId: Borrow<G::VertexId>,
     {
         self.storage.neighbors(src.borrow())
     }
 
-    pub fn neighbors_directed<VI>(&self, src: VI, dir: Direction) -> G::NeighborsIter<'_>
+    pub fn neighbors_directed<VId>(&self, src: VId, dir: Direction) -> G::NeighborsIter<'_>
     where
         G: Neighbors,
-        VI: Borrow<G::VertexIndex>,
+        VId: Borrow<G::VertexId>,
     {
         self.storage.neighbors_directed(src.borrow(), dir)
     }
 
-    pub fn degree<VI>(&self, src: VI) -> usize
+    pub fn degree<VId>(&self, src: VId) -> usize
     where
         G: Neighbors,
-        VI: Borrow<G::VertexIndex>,
+        VId: Borrow<G::VertexId>,
     {
         self.storage.degree(src.borrow())
     }
 
-    pub fn degree_directed<VI>(&self, src: VI, dir: Direction) -> usize
+    pub fn degree_directed<VId>(&self, src: VId, dir: Direction) -> usize
     where
         G: Neighbors,
-        VI: Borrow<G::VertexIndex>,
+        VId: Borrow<G::VertexId>,
     {
         self.storage.degree_directed(src.borrow(), dir)
     }
 
-    pub fn ends(&self) -> Option<&[G::VertexIndex; 2]> {
+    pub fn ends(&self) -> Option<&[G::VertexId; 2]> {
         self.ends.as_ref()
     }
 
@@ -657,24 +656,24 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, G, VI> Index<VI> for Path<V, E, Ty, G>
+impl<V, E, Ty: EdgeType, G, VId> Index<VId> for Path<V, E, Ty, G>
 where
     G: Vertices<V>,
-    VI: Borrow<G::VertexIndex>,
+    VId: Borrow<G::VertexId>,
 {
     type Output = V;
 
-    fn index(&self, index: VI) -> &Self::Output {
+    fn index(&self, index: VId) -> &Self::Output {
         self.vertex(index).expect("vertex does not exist")
     }
 }
 
-impl<V, E, Ty: EdgeType, G, VI> IndexMut<VI> for Path<V, E, Ty, G>
+impl<V, E, Ty: EdgeType, G, VId> IndexMut<VId> for Path<V, E, Ty, G>
 where
     G: VerticesMut<V>,
-    VI: Borrow<G::VertexIndex>,
+    VId: Borrow<G::VertexId>,
 {
-    fn index_mut(&mut self, index: VI) -> &mut Self::Output {
+    fn index_mut(&mut self, index: VId) -> &mut Self::Output {
         self.vertex_mut(index).expect("vertex does not exist")
     }
 }
@@ -698,25 +697,25 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::core::index::VertexIndex;
+    use crate::core::id::VertexId;
 
     use super::*;
 
     use assert_matches::assert_matches;
 
-    fn v(index: usize) -> VertexIndex {
+    fn v(index: usize) -> VertexId {
         index.into()
     }
 
     #[test]
     fn check_empty() {
-        let graph: AdjList<(), (), Undirected, DefaultIndexing> = AdjList::new();
+        let graph: AdjList<(), (), Undirected, DefaultId> = AdjList::new();
         assert!(Path::<(), (), Undirected, _>::check(&graph).is_ok());
     }
 
     #[test]
     fn check_isolated() {
-        let mut graph: AdjList<(), (), Undirected, DefaultIndexing> = AdjList::new();
+        let mut graph: AdjList<(), (), Undirected, DefaultId> = AdjList::new();
 
         graph.add_vertex(());
 
@@ -725,7 +724,7 @@ mod tests {
 
     #[test]
     fn check_from_end() {
-        let mut graph: AdjList<(), (), Undirected, DefaultIndexing> = AdjList::new();
+        let mut graph: AdjList<(), (), Undirected, DefaultId> = AdjList::new();
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -739,7 +738,7 @@ mod tests {
 
     #[test]
     fn check_from_middle() {
-        let mut graph: AdjList<(), (), Undirected, DefaultIndexing> = AdjList::new();
+        let mut graph: AdjList<(), (), Undirected, DefaultId> = AdjList::new();
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -753,7 +752,7 @@ mod tests {
 
     #[test]
     fn check_directed() {
-        let mut graph: AdjList<(), (), Directed, DefaultIndexing> = AdjList::new();
+        let mut graph: AdjList<(), (), Directed, DefaultId> = AdjList::new();
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -769,7 +768,7 @@ mod tests {
 
     #[test]
     fn check_from_end_higher_degree() {
-        let mut graph: AdjList<(), (), Undirected, DefaultIndexing> = AdjList::new();
+        let mut graph: AdjList<(), (), Undirected, DefaultId> = AdjList::new();
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -788,7 +787,7 @@ mod tests {
 
     #[test]
     fn check_from_middle_higher_degree() {
-        let mut graph: AdjList<(), (), Undirected, DefaultIndexing> = AdjList::new();
+        let mut graph: AdjList<(), (), Undirected, DefaultId> = AdjList::new();
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -807,7 +806,7 @@ mod tests {
 
     #[test]
     fn check_from_any_higher_degree() {
-        let mut graph: AdjList<(), (), Undirected, DefaultIndexing> = AdjList::new();
+        let mut graph: AdjList<(), (), Undirected, DefaultId> = AdjList::new();
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -828,7 +827,7 @@ mod tests {
 
     #[test]
     fn check_cycle() {
-        let mut graph: AdjList<(), (), Undirected, DefaultIndexing> = AdjList::new();
+        let mut graph: AdjList<(), (), Undirected, DefaultId> = AdjList::new();
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -848,7 +847,7 @@ mod tests {
 
     #[test]
     fn check_multigraph() {
-        let mut graph: AdjList<(), (), Undirected, DefaultIndexing> = AdjList::new();
+        let mut graph: AdjList<(), (), Undirected, DefaultId> = AdjList::new();
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -868,7 +867,7 @@ mod tests {
 
     #[test]
     fn check_disconnected() {
-        let mut graph: AdjList<(), (), Undirected, DefaultIndexing> = AdjList::new();
+        let mut graph: AdjList<(), (), Undirected, DefaultId> = AdjList::new();
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -886,7 +885,7 @@ mod tests {
 
     #[test]
     fn check_self_loop() {
-        let mut graph: AdjList<(), (), Undirected, DefaultIndexing> = AdjList::new();
+        let mut graph: AdjList<(), (), Undirected, DefaultId> = AdjList::new();
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -902,7 +901,7 @@ mod tests {
 
     #[test]
     fn check_self_loop_isolated() {
-        let mut graph: AdjList<(), (), Undirected, DefaultIndexing> = AdjList::new();
+        let mut graph: AdjList<(), (), Undirected, DefaultId> = AdjList::new();
 
         let v0 = graph.add_vertex(());
 
@@ -916,7 +915,7 @@ mod tests {
 
     #[test]
     fn check_direction() {
-        let mut graph: AdjList<(), (), Directed, DefaultIndexing> = AdjList::new();
+        let mut graph: AdjList<(), (), Directed, DefaultId> = AdjList::new();
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -935,7 +934,7 @@ mod tests {
 
     #[test]
     fn check_direction_ends() {
-        let mut graph: AdjList<(), (), Directed, DefaultIndexing> = AdjList::new();
+        let mut graph: AdjList<(), (), Directed, DefaultId> = AdjList::new();
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -952,7 +951,7 @@ mod tests {
 
     #[test]
     fn try_add_vertex_middle() {
-        let mut graph: AdjList<(), (), Undirected, DefaultIndexing> = AdjList::new();
+        let mut graph: AdjList<(), (), Undirected, DefaultId> = AdjList::new();
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -971,7 +970,7 @@ mod tests {
 
     #[test]
     fn try_add_vertex_non_existent() {
-        let mut graph: AdjList<(), (), Undirected, DefaultIndexing> = AdjList::new();
+        let mut graph: AdjList<(), (), Undirected, DefaultId> = AdjList::new();
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -990,7 +989,7 @@ mod tests {
 
     #[test]
     fn try_add_vertex_no_edge() {
-        let mut graph: AdjList<(), (), Undirected, DefaultIndexing> = AdjList::new();
+        let mut graph: AdjList<(), (), Undirected, DefaultId> = AdjList::new();
 
         let v0 = graph.add_vertex(());
 
@@ -1006,7 +1005,7 @@ mod tests {
     fn try_add_vertex_empty() {
         let mut path = Path::<(), (), Undirected, _>::new();
 
-        let result = path.try_add_vertex((), None, VertexIndex::null());
+        let result = path.try_add_vertex((), None, VertexId::null());
         assert!(result.is_ok());
 
         let v = result.unwrap();
@@ -1015,7 +1014,7 @@ mod tests {
 
     #[test]
     fn try_add_vertex_isolated() {
-        let mut graph: AdjList<(), (), Undirected, DefaultIndexing> = AdjList::new();
+        let mut graph: AdjList<(), (), Undirected, DefaultId> = AdjList::new();
 
         let v0 = graph.add_vertex(());
 
@@ -1027,12 +1026,12 @@ mod tests {
         let v = result.unwrap();
         assert_eq!(path.ends(), Some(&[v0, v]));
 
-        assert!(path.edge_index_any(&v0, &v).is_some());
+        assert!(path.edge_id_any(&v0, &v).is_some());
     }
 
     #[test]
     fn try_add_vertex() {
-        let mut graph: AdjList<(), (), Undirected, DefaultIndexing> = AdjList::new();
+        let mut graph: AdjList<(), (), Undirected, DefaultId> = AdjList::new();
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -1049,6 +1048,6 @@ mod tests {
         let v = result.unwrap();
         assert_eq!(path.ends(), Some(&[v0, v]));
 
-        assert!(path.edge_index_any(&v1, &v).is_some());
+        assert!(path.edge_id_any(&v1, &v).is_some());
     }
 }

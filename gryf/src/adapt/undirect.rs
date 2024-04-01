@@ -1,8 +1,8 @@
 use std::marker::PhantomData;
 
 use crate::{
-    common::CompactIndexMap,
-    core::{index::NumIndexType, marker::Direction, Neighbors, VerticesBase, WeakRef},
+    common::CompactIdMap,
+    core::{id::NumIdType, marker::Direction, Neighbors, VerticesBase, WeakRef},
 };
 
 use gryf_derive::{
@@ -65,23 +65,19 @@ where
     where
         Self: 'a;
 
-    fn neighbors(&self, src: &Self::VertexIndex) -> Self::NeighborsIter<'_> {
+    fn neighbors(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_> {
         self.graph.neighbors(src)
     }
 
-    fn neighbors_directed(
-        &self,
-        src: &Self::VertexIndex,
-        _dir: Direction,
-    ) -> Self::NeighborsIter<'_> {
+    fn neighbors_directed(&self, src: &Self::VertexId, _dir: Direction) -> Self::NeighborsIter<'_> {
         self.neighbors(src)
     }
 
-    fn degree(&self, index: &Self::VertexIndex) -> usize {
+    fn degree(&self, index: &Self::VertexId) -> usize {
         self.graph.degree(index)
     }
 
-    fn degree_directed(&self, index: &Self::VertexIndex, _dir: Direction) -> usize {
+    fn degree_directed(&self, index: &Self::VertexId, _dir: Direction) -> usize {
         self.graph.degree(index)
     }
 }

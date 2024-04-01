@@ -6,7 +6,7 @@ use crate::{
     adapt::Transpose,
     algo::Cycle,
     common::VisitSet,
-    core::{index::UseVertexIndex, marker::Directed, EdgesBase, Neighbors, VerticesBase},
+    core::{id::UseVertexId, marker::Directed, EdgesBase, Neighbors, VerticesBase},
     visit::{
         raw::{RawDfsExtra, RawDfsExtraEvent, RawEvent, RawVisit, RawVisitMulti},
         VisitAll, Visitor,
@@ -34,17 +34,17 @@ pub struct DfsVisit<'a, G>
 where
     G: VerticesBase + 'a,
 {
-    raw: RawVisit<G, UseVertexIndex, RawDfsExtra>,
-    multi: RawVisitMulti<G, UseVertexIndex, RawDfsExtra, VisitAll<'a, G>>,
-    closed: FxHashSet<G::VertexIndex>,
-    cycle: Option<G::EdgeIndex>,
+    raw: RawVisit<G, UseVertexId, RawDfsExtra>,
+    multi: RawVisitMulti<G, UseVertexId, RawDfsExtra, VisitAll<'a, G>>,
+    closed: FxHashSet<G::VertexId>,
+    cycle: Option<G::EdgeId>,
 }
 
 impl<'a, G> Visitor<G> for DfsVisit<'a, G>
 where
     G: Neighbors + VerticesBase + EdgesBase<Directed>,
 {
-    type Item = Result<G::VertexIndex, Error<G>>;
+    type Item = Result<G::VertexId, Error<G>>;
 
     fn next(&mut self, graph: &G) -> Option<Self::Item> {
         if self.cycle.is_some() {

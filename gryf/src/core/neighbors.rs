@@ -1,18 +1,18 @@
 use super::{
     base::{GraphBase, WeakRef},
-    index::IndexType,
+    id::IdType,
     marker::{Direction, EdgeType},
 };
 
-pub trait NeighborRef<VI: IndexType, EI: IndexType> {
-    fn index(&self) -> WeakRef<'_, VI>;
-    fn edge(&self) -> WeakRef<'_, EI>;
-    fn src(&self) -> WeakRef<'_, VI>;
+pub trait NeighborRef<VId: IdType, EId: IdType> {
+    fn id(&self) -> WeakRef<'_, VId>;
+    fn edge(&self) -> WeakRef<'_, EId>;
+    fn src(&self) -> WeakRef<'_, VId>;
     fn dir(&self) -> Direction;
 }
 
 pub trait Neighbors: GraphBase {
-    type NeighborRef<'a>: NeighborRef<Self::VertexIndex, Self::EdgeIndex>
+    type NeighborRef<'a>: NeighborRef<Self::VertexId, Self::EdgeId>
     where
         Self: 'a;
 
@@ -20,14 +20,10 @@ pub trait Neighbors: GraphBase {
     where
         Self: 'a;
 
-    fn neighbors(&self, src: &Self::VertexIndex) -> Self::NeighborsIter<'_>;
-    fn neighbors_directed(
-        &self,
-        src: &Self::VertexIndex,
-        dir: Direction,
-    ) -> Self::NeighborsIter<'_>;
+    fn neighbors(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_>;
+    fn neighbors_directed(&self, src: &Self::VertexId, dir: Direction) -> Self::NeighborsIter<'_>;
 
-    fn degree(&self, index: &Self::VertexIndex) -> usize {
+    fn degree(&self, index: &Self::VertexId) -> usize {
         if Self::EdgeType::is_directed() {
             self.degree_directed(index, Direction::Outgoing)
                 + self.degree_directed(index, Direction::Incoming)
@@ -36,7 +32,7 @@ pub trait Neighbors: GraphBase {
         }
     }
 
-    fn degree_directed(&self, index: &Self::VertexIndex, dir: Direction) -> usize {
+    fn degree_directed(&self, index: &Self::VertexId, dir: Direction) -> usize {
         if Self::EdgeType::is_directed() {
             self.neighbors_directed(index, dir).count()
         } else {
@@ -47,7 +43,7 @@ pub trait Neighbors: GraphBase {
                     // Storages are required to yield a self-loop just once. If
                     // this requirement is satisfied, then this implementation
                     // of degree is correct.
-                    if neighbor.index().as_ref() == index {
+                    if neighbor.id().as_ref() == index {
                         2
                     } else {
                         1
@@ -58,16 +54,16 @@ pub trait Neighbors: GraphBase {
     }
 }
 
-impl<VI: IndexType, EI: IndexType> NeighborRef<VI, EI> for (VI, EI, VI, Direction) {
-    fn index(&self) -> WeakRef<'_, VI> {
+impl<VId: IdType, EId: IdType> NeighborRef<VId, EId> for (VId, EId, VId, Direction) {
+    fn id(&self) -> WeakRef<'_, VId> {
         WeakRef::Borrowed(&self.0)
     }
 
-    fn edge(&self) -> WeakRef<'_, EI> {
+    fn edge(&self) -> WeakRef<'_, EId> {
         WeakRef::Borrowed(&self.1)
     }
 
-    fn src(&self) -> WeakRef<'_, VI> {
+    fn src(&self) -> WeakRef<'_, VId> {
         WeakRef::Borrowed(&self.2)
     }
 
@@ -90,19 +86,19 @@ macro_rules! deref_neighbors {
             where
                 Self: 'a;
 
-            fn neighbors(&self, src: &Self::VertexIndex) -> Self::NeighborsIter<'_> {
+            fn neighbors(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_> {
                 (**self).neighbors(src)
             }
 
-            fn neighbors_directed(&self, src: &Self::VertexIndex, dir: Direction) -> Self::NeighborsIter<'_> {
+            fn neighbors_directed(&self, src: &Self::VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
                 (**self).neighbors_directed(src, dir)
             }
 
-            fn degree(&self, index: &Self::VertexIndex) -> usize {
+            fn degree(&self, index: &Self::VertexId) -> usize {
                 (**self).degree(index)
             }
 
-            fn degree_directed(&self, index: &Self::VertexIndex, dir: Direction) -> usize {
+            fn degree_directed(&self, index: &Self::VertexId, dir: Direction) -> usize {
                 (**self).degree_directed(index, dir)
             }
         }

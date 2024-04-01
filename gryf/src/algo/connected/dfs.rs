@@ -12,7 +12,7 @@ use super::Connected;
 
 pub fn dfs<Ty: EdgeType, G>(
     graph: &G,
-    between: Option<(&G::VertexIndex, &G::VertexIndex)>,
+    between: Option<(&G::VertexId, &G::VertexId)>,
     as_undirected: bool,
 ) -> Connected<G>
 where
@@ -31,13 +31,13 @@ where
             }
         }
         None if Ty::is_directed() && !as_undirected => match graph
-            .vertex_indices()
+            .vertex_ids()
             // For directed graph, we can't start in any vertex, because then we
             // might miss the predecessors of such vertex and incorrectly mark
             // the graph as disconnected. Only if there is no vertex with in
             // degree 0, it is safe to start in any vertex.
             .find(|v| graph.degree_directed(v, Direction::Incoming) == 0)
-            .or_else(|| graph.vertex_indices().next())
+            .or_else(|| graph.vertex_ids().next())
         {
             Some(v) => (v, None),
             None => {
@@ -48,7 +48,7 @@ where
                 };
             }
         },
-        None => match graph.vertex_indices().next() {
+        None => match graph.vertex_ids().next() {
             Some(v) => (v, None),
             None => {
                 // Empty graph is trivially "connected".
@@ -69,7 +69,7 @@ where
             while let Some(v) = stack.pop() {
                 if visited.visit(v.clone()) {
                     for n in graph.neighbors_directed(&v, Direction::Outgoing) {
-                        stack.push(n.index().into_owned());
+                        stack.push(n.id().into_owned());
                     }
                 }
             }
@@ -78,7 +78,7 @@ where
             while let Some(v) = stack.pop() {
                 if visited.visit(v.clone()) {
                     for n in graph.neighbors(&v) {
-                        stack.push(n.index().into_owned());
+                        stack.push(n.id().into_owned());
                     }
                 }
             }
@@ -94,7 +94,7 @@ where
 
                 if visited.visit(v.clone()) {
                     for n in graph.neighbors_directed(&v, Direction::Outgoing) {
-                        stack.push(n.index().into_owned());
+                        stack.push(n.id().into_owned());
                     }
                 }
             }
@@ -110,7 +110,7 @@ where
 
                 if visited.visit(v.clone()) {
                     for n in graph.neighbors(&v) {
-                        stack.push(n.index().into_owned());
+                        stack.push(n.id().into_owned());
                     }
                 }
             }
@@ -136,7 +136,7 @@ where
         }
 
         let v = graph
-            .vertex_indices()
+            .vertex_ids()
             .find(|v| !visited.is_visited(v))
             .expect("unvisited vertex");
 

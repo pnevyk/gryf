@@ -1,8 +1,8 @@
 use std::ops::Deref;
 
 use crate::core::{
-    index::{EdgeIndex, VertexIndex},
-    Stability, StableIndices,
+    id::{EdgeId, VertexId},
+    Stability, StableId,
 };
 
 use gryf_derive::{
@@ -11,9 +11,9 @@ use gryf_derive::{
 };
 
 // TODO: Remove these imports once hygiene of procedural macros is fixed.
-use crate::common::CompactIndexMap;
+use crate::common::CompactIdMap;
 use crate::core::{
-    index::NumIndexType,
+    id::NumIdType,
     marker::{Direction, EdgeType},
     Edges, EdgesBase, EdgesBaseWeak, EdgesWeak, GraphBase, Guarantee, Neighbors, Vertices,
     VerticesBase, VerticesBaseWeak, VerticesWeak, WeakRef,
@@ -54,8 +54,8 @@ impl<G> From<G> for Frozen<G> {
     }
 }
 
-impl<G, S: Stability> StableIndices<VertexIndex, S> for Frozen<G> {}
-impl<G, S: Stability> StableIndices<EdgeIndex, S> for Frozen<G> {}
+impl<G, S: Stability> StableId<VertexId, S> for Frozen<G> {}
+impl<G, S: Stability> StableId<EdgeId, S> for Frozen<G> {}
 
 impl<G> Deref for Frozen<G> {
     type Target = G;

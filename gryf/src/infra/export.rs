@@ -5,7 +5,7 @@ use std::{
     marker::PhantomData,
 };
 
-use crate::core::{index::IndexType, marker::EdgeType, EdgeRef, Edges, VertexRef, Vertices};
+use crate::core::{id::IdType, marker::EdgeType, EdgeRef, Edges, VertexRef, Vertices};
 
 pub trait Export<G> {
     fn export<W: Write>(&self, graph: &G, out: &mut W) -> io::Result<()>;
@@ -70,7 +70,7 @@ where
             out.write_all(
                 format!(
                     "    v{} [label={:?}];\n",
-                    indexer.get(vertex.index()),
+                    indexer.get(vertex.id()),
                     (self.get_vertex_label)(vertex.data())
                 )
                 .as_bytes(),
@@ -98,14 +98,14 @@ where
 }
 
 #[derive(Debug)]
-struct Indexer<Idx>(HashMap<Idx, usize>);
+struct Indexer<Id>(HashMap<Id, usize>);
 
-impl<Idx: IndexType> Indexer<Idx> {
+impl<Id: IdType> Indexer<Id> {
     pub fn new() -> Self {
         Self(HashMap::new())
     }
 
-    pub fn get(&mut self, idx: &Idx) -> usize {
+    pub fn get(&mut self, idx: &Id) -> usize {
         let new_idx = self.0.len();
         *self.0.entry(idx.clone()).or_insert(new_idx)
     }

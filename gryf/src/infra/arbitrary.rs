@@ -3,7 +3,7 @@ use std::fmt;
 use arbitrary::{Arbitrary, Unstructured};
 
 use crate::core::{
-    index::{IndexType, Indexing, NumIndexType},
+    id::{GraphIdTypes, IdType, NumIdType},
     marker::EdgeType,
     AddEdgeError, AddVertexError, EdgesBase, EdgesMut, VerticesBase, VerticesMut,
 };
@@ -36,24 +36,24 @@ pub enum MutOp<V, E> {
 }
 
 #[derive(Debug)]
-pub enum MutOpResult<V, E, VI, EI> {
-    AddVertex(Result<VI, AddVertexError<V>>),
+pub enum MutOpResult<V, E, VId, EId> {
+    AddVertex(Result<VId, AddVertexError<V>>),
     RemoveVertex(Option<V>),
     Clear,
-    AddEdge(Result<EI, AddEdgeError<E>>),
+    AddEdge(Result<EId, AddEdgeError<E>>),
     RemoveEdge(Option<E>),
     ClearEdges,
 }
 
-impl<V, E, VI1, EI1, VI2, EI2> PartialEq<MutOpResult<V, E, VI2, EI2>>
-    for MutOpResult<V, E, VI1, EI1>
+impl<V, E, VId1, EId1, VId2, EId2> PartialEq<MutOpResult<V, E, VId2, EId2>>
+    for MutOpResult<V, E, VId1, EId1>
 where
     V: PartialEq,
     E: PartialEq,
-    VI1: PartialEq<VI2>,
-    EI1: PartialEq<EI2>,
+    VId1: PartialEq<VId2>,
+    EId1: PartialEq<EId2>,
 {
-    fn eq(&self, other: &MutOpResult<V, E, VI2, EI2>) -> bool {
+    fn eq(&self, other: &MutOpResult<V, E, VId2, EId2>) -> bool {
         // `PartialEq` is implemented for `Result<T, E>` only for `T:
         // PartialEq<T>`.
         fn compare_results<T, U, Error>(lhs: &Result<T, Error>, rhs: &Result<U, Error>) -> bool
@@ -81,19 +81,19 @@ where
 }
 
 impl<V, E> MutOp<V, E> {
-    pub fn apply<Ty, G>(self, graph: &mut G) -> MutOpResult<V, E, G::VertexIndex, G::EdgeIndex>
+    pub fn apply<Ty, G>(self, graph: &mut G) -> MutOpResult<V, E, G::VertexId, G::EdgeId>
     where
         Ty: EdgeType,
         G: VerticesMut<V> + EdgesMut<E, Ty>,
-        G::VertexIndex: NumIndexType,
-        G::EdgeIndex: NumIndexType,
+        G::VertexId: NumIdType,
+        G::EdgeId: NumIdType,
     {
         let n = graph.vertex_bound();
 
         match self {
             MutOp::AddVertex(vertex) => MutOpResult::AddVertex(graph.try_add_vertex(vertex)),
             MutOp::RemoveVertex(index) => {
-                let index = G::VertexIndex::from_usize(index.get(n).unwrap_or_default());
+                let index = G::VertexId::from_usize(index.get(n).unwrap_or_default());
                 MutOpResult::RemoveVertex(graph.remove_vertex(&index))
             }
             MutOp::Clear => {
@@ -101,14 +101,14 @@ impl<V, E> MutOp<V, E> {
                 MutOpResult::Clear
             }
             MutOp::AddEdge(src, dst, edge) => {
-                let src = G::VertexIndex::from_usize(src.get(n).unwrap_or_default());
-                let dst = G::VertexIndex::from_usize(dst.get(n).unwrap_or_default());
+                let src = G::VertexId::from_usize(src.get(n).unwrap_or_default());
+                let dst = G::VertexId::from_usize(dst.get(n).unwrap_or_default());
                 MutOpResult::AddEdge(graph.try_add_edge(&src, &dst, edge))
             }
             MutOp::RemoveEdge(src, dst) => {
-                let src = G::VertexIndex::from_usize(src.get(n).unwrap_or_default());
-                let dst = G::VertexIndex::from_usize(dst.get(n).unwrap_or_default());
-                let index = match graph.edge_index_any(&src, &dst) {
+                let src = G::VertexId::from_usize(src.get(n).unwrap_or_default());
+                let dst = G::VertexId::from_usize(dst.get(n).unwrap_or_default());
+                let index = match graph.edge_id_any(&src, &dst) {
                     Some(index) => index,
                     None => return MutOpResult::RemoveEdge(None),
                 };
@@ -140,8 +140,8 @@ impl<V, E> MutOpsSeq<V, E> {
         E: fmt::Debug,
         Ty: EdgeType,
         G: VerticesMut<V> + EdgesMut<E, Ty>,
-        G::VertexIndex: NumIndexType,
-        G::EdgeIndex: NumIndexType,
+        G::VertexId: NumIdType,
+        G::EdgeId: NumIdType,
     {
         println!("let mut graph; // graph storage with ArbitraryIndexing");
         println!();
@@ -199,7 +199,7 @@ impl<V: fmt::Debug, E: fmt::Debug> fmt::Debug for MutOpsSeq<V, E> {
     }
 }
 
-impl IndexType for Index {}
+impl IdType for Index {}
 
 impl From<usize> for Index {
     fn from(value: usize) -> Self {
@@ -213,7 +213,7 @@ impl From<Index> for usize {
     }
 }
 
-impl NumIndexType for Index {
+impl NumIdType for Index {
     fn to_bits(self) -> u64 {
         self.0 as u64
     }
@@ -228,11 +228,11 @@ impl NumIndexType for Index {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub enum ArbitraryIndexing {}
+pub enum ArbitraryId {}
 
-impl Indexing for ArbitraryIndexing {
-    type VertexIndex = Index;
-    type EdgeIndex = Index;
+impl GraphIdTypes for ArbitraryId {
+    type VertexId = Index;
+    type EdgeId = Index;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -486,7 +486,7 @@ mod tests {
         };
 
         // Replace wit graph type under test.
-        let mut graph = AdjList::<_, _, Undirected, ArbitraryIndexing>::new();
+        let mut graph = AdjList::<_, _, Undirected, ArbitraryId>::new();
 
         MutOpsSeq(vec![
             MutOp::AddVertex(0),

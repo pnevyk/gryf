@@ -1,7 +1,7 @@
 use std::{cmp::max, marker::PhantomData};
 
 use crate::core::{
-    index::NumIndexType,
+    id::NumIdType,
     marker::EdgeType,
     weights::{self, GetWeight, IsConstWeight},
     Edges, EdgesWeak, GraphBase, Neighbors, VerticesBase, VerticesBaseWeak, Weight,
@@ -21,7 +21,7 @@ where
     G: GraphBase,
 {
     graph: &'a G,
-    goal: Option<G::VertexIndex>,
+    goal: Option<G::VertexId>,
     edge_weight: F,
     algo: A,
     ty: PhantomData<fn() -> W>,
@@ -46,7 +46,7 @@ impl<'a, W, G, F, A> ShortestPathsBuilder<'a, W, G, F, A>
 where
     G: GraphBase,
 {
-    pub fn goal(self, goal: G::VertexIndex) -> Self {
+    pub fn goal(self, goal: G::VertexId) -> Self {
         Self {
             goal: Some(goal),
             ..self
@@ -114,7 +114,7 @@ where
     ) -> ShortestPathsBuilder<'a, W, G, F, algo::BellmanFord>
     where
         G: VerticesBase + Edges<E, Ty>,
-        G::VertexIndex: NumIndexType,
+        G::VertexId: NumIdType,
     {
         ShortestPathsBuilder {
             graph: self.graph,
@@ -145,7 +145,7 @@ where
     ) -> ShortestPathsBuilder<'a, W, G, F, algo::SpecificAlgo>
     where
         G: VerticesBase + Edges<E, Ty> + VerticesBaseWeak + EdgesWeak<E, Ty> + Neighbors,
-        G::VertexIndex: NumIndexType,
+        G::VertexId: NumIdType,
     {
         ShortestPathsBuilder {
             graph: self.graph,
@@ -162,7 +162,7 @@ where
     ) -> ShortestPathsBuilder<'a, W, G, F, algo::SpecificAlgo>
     where
         G: VerticesBase + Edges<E, Ty> + VerticesBaseWeak + EdgesWeak<E, Ty> + Neighbors,
-        G::VertexIndex: NumIndexType,
+        G::VertexId: NumIdType,
     {
         ShortestPathsBuilder {
             graph: self.graph,
@@ -178,10 +178,10 @@ impl<'a, W, G, F> ShortestPathsBuilder<'a, W, G, F, algo::AnyAlgo>
 where
     G: GraphBase,
 {
-    pub fn run<E, Ty: EdgeType>(self, start: G::VertexIndex) -> Result<ShortestPaths<W, G>, Error>
+    pub fn run<E, Ty: EdgeType>(self, start: G::VertexId) -> Result<ShortestPaths<W, G>, Error>
     where
         G: VerticesBase + Edges<E, Ty> + VerticesBaseWeak + EdgesWeak<E, Ty> + Neighbors,
-        G::VertexIndex: NumIndexType,
+        G::VertexId: NumIdType,
         F: GetWeight<E, W>,
         W: Weight,
     {
@@ -205,7 +205,7 @@ impl<'a, W, G, F> ShortestPathsBuilder<'a, W, G, F, algo::Dijkstra>
 where
     G: GraphBase,
 {
-    pub fn run<E, Ty: EdgeType>(self, start: G::VertexIndex) -> Result<ShortestPaths<W, G>, Error>
+    pub fn run<E, Ty: EdgeType>(self, start: G::VertexId) -> Result<ShortestPaths<W, G>, Error>
     where
         G: VerticesBaseWeak + EdgesWeak<E, Ty> + Neighbors,
         F: GetWeight<E, W>,
@@ -226,10 +226,10 @@ impl<'a, W, G, F> ShortestPathsBuilder<'a, W, G, F, algo::BellmanFord>
 where
     G: GraphBase,
 {
-    pub fn run<E, Ty: EdgeType>(self, start: G::VertexIndex) -> Result<ShortestPaths<W, G>, Error>
+    pub fn run<E, Ty: EdgeType>(self, start: G::VertexId) -> Result<ShortestPaths<W, G>, Error>
     where
         G: VerticesBase + Edges<E, Ty>,
-        G::VertexIndex: NumIndexType,
+        G::VertexId: NumIdType,
         F: GetWeight<E, W>,
         W: Weight,
     {
@@ -248,7 +248,7 @@ impl<'a, W, G, F> ShortestPathsBuilder<'a, W, G, F, algo::Bfs>
 where
     G: GraphBase,
 {
-    pub fn run(self, start: G::VertexIndex) -> Result<ShortestPaths<W, G>, Error>
+    pub fn run(self, start: G::VertexId) -> Result<ShortestPaths<W, G>, Error>
     where
         G: VerticesBaseWeak + Neighbors,
         F: GetWeight<(), W>,
@@ -268,10 +268,10 @@ impl<'a, W, G, F> ShortestPathsBuilder<'a, W, G, F, algo::SpecificAlgo>
 where
     G: GraphBase,
 {
-    pub fn run<E, Ty: EdgeType>(self, start: G::VertexIndex) -> Result<ShortestPaths<W, G>, Error>
+    pub fn run<E, Ty: EdgeType>(self, start: G::VertexId) -> Result<ShortestPaths<W, G>, Error>
     where
         G: VerticesBase + Edges<E, Ty> + VerticesBaseWeak + EdgesWeak<E, Ty> + Neighbors,
-        G::VertexIndex: NumIndexType,
+        G::VertexId: NumIdType,
         F: GetWeight<E, W>,
         W: Weight,
     {
@@ -302,7 +302,7 @@ where
     fn choose_algo<E, Ty: EdgeType>(&self) -> AlgoExt
     where
         G: VerticesBase + Edges<E, Ty> + VerticesBaseWeak + EdgesWeak<E, Ty> + Neighbors,
-        G::VertexIndex: NumIndexType,
+        G::VertexId: NumIdType,
         F: GetWeight<E, W>,
         W: Weight,
     {

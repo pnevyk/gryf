@@ -14,30 +14,30 @@ pub use builder::ShortestPathsBuilder;
 
 #[derive(Debug)]
 pub struct ShortestPaths<W, G: GraphBase> {
-    start: G::VertexIndex,
+    start: G::VertexId,
     // Using HashMaps because the algorithm supports early termination when
     // reaching given goal. It is likely that reaching goal means visiting a
     // subgraph which is significantly smaller than the original graph.
-    dist: FxHashMap<G::VertexIndex, W>,
-    pred: FxHashMap<G::VertexIndex, G::VertexIndex>,
+    dist: FxHashMap<G::VertexId, W>,
+    pred: FxHashMap<G::VertexId, G::VertexId>,
 }
 
 impl<W, G> ShortestPaths<W, G>
 where
     G: GraphBase,
 {
-    pub fn start(&self) -> &G::VertexIndex {
+    pub fn start(&self) -> &G::VertexId {
         &self.start
     }
 
-    pub fn dist<VI>(&self, to: VI) -> Option<&W>
+    pub fn dist<VId>(&self, to: VId) -> Option<&W>
     where
-        VI: Borrow<G::VertexIndex>,
+        VId: Borrow<G::VertexId>,
     {
         self.dist.get(to.borrow())
     }
 
-    pub fn reconstruct(&self, to: G::VertexIndex) -> PathReconstruction<'_, G> {
+    pub fn reconstruct(&self, to: G::VertexId) -> PathReconstruction<'_, G> {
         PathReconstruction {
             curr: to,
             pred: &self.pred,
@@ -45,14 +45,14 @@ where
     }
 }
 
-impl<W, G, VI> Index<VI> for ShortestPaths<W, G>
+impl<W, G, VId> Index<VId> for ShortestPaths<W, G>
 where
     G: GraphBase,
-    VI: Borrow<G::VertexIndex>,
+    VId: Borrow<G::VertexId>,
 {
     type Output = W;
 
-    fn index(&self, index: VI) -> &Self::Output {
+    fn index(&self, index: VId) -> &Self::Output {
         self.dist(index).unwrap()
     }
 }
@@ -96,12 +96,12 @@ pub enum Error {
 }
 
 pub struct PathReconstruction<'a, G: GraphBase> {
-    curr: G::VertexIndex,
-    pred: &'a FxHashMap<G::VertexIndex, G::VertexIndex>,
+    curr: G::VertexId,
+    pred: &'a FxHashMap<G::VertexId, G::VertexId>,
 }
 
 impl<'a, G: GraphBase> Iterator for PathReconstruction<'a, G> {
-    type Item = G::VertexIndex;
+    type Item = G::VertexId;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.curr = self.pred.get(&self.curr).cloned()?;
@@ -116,7 +116,7 @@ mod tests {
 
     use crate::{
         core::{
-            index::{DefaultIndexing, EdgeIndex, VertexIndex},
+            id::{DefaultId, EdgeId, VertexId},
             marker::{Directed, Undirected},
             EdgesMut, VerticesBase, VerticesMut,
         },
@@ -126,7 +126,7 @@ mod tests {
 
     use super::*;
 
-    fn create_basic_graph() -> AdjList<(), i32, Undirected, DefaultIndexing> {
+    fn create_basic_graph() -> AdjList<(), i32, Undirected, DefaultId> {
         let mut graph = AdjList::default();
 
         let v0 = graph.add_vertex(());
@@ -148,8 +148,7 @@ mod tests {
         graph
     }
 
-    fn create_graph_with_isolated_vertex(
-    ) -> (AdjList<(), i32, Undirected, DefaultIndexing>, VertexIndex) {
+    fn create_graph_with_isolated_vertex() -> (AdjList<(), i32, Undirected, DefaultId>, VertexId) {
         let mut graph = AdjList::default();
 
         let v0 = graph.add_vertex(());
@@ -164,11 +163,11 @@ mod tests {
         (graph, v3)
     }
 
-    fn v(index: usize) -> VertexIndex {
+    fn v(index: usize) -> VertexId {
         index.into()
     }
 
-    fn e(index: usize) -> EdgeIndex {
+    fn e(index: usize) -> EdgeId {
         index.into()
     }
 
@@ -279,7 +278,7 @@ mod tests {
 
     #[test]
     fn bellman_ford_negative_cycle() {
-        let mut graph = AdjList::<(), i32, Directed, DefaultIndexing>::new();
+        let mut graph = AdjList::<(), i32, Directed, DefaultId>::new();
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -375,7 +374,7 @@ mod tests {
             let n = graph.vertex_count() as u64;
             prop_assume!(n > 0);
 
-            let start = VertexIndex(start % n);
+            let start = VertexId(start % n);
             let _ = ShortestPaths::on(&graph).with(Algo::Dijkstra).run(start);
             // Check for panics only for now.
         }
@@ -386,7 +385,7 @@ mod tests {
             let n = graph.vertex_count() as u64;
             prop_assume!(n > 0);
 
-            let start = VertexIndex(start % n);
+            let start = VertexId(start % n);
             let _ = ShortestPaths::on(&graph).with(Algo::BellmanFord).run(start);
             // Check for panics only for now.
         }

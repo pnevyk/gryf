@@ -12,7 +12,7 @@ use raw::*;
 use crate::{
     common::VisitSet,
     core::{
-        index::UseVertexIndex, marker::EdgeType, EdgesBaseWeak, GraphBase, Neighbors, VerticesBase,
+        id::UseVertexId, marker::EdgeType, EdgesBaseWeak, GraphBase, Neighbors, VerticesBase,
         VerticesBaseWeak,
     },
 };
@@ -80,7 +80,7 @@ where
     G: VerticesBase,
 {
     graph: &'a G,
-    indices: G::VertexIndicesIter<'a>,
+    indices: G::VertexIdsIter<'a>,
 }
 
 impl<'a, G> VisitAll<'a, G>
@@ -90,20 +90,20 @@ where
     pub fn new(graph: &'a G) -> Self {
         Self {
             graph,
-            indices: graph.vertex_indices(),
+            indices: graph.vertex_ids(),
         }
     }
 }
 
-impl<G> VisitStarts<G::VertexIndex> for VisitAll<'_, G>
+impl<G> VisitStarts<G::VertexId> for VisitAll<'_, G>
 where
     G: VerticesBase,
 {
-    fn get_next(&mut self) -> Option<G::VertexIndex> {
+    fn get_next(&mut self) -> Option<G::VertexId> {
         self.indices.next()
     }
 
-    fn is_done(&mut self, visited: &impl VisitSet<G::VertexIndex>) -> bool {
+    fn is_done(&mut self, visited: &impl VisitSet<G::VertexId>) -> bool {
         // Since we are holding a shared reference to the graph, it could not
         // have been mutated during traversal. In particular, the number of
         // vertices didn't change.
@@ -115,23 +115,23 @@ pub struct Bfs<G>
 where
     G: GraphBase,
 {
-    raw: RawVisit<G, UseVertexIndex, RawBfs>,
+    raw: RawVisit<G, UseVertexId, RawBfs>,
 }
 
 pub struct BfsRooted<'a, G>
 where
     G: GraphBase,
 {
-    raw: &'a mut RawVisit<G, UseVertexIndex, RawBfs>,
+    raw: &'a mut RawVisit<G, UseVertexId, RawBfs>,
 }
 
 pub struct BfsMulti<'a, G, S>
 where
     G: GraphBase,
-    S: VisitStarts<G::VertexIndex>,
+    S: VisitStarts<G::VertexId>,
 {
-    raw: &'a mut RawVisit<G, UseVertexIndex, RawBfs>,
-    multi: RawVisitMulti<G, UseVertexIndex, RawBfs, S>,
+    raw: &'a mut RawVisit<G, UseVertexId, RawBfs>,
+    multi: RawVisitMulti<G, UseVertexId, RawBfs, S>,
 }
 
 impl<G> Bfs<G>
@@ -147,7 +147,7 @@ where
         }
     }
 
-    pub fn start(&mut self, root: G::VertexIndex) -> BfsRooted<'_, G> {
+    pub fn start(&mut self, root: G::VertexId) -> BfsRooted<'_, G> {
         self.raw.start(root);
         BfsRooted { raw: &mut self.raw }
     }
@@ -164,7 +164,7 @@ where
 
     pub fn start_multi<S>(&mut self, starts: S) -> BfsMulti<'_, G, S>
     where
-        S: VisitStarts<G::VertexIndex>,
+        S: VisitStarts<G::VertexId>,
     {
         BfsMulti {
             raw: &mut self.raw,
@@ -176,7 +176,7 @@ where
         self.raw.reset();
     }
 
-    pub fn visited(&self) -> &impl VisitSet<G::VertexIndex> {
+    pub fn visited(&self) -> &impl VisitSet<G::VertexId> {
         &self.raw.visited
     }
 }
@@ -185,7 +185,7 @@ impl<'a, G> Visitor<G> for BfsRooted<'a, G>
 where
     G: Neighbors,
 {
-    type Item = G::VertexIndex;
+    type Item = G::VertexId;
 
     fn next(&mut self, graph: &G) -> Option<Self::Item> {
         self.raw.next(graph, |_, _| true)
@@ -194,10 +194,10 @@ where
 
 impl<'a, S, G> Visitor<G> for BfsMulti<'a, G, S>
 where
-    S: VisitStarts<G::VertexIndex>,
+    S: VisitStarts<G::VertexId>,
     G: Neighbors + VerticesBase,
 {
-    type Item = G::VertexIndex;
+    type Item = G::VertexId;
 
     fn next(&mut self, graph: &G) -> Option<Self::Item> {
         self.multi.next_multi(
@@ -212,23 +212,23 @@ pub struct Dfs<G>
 where
     G: GraphBase,
 {
-    raw: RawVisit<G, UseVertexIndex, RawDfs>,
+    raw: RawVisit<G, UseVertexId, RawDfs>,
 }
 
 pub struct DfsRooted<'a, G>
 where
     G: GraphBase,
 {
-    raw: &'a mut RawVisit<G, UseVertexIndex, RawDfs>,
+    raw: &'a mut RawVisit<G, UseVertexId, RawDfs>,
 }
 
 pub struct DfsMulti<'a, G, S>
 where
     G: GraphBase,
-    S: VisitStarts<G::VertexIndex>,
+    S: VisitStarts<G::VertexId>,
 {
-    raw: &'a mut RawVisit<G, UseVertexIndex, RawDfs>,
-    multi: RawVisitMulti<G, UseVertexIndex, RawDfs, S>,
+    raw: &'a mut RawVisit<G, UseVertexId, RawDfs>,
+    multi: RawVisitMulti<G, UseVertexId, RawDfs, S>,
 }
 
 impl<G> Dfs<G>
@@ -244,7 +244,7 @@ where
         }
     }
 
-    pub fn start(&mut self, root: G::VertexIndex) -> DfsRooted<'_, G> {
+    pub fn start(&mut self, root: G::VertexId) -> DfsRooted<'_, G> {
         self.raw.start(root);
         DfsRooted { raw: &mut self.raw }
     }
@@ -261,7 +261,7 @@ where
 
     pub fn start_multi<S>(&mut self, starts: S) -> DfsMulti<'_, G, S>
     where
-        S: VisitStarts<G::VertexIndex>,
+        S: VisitStarts<G::VertexId>,
     {
         DfsMulti {
             raw: &mut self.raw,
@@ -273,7 +273,7 @@ where
         self.raw.reset();
     }
 
-    pub fn visited(&self) -> &impl VisitSet<G::VertexIndex> {
+    pub fn visited(&self) -> &impl VisitSet<G::VertexId> {
         &self.raw.visited
     }
 }
@@ -282,7 +282,7 @@ impl<'a, G> Visitor<G> for DfsRooted<'a, G>
 where
     G: Neighbors,
 {
-    type Item = G::VertexIndex;
+    type Item = G::VertexId;
 
     fn next(&mut self, graph: &G) -> Option<Self::Item> {
         self.raw.next(graph, |_, _| true)
@@ -291,10 +291,10 @@ where
 
 impl<'a, S, G> Visitor<G> for DfsMulti<'a, G, S>
 where
-    S: VisitStarts<G::VertexIndex>,
+    S: VisitStarts<G::VertexId>,
     G: Neighbors + VerticesBase,
 {
-    type Item = G::VertexIndex;
+    type Item = G::VertexId;
 
     fn next(&mut self, graph: &G) -> Option<Self::Item> {
         self.multi.next_multi(
@@ -314,26 +314,26 @@ where
     G: GraphBase,
 {
     Open {
-        vertex: G::VertexIndex,
+        vertex: G::VertexId,
         time: Time,
     },
     TreeEdge {
-        src: G::VertexIndex,
-        dst: G::VertexIndex,
-        edge: G::EdgeIndex,
+        src: G::VertexId,
+        dst: G::VertexId,
+        edge: G::EdgeId,
     },
     BackEdge {
-        src: G::VertexIndex,
-        dst: G::VertexIndex,
-        edge: G::EdgeIndex,
+        src: G::VertexId,
+        dst: G::VertexId,
+        edge: G::EdgeId,
     },
     CrossForwardEdge {
-        src: G::VertexIndex,
-        dst: G::VertexIndex,
-        edge: G::EdgeIndex,
+        src: G::VertexId,
+        dst: G::VertexId,
+        edge: G::EdgeId,
     },
     Close {
-        vertex: G::VertexIndex,
+        vertex: G::VertexId,
         time: Time,
     },
 }
@@ -342,8 +342,8 @@ pub struct DfsEvents<G>
 where
     G: GraphBase,
 {
-    raw: RawVisit<G, UseVertexIndex, RawDfsExtra>,
-    closed: FxHashSet<G::VertexIndex>,
+    raw: RawVisit<G, UseVertexId, RawDfsExtra>,
+    closed: FxHashSet<G::VertexId>,
     is_directed: bool,
 }
 
@@ -351,8 +351,8 @@ pub struct DfsEventsRooted<'a, G>
 where
     G: GraphBase,
 {
-    raw: &'a mut RawVisit<G, UseVertexIndex, RawDfsExtra>,
-    closed: &'a mut FxHashSet<G::VertexIndex>,
+    raw: &'a mut RawVisit<G, UseVertexId, RawDfsExtra>,
+    closed: &'a mut FxHashSet<G::VertexId>,
     queue: VecDeque<DfsEvent<G>>,
     time: usize,
     is_directed: bool,
@@ -361,11 +361,11 @@ where
 pub struct DfsEventsMulti<'a, G, S>
 where
     G: GraphBase,
-    S: VisitStarts<G::VertexIndex>,
+    S: VisitStarts<G::VertexId>,
 {
-    raw: &'a mut RawVisit<G, UseVertexIndex, RawDfsExtra>,
-    multi: RawVisitMulti<G, UseVertexIndex, RawDfsExtra, S>,
-    closed: &'a mut FxHashSet<G::VertexIndex>,
+    raw: &'a mut RawVisit<G, UseVertexId, RawDfsExtra>,
+    multi: RawVisitMulti<G, UseVertexId, RawDfsExtra, S>,
+    closed: &'a mut FxHashSet<G::VertexId>,
     queue: VecDeque<DfsEvent<G>>,
     time: usize,
     is_directed: bool,
@@ -399,7 +399,7 @@ where
         }
     }
 
-    pub fn start(&mut self, root: G::VertexIndex) -> DfsEventsRooted<'_, G> {
+    pub fn start(&mut self, root: G::VertexId) -> DfsEventsRooted<'_, G> {
         self.raw.start(RawDfsExtraItem::start(root));
         DfsEventsRooted {
             raw: &mut self.raw,
@@ -426,7 +426,7 @@ where
 
     pub fn start_multi<S>(&mut self, starts: S) -> DfsEventsMulti<'_, G, S>
     where
-        S: VisitStarts<G::VertexIndex>,
+        S: VisitStarts<G::VertexId>,
     {
         DfsEventsMulti {
             raw: &mut self.raw,
@@ -442,14 +442,14 @@ where
         self.raw.reset();
     }
 
-    pub fn visited(&self) -> &impl VisitSet<G::VertexIndex> {
+    pub fn visited(&self) -> &impl VisitSet<G::VertexId> {
         &self.raw.visited
     }
 
     fn process_next_callback(
-        raw: &RawVisit<G, UseVertexIndex, RawDfsExtra>,
+        raw: &RawVisit<G, UseVertexId, RawDfsExtra>,
         raw_event: RawEvent<G>,
-        closed: &mut FxHashSet<G::VertexIndex>,
+        closed: &mut FxHashSet<G::VertexId>,
         queue: &mut VecDeque<DfsEvent<G>>,
         is_directed: bool,
     ) -> bool {
@@ -489,7 +489,7 @@ where
                     // of signalling `Skip` event, the item on top of the
                     // stack is the parent of the skipped vertex.
                     if !closed.contains(&vertex) {
-                        let parent = raw.collection.0.last().map(RawDfsExtra::index);
+                        let parent = raw.collection.0.last().map(RawDfsExtra::id);
 
                         if parent.as_ref() != Some(&vertex) {
                             queue.push_back(DfsEvent::BackEdge {
@@ -511,7 +511,7 @@ where
 
     fn process_next_event(
         raw_extra_event: RawDfsExtraEvent<G>,
-        closed: &mut FxHashSet<G::VertexIndex>,
+        closed: &mut FxHashSet<G::VertexId>,
         queue: &mut VecDeque<DfsEvent<G>>,
         time: &mut usize,
     ) {
@@ -570,7 +570,7 @@ where
 impl<'a, S, G> Visitor<G> for DfsEventsMulti<'a, G, S>
 where
     G: Neighbors + VerticesBase,
-    S: VisitStarts<G::VertexIndex>,
+    S: VisitStarts<G::VertexId>,
 {
     type Item = DfsEvent<G>;
 
@@ -610,23 +610,23 @@ pub struct DfsPostOrder<G>
 where
     G: GraphBase,
 {
-    raw: RawVisit<G, UseVertexIndex, RawDfsExtra>,
+    raw: RawVisit<G, UseVertexId, RawDfsExtra>,
 }
 
 pub struct DfsPostOrderRooted<'a, G>
 where
     G: GraphBase,
 {
-    raw: &'a mut RawVisit<G, UseVertexIndex, RawDfsExtra>,
+    raw: &'a mut RawVisit<G, UseVertexId, RawDfsExtra>,
 }
 
 pub struct DfsPostOrderMulti<'a, G, S>
 where
     G: GraphBase,
-    S: VisitStarts<G::VertexIndex>,
+    S: VisitStarts<G::VertexId>,
 {
-    raw: &'a mut RawVisit<G, UseVertexIndex, RawDfsExtra>,
-    multi: RawVisitMulti<G, UseVertexIndex, RawDfsExtra, S>,
+    raw: &'a mut RawVisit<G, UseVertexId, RawDfsExtra>,
+    multi: RawVisitMulti<G, UseVertexId, RawDfsExtra, S>,
 }
 
 impl<G> DfsPostOrder<G>
@@ -642,7 +642,7 @@ where
         }
     }
 
-    pub fn start(&mut self, root: G::VertexIndex) -> DfsPostOrderRooted<'_, G> {
+    pub fn start(&mut self, root: G::VertexId) -> DfsPostOrderRooted<'_, G> {
         self.raw.start(RawDfsExtraItem::start(root));
         DfsPostOrderRooted { raw: &mut self.raw }
     }
@@ -659,7 +659,7 @@ where
 
     pub fn start_multi<S>(&mut self, starts: S) -> DfsPostOrderMulti<'_, G, S>
     where
-        S: VisitStarts<G::VertexIndex>,
+        S: VisitStarts<G::VertexId>,
     {
         DfsPostOrderMulti {
             raw: &mut self.raw,
@@ -671,7 +671,7 @@ where
         self.raw.reset();
     }
 
-    pub fn visited(&self) -> &impl VisitSet<G::VertexIndex> {
+    pub fn visited(&self) -> &impl VisitSet<G::VertexId> {
         &self.raw.visited
     }
 }
@@ -680,7 +680,7 @@ impl<'a, G> Visitor<G> for DfsPostOrderRooted<'a, G>
 where
     G: Neighbors,
 {
-    type Item = G::VertexIndex;
+    type Item = G::VertexId;
 
     fn next(&mut self, graph: &G) -> Option<Self::Item> {
         loop {
@@ -694,9 +694,9 @@ where
 impl<'a, S, G> Visitor<G> for DfsPostOrderMulti<'a, G, S>
 where
     G: Neighbors + VerticesBase,
-    S: VisitStarts<G::VertexIndex>,
+    S: VisitStarts<G::VertexId>,
 {
-    type Item = G::VertexIndex;
+    type Item = G::VertexId;
 
     fn next(&mut self, graph: &G) -> Option<Self::Item> {
         self.multi
@@ -710,7 +710,7 @@ where
                 |vertex| graph.contains_vertex(vertex),
             )
             .as_ref()
-            .map(RawDfsExtra::index)
+            .map(RawDfsExtra::id)
     }
 }
 
@@ -718,23 +718,23 @@ pub struct DfsNoBacktrack<G>
 where
     G: GraphBase,
 {
-    raw: RawVisit<G, UseVertexIndex, RawDfsNoBacktrack>,
+    raw: RawVisit<G, UseVertexId, RawDfsNoBacktrack>,
 }
 
 pub struct DfsNoBacktrackRooted<'a, G>
 where
     G: GraphBase,
 {
-    raw: &'a mut RawVisit<G, UseVertexIndex, RawDfsNoBacktrack>,
+    raw: &'a mut RawVisit<G, UseVertexId, RawDfsNoBacktrack>,
 }
 
 pub struct DfsNoBacktrackMulti<'a, G, S>
 where
     G: GraphBase,
-    S: VisitStarts<G::VertexIndex>,
+    S: VisitStarts<G::VertexId>,
 {
-    raw: &'a mut RawVisit<G, UseVertexIndex, RawDfsNoBacktrack>,
-    multi: RawVisitMulti<G, UseVertexIndex, RawDfsNoBacktrack, S>,
+    raw: &'a mut RawVisit<G, UseVertexId, RawDfsNoBacktrack>,
+    multi: RawVisitMulti<G, UseVertexId, RawDfsNoBacktrack, S>,
 }
 
 impl<G> DfsNoBacktrack<G>
@@ -750,7 +750,7 @@ where
         }
     }
 
-    pub fn start(&mut self, root: G::VertexIndex) -> DfsNoBacktrackRooted<'_, G> {
+    pub fn start(&mut self, root: G::VertexId) -> DfsNoBacktrackRooted<'_, G> {
         self.raw.start(root);
         DfsNoBacktrackRooted { raw: &mut self.raw }
     }
@@ -767,7 +767,7 @@ where
 
     pub fn start_multi<S>(&mut self, starts: S) -> DfsNoBacktrackMulti<'_, G, S>
     where
-        S: VisitStarts<G::VertexIndex>,
+        S: VisitStarts<G::VertexId>,
     {
         DfsNoBacktrackMulti {
             raw: &mut self.raw,
@@ -779,7 +779,7 @@ where
         self.raw.reset();
     }
 
-    pub fn visited(&self) -> &impl VisitSet<G::VertexIndex> {
+    pub fn visited(&self) -> &impl VisitSet<G::VertexId> {
         &self.raw.visited
     }
 }
@@ -788,7 +788,7 @@ impl<'a, G> Visitor<G> for DfsNoBacktrackRooted<'a, G>
 where
     G: Neighbors,
 {
-    type Item = G::VertexIndex;
+    type Item = G::VertexId;
 
     fn next(&mut self, graph: &G) -> Option<Self::Item> {
         self.raw.next(graph, |_, _| true)
@@ -798,9 +798,9 @@ where
 impl<'a, S, G> Visitor<G> for DfsNoBacktrackMulti<'a, G, S>
 where
     G: Neighbors + VerticesBase,
-    S: VisitStarts<G::VertexIndex>,
+    S: VisitStarts<G::VertexId>,
 {
-    type Item = G::VertexIndex;
+    type Item = G::VertexId;
 
     fn next(&mut self, graph: &G) -> Option<Self::Item> {
         self.multi.next_multi(
@@ -815,7 +815,7 @@ where
 mod tests {
     use crate::{
         core::{
-            index::DefaultIndexing,
+            id::DefaultId,
             marker::{Directed, Undirected},
             EdgesMut, VerticesMut,
         },
@@ -862,7 +862,7 @@ mod tests {
 
     #[test]
     fn bfs_connected() {
-        let mut graph = AdjList::<_, _, Undirected, DefaultIndexing>::new();
+        let mut graph = AdjList::<_, _, Undirected, DefaultId>::new();
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -885,7 +885,7 @@ mod tests {
 
     #[test]
     fn dfs_connected() {
-        let mut graph = AdjList::<_, _, Undirected, DefaultIndexing>::new();
+        let mut graph = AdjList::<_, _, Undirected, DefaultId>::new();
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -908,7 +908,7 @@ mod tests {
 
     #[test]
     fn bfs_disconnected() {
-        let mut graph = Stable::new(AdjList::<_, _, Undirected, DefaultIndexing>::new());
+        let mut graph = Stable::new(AdjList::<_, _, Undirected, DefaultId>::new());
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -933,7 +933,7 @@ mod tests {
 
     #[test]
     fn dfs_disconnected() {
-        let mut graph = Stable::new(AdjList::<_, _, Undirected, DefaultIndexing>::new());
+        let mut graph = Stable::new(AdjList::<_, _, Undirected, DefaultId>::new());
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -958,7 +958,7 @@ mod tests {
 
     #[test]
     fn bfs_disconnected_all() {
-        let mut graph = Stable::new(AdjList::<_, _, Undirected, DefaultIndexing>::new());
+        let mut graph = Stable::new(AdjList::<_, _, Undirected, DefaultId>::new());
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -986,7 +986,7 @@ mod tests {
 
     #[test]
     fn dfs_disconnected_all() {
-        let mut graph = Stable::new(AdjList::<_, _, Undirected, DefaultIndexing>::new());
+        let mut graph = Stable::new(AdjList::<_, _, Undirected, DefaultId>::new());
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -1014,7 +1014,7 @@ mod tests {
 
     #[test]
     fn bfs_disconnected_multi() {
-        let mut graph = Stable::new(AdjList::<_, _, Undirected, DefaultIndexing>::new());
+        let mut graph = Stable::new(AdjList::<_, _, Undirected, DefaultId>::new());
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -1042,7 +1042,7 @@ mod tests {
 
     #[test]
     fn bfs_disconnected_multi_mutation() {
-        let mut graph = Stable::new(AdjList::<_, _, Undirected, DefaultIndexing>::new());
+        let mut graph = Stable::new(AdjList::<_, _, Undirected, DefaultId>::new());
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -1087,7 +1087,7 @@ mod tests {
         //                          |                         |
         //                          +---- T ------------------+
 
-        let mut graph = AdjList::<_, _, Undirected, DefaultIndexing>::new();
+        let mut graph = AdjList::<_, _, Undirected, DefaultId>::new();
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -1161,7 +1161,7 @@ mod tests {
         //                          |                         ʌ
         //                          +---- T ------------------+
 
-        let mut graph = AdjList::<_, _, Directed, DefaultIndexing>::new();
+        let mut graph = AdjList::<_, _, Directed, DefaultId>::new();
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -1222,7 +1222,7 @@ mod tests {
 
     #[test]
     fn dfs_events_isolated() {
-        let mut graph = AdjList::<_, (), Undirected, DefaultIndexing>::new();
+        let mut graph = AdjList::<_, (), Undirected, DefaultId>::new();
 
         let v0 = graph.add_vertex(());
 
@@ -1238,7 +1238,7 @@ mod tests {
 
     #[test]
     fn dfs_post_order() {
-        let mut graph = AdjList::<_, _, Undirected, DefaultIndexing>::new();
+        let mut graph = AdjList::<_, _, Undirected, DefaultId>::new();
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -1264,7 +1264,7 @@ mod tests {
 
     #[test]
     fn dfs_no_backtrack() {
-        let mut graph = AdjList::<_, _, Undirected, DefaultIndexing>::new();
+        let mut graph = AdjList::<_, _, Undirected, DefaultId>::new();
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());

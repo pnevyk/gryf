@@ -109,7 +109,7 @@ impl<Ix: Indexing, U: UseIndex<Ix>, A: RawAlgo<Ix, U>> RawVisit<Ix, U, A> {
     pub fn new(count_hint: Option<usize>) -> Self {
         let visited = count_hint
             .map(|count| HashSet::with_capacity_and_hasher(count, BuildHasherDefault::default()))
-            .unwrap_or_else(FxHashSet::default);
+            .unwrap_or_default();
 
         Self {
             collection: A::Collection::default(),

@@ -5,8 +5,9 @@ use thiserror::Error;
 use crate::common::CompactIdMap;
 
 use super::{
-    base::{GraphBase, WeakRef},
+    base::GraphBase,
     id::{IdType, IntegerIdType},
+    weak::WeakRef,
 };
 
 pub trait VertexRef<VId: IdType, V> {

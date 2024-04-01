@@ -1,7 +1,8 @@
 use super::{
-    base::{GraphBase, WeakRef},
+    base::GraphBase,
     id::IdType,
     marker::{Direction, EdgeType},
+    weak::WeakRef,
 };
 
 pub trait NeighborRef<VId: IdType, EId: IdType> {

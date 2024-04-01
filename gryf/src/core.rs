@@ -9,6 +9,7 @@ mod edges;
 mod neighbors;
 mod properties;
 mod vertices;
+mod weak;
 
 pub use base::*;
 pub use connect::*;
@@ -16,4 +17,5 @@ pub use edges::*;
 pub use neighbors::*;
 pub use properties::*;
 pub use vertices::*;
+pub use weak::WeakRef;
 pub use weights::Weight;

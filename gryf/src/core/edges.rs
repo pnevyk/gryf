@@ -5,9 +5,10 @@ use thiserror::Error;
 use crate::common::CompactIdMap;
 
 use super::{
-    base::{GraphBase, WeakRef},
+    base::GraphBase,
     id::{GraphIdTypes, IdType, IntegerIdType},
     marker::EdgeType,
+    weak::WeakRef,
 };
 
 pub trait EdgeRef<VId: IdType, EId: IdType, E> {

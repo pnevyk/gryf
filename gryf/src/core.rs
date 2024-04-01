@@ -5,6 +5,7 @@ pub mod weights;
 
 mod base;
 mod connect;
+mod create;
 mod edges;
 mod neighbors;
 mod properties;
@@ -13,6 +14,7 @@ mod weak;
 
 pub use base::*;
 pub use connect::*;
+pub use create::*;
 pub use edges::*;
 pub use neighbors::*;
 pub use properties::*;

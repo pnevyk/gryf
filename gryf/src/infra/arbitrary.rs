@@ -54,7 +54,29 @@ where
     EI1: PartialEq<EI2>,
 {
     fn eq(&self, other: &MutOpResult<V, E, VI2, EI2>) -> bool {
-        self == other
+        // `PartialEq` is implemented for `Result<T, E>` only for `T:
+        // PartialEq<T>`.
+        fn compare_results<T, U, Error>(lhs: &Result<T, Error>, rhs: &Result<U, Error>) -> bool
+        where
+            T: PartialEq<U>,
+            Error: PartialEq,
+        {
+            match (lhs, rhs) {
+                (Ok(lhs), Ok(rhs)) => lhs == rhs,
+                (Ok(_), Err(_)) | (Err(_), Ok(_)) => false,
+                (Err(lhs), Err(rhs)) => lhs == rhs,
+            }
+        }
+
+        match (self, other) {
+            (MutOpResult::AddVertex(lhs), MutOpResult::AddVertex(rhs)) => compare_results(lhs, rhs),
+            (MutOpResult::RemoveVertex(lhs), MutOpResult::RemoveVertex(rhs)) => lhs == rhs,
+            (MutOpResult::Clear, MutOpResult::Clear) => true,
+            (MutOpResult::AddEdge(lhs), MutOpResult::AddEdge(rhs)) => compare_results(lhs, rhs),
+            (MutOpResult::RemoveEdge(lhs), MutOpResult::RemoveEdge(rhs)) => lhs == rhs,
+            (MutOpResult::ClearEdges, MutOpResult::ClearEdges) => true,
+            _ => false,
+        }
     }
 }
 

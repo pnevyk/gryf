@@ -221,34 +221,34 @@ where
         ConsistencyCheckError::EdgeBoundInvalid,
     )?;
 
-    let invalid_edge_index = graph.edge_ids().enumerate().find_map(|(i, index)| {
+    let invalid_edge_id = graph.edge_ids().enumerate().find_map(|(i, id)| {
         graph
-            .endpoints(&index)
-            // Ideally we would check `== Some(index)` but for that we would
+            .endpoints(&id)
+            // Ideally we would check `== Some(id)` but for that we would
             // need to use multi edge iterator, which is not implemented for all
             // storages.
-            .filter(|(src, dst)| graph.edge_id(src, dst).any(|e| e == index))
+            .filter(|(src, dst)| graph.edge_id(src, dst).any(|e| e == id))
             .is_none()
             .then_some(i)
     });
 
-    if let Some(index) = invalid_edge_index {
-        return Err(ConsistencyCheckError::EdgeIdsInvalid(index));
+    if let Some(id) = invalid_edge_id {
+        return Err(ConsistencyCheckError::EdgeIdsInvalid(id));
     }
 
     let deg_sum = graph
         .vertex_ids()
-        .map(|index| graph.degree(&index))
+        .map(|id| graph.degree(&id))
         .sum::<usize>();
 
     let out_deg_sum = graph
         .vertex_ids()
-        .map(|index| graph.degree_directed(&index, Direction::Outgoing))
+        .map(|id| graph.degree_directed(&id, Direction::Outgoing))
         .sum::<usize>();
 
     let in_deg_sum = graph
         .vertex_ids()
-        .map(|index| graph.degree_directed(&index, Direction::Incoming))
+        .map(|id| graph.degree_directed(&id, Direction::Incoming))
         .sum::<usize>();
 
     if Ty::is_directed() {
@@ -316,12 +316,12 @@ where
 
     let mut deg_seq_lhs = lhs
         .vertex_ids()
-        .map(|index| lhs.degree_directed(&index, Direction::Outgoing))
+        .map(|id| lhs.degree_directed(&id, Direction::Outgoing))
         .collect::<Vec<_>>();
 
     let mut deg_seq_rhs = rhs
         .vertex_ids()
-        .map(|index| rhs.degree_directed(&index, Direction::Outgoing))
+        .map(|id| rhs.degree_directed(&id, Direction::Outgoing))
         .collect::<Vec<_>>();
 
     deg_seq_lhs.sort_unstable();

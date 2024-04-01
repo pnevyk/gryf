@@ -23,27 +23,27 @@ pub trait Neighbors: GraphBase {
     fn neighbors(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_>;
     fn neighbors_directed(&self, src: &Self::VertexId, dir: Direction) -> Self::NeighborsIter<'_>;
 
-    fn degree(&self, index: &Self::VertexId) -> usize {
+    fn degree(&self, id: &Self::VertexId) -> usize {
         if Self::EdgeType::is_directed() {
-            self.degree_directed(index, Direction::Outgoing)
-                + self.degree_directed(index, Direction::Incoming)
+            self.degree_directed(id, Direction::Outgoing)
+                + self.degree_directed(id, Direction::Incoming)
         } else {
-            self.degree_directed(index, Direction::Outgoing)
+            self.degree_directed(id, Direction::Outgoing)
         }
     }
 
-    fn degree_directed(&self, index: &Self::VertexId, dir: Direction) -> usize {
+    fn degree_directed(&self, id: &Self::VertexId, dir: Direction) -> usize {
         if Self::EdgeType::is_directed() {
-            self.neighbors_directed(index, dir).count()
+            self.neighbors_directed(id, dir).count()
         } else {
             // In undirected graphs, we need to handle self-loops.
-            self.neighbors_directed(index, dir)
+            self.neighbors_directed(id, dir)
                 .map(|neighbor| {
                     // If this is a self-loop, we need to count it twice.
                     // Storages are required to yield a self-loop just once. If
                     // this requirement is satisfied, then this implementation
                     // of degree is correct.
-                    if neighbor.id().as_ref() == index {
+                    if neighbor.id().as_ref() == id {
                         2
                     } else {
                         1
@@ -94,12 +94,12 @@ macro_rules! deref_neighbors {
                 (**self).neighbors_directed(src, dir)
             }
 
-            fn degree(&self, index: &Self::VertexId) -> usize {
-                (**self).degree(index)
+            fn degree(&self, id: &Self::VertexId) -> usize {
+                (**self).degree(id)
             }
 
-            fn degree_directed(&self, index: &Self::VertexId, dir: Direction) -> usize {
-                (**self).degree_directed(index, dir)
+            fn degree_directed(&self, id: &Self::VertexId, dir: Direction) -> usize {
+                (**self).degree_directed(id, dir)
             }
         }
     }

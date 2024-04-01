@@ -93,8 +93,8 @@ where
         Self: 'a,
         V: 'a;
 
-    fn vertex(&self, index: &Self::VertexId) -> Option<&V> {
-        self.vertices.get(index.to_usize())
+    fn vertex(&self, id: &Self::VertexId) -> Option<&V> {
+        self.vertices.get(id.to_usize())
     }
 
     fn vertices(&self) -> Self::VerticesIter<'_> {
@@ -107,8 +107,8 @@ where
     Id::VertexId: NumIdType,
     Id::EdgeId: NumIdType,
 {
-    fn vertex_mut(&mut self, index: &Self::VertexId) -> Option<&mut V> {
-        self.vertices.get_mut(index.to_usize())
+    fn vertex_mut(&mut self, id: &Self::VertexId) -> Option<&mut V> {
+        self.vertices.get_mut(id.to_usize())
     }
 
     fn try_add_vertex(&mut self, vertex: V) -> Result<Self::VertexId, AddVertexError<V>> {
@@ -119,21 +119,21 @@ where
         Ok(index.into())
     }
 
-    fn remove_vertex(&mut self, index: &Self::VertexId) -> Option<V> {
-        self.vertex(index)?;
+    fn remove_vertex(&mut self, id: &Self::VertexId) -> Option<V> {
+        self.vertex(id)?;
 
-        let index = index.to_usize();
+        let index = id.to_usize();
 
         // Remove incident edges.
         for i in 0..self.vertices.len() {
-            let edge_index = self.matrix.index(index, i);
-            if self.matrix.remove(edge_index).is_some() {
+            let edge_id = self.matrix.index(index, i);
+            if self.matrix.remove(edge_id).is_some() {
                 self.n_edges -= 1;
             }
 
             if Ty::is_directed() {
-                let edge_index = self.matrix.index(i, index);
-                if self.matrix.remove(edge_index).is_some() {
+                let edge_id = self.matrix.index(i, index);
+                if self.matrix.remove(edge_id).is_some() {
                     self.n_edges -= 1;
                 }
             }
@@ -147,26 +147,26 @@ where
             let last_index = self.vertices.len();
 
             for i in 0..self.vertices.len() {
-                let edge_index = self.matrix.index(last_index, i);
-                if let Some(edge) = self.matrix.remove(edge_index) {
-                    let edge_index = self.matrix.index(index, i);
-                    self.matrix.insert(edge_index, edge);
+                let edge_id = self.matrix.index(last_index, i);
+                if let Some(edge) = self.matrix.remove(edge_id) {
+                    let edge_id = self.matrix.index(index, i);
+                    self.matrix.insert(edge_id, edge);
                 }
 
                 if Ty::is_directed() {
-                    let edge_index = self.matrix.index(i, last_index);
-                    if let Some(edge) = self.matrix.remove(edge_index) {
-                        let edge_index = self.matrix.index(i, index);
-                        self.matrix.insert(edge_index, edge);
+                    let edge_id = self.matrix.index(i, last_index);
+                    if let Some(edge) = self.matrix.remove(edge_id) {
+                        let edge_id = self.matrix.index(i, index);
+                        self.matrix.insert(edge_id, edge);
                     }
                 }
             }
 
             // Handle self-loops.
-            let edge_index = self.matrix.index(last_index, last_index);
-            if let Some(edge) = self.matrix.remove(edge_index) {
-                let edge_index = self.matrix.index(index, index);
-                self.matrix.insert(edge_index, edge);
+            let edge_id = self.matrix.index(last_index, last_index);
+            if let Some(edge) = self.matrix.remove(edge_id) {
+                let edge_id = self.matrix.index(index, index);
+                self.matrix.insert(edge_id, edge);
             }
         }
 
@@ -200,8 +200,8 @@ where
         self.matrix.index(self.vertex_count(), 0).to_usize()
     }
 
-    fn endpoints(&self, index: &Self::EdgeId) -> Option<(Self::VertexId, Self::VertexId)> {
-        let (row, col) = self.matrix.coords(*index);
+    fn endpoints(&self, id: &Self::EdgeId) -> Option<(Self::VertexId, Self::VertexId)> {
+        let (row, col) = self.matrix.coords(*id);
         if row < self.vertex_count() {
             Some((row.into(), col.into()))
         } else {
@@ -210,8 +210,8 @@ where
     }
 
     fn edge_id(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Self::EdgeIdIter<'_> {
-        let index = self.matrix.index(src.to_usize(), dst.to_usize());
-        self.matrix.get(index).map(|_| index).into_iter()
+        let id = self.matrix.index(src.to_usize(), dst.to_usize());
+        self.matrix.get(id).map(|_| id).into_iter()
     }
 
     fn edge_ids(&self) -> Self::EdgeIdsIter<'_> {
@@ -239,8 +239,8 @@ where
         Self: 'a,
         E:'a;
 
-    fn edge(&self, index: &Self::EdgeId) -> Option<&E> {
-        self.matrix.get(*index)
+    fn edge(&self, id: &Self::EdgeId) -> Option<&E> {
+        self.matrix.get(*id)
     }
 
     fn edges(&self) -> Self::EdgesIter<'_> {
@@ -258,8 +258,8 @@ where
     Id::VertexId: NumIdType,
     Id::EdgeId: NumIdType,
 {
-    fn edge_mut(&mut self, index: &Id::EdgeId) -> Option<&mut E> {
-        self.matrix.get_mut(*index)
+    fn edge_mut(&mut self, id: &Id::EdgeId) -> Option<&mut E> {
+        self.matrix.get_mut(*id)
     }
 
     fn try_add_edge(
@@ -276,20 +276,20 @@ where
             return Err(AddEdgeError::new(edge, AddEdgeErrorKind::DestinationAbsent));
         }
 
-        let index = self.matrix.index(src.to_usize(), dst.to_usize());
+        let id = self.matrix.index(src.to_usize(), dst.to_usize());
 
-        if self.matrix.contains(index) {
+        if self.matrix.contains(id) {
             return Err(AddEdgeError::new(edge, AddEdgeErrorKind::MultiEdge));
         }
 
-        self.matrix.insert(index, edge);
+        self.matrix.insert(id, edge);
         self.n_edges += 1;
 
-        Ok(index)
+        Ok(id)
     }
 
-    fn remove_edge(&mut self, index: &Self::EdgeId) -> Option<E> {
-        match self.matrix.remove(*index) {
+    fn remove_edge(&mut self, id: &Self::EdgeId) -> Option<E> {
+        match self.matrix.remove(*id) {
             Some(edge) => {
                 self.n_edges -= 1;
                 Some(edge)
@@ -350,18 +350,17 @@ where
         }
     }
 
-    fn degree(&self, index: &Self::VertexId) -> usize {
+    fn degree(&self, id: &Self::VertexId) -> usize {
         Ty::directions()
             .iter()
-            .map(|dir| self.degree_directed(index, *dir))
+            .map(|dir| self.degree_directed(id, *dir))
             .sum()
     }
 
-    fn degree_directed(&self, index: &Self::VertexId, dir: Direction) -> usize {
-        self.vertex(index).expect("vertex does not exist");
+    fn degree_directed(&self, id: &Self::VertexId, dir: Direction) -> usize {
+        self.vertex(id).expect("vertex does not exist");
 
-        self.matrix
-            .degree_directed(*index, dir, self.vertices.len())
+        self.matrix.degree_directed(*id, dir, self.vertices.len())
     }
 }
 
@@ -423,11 +422,11 @@ where
                 return None;
             }
 
-            let index = Id::EdgeId::from_usize(self.index);
+            let id = Id::EdgeId::from_usize(self.index);
             self.index += 1;
 
-            if self.matrix.contains(index) {
-                return Some(index);
+            if self.matrix.contains(id) {
+                return Some(id);
             }
         }
     }
@@ -453,12 +452,12 @@ where
                 return None;
             }
 
-            let index = Id::EdgeId::from_usize(self.index);
+            let id = Id::EdgeId::from_usize(self.index);
             self.index += 1;
 
-            if let Some(edge) = self.matrix.get(index) {
-                let (row, col) = self.matrix.coords(index);
-                return Some((index, edge, row.into(), col.into()));
+            if let Some(edge) = self.matrix.get(id) {
+                let (row, col) = self.matrix.coords(id);
+                return Some((id, edge, row.into(), col.into()));
             }
         }
     }
@@ -498,13 +497,13 @@ where
                 let dst = self.other;
                 self.other += 1;
 
-                let index = match self.dir {
+                let id = match self.dir {
                     Direction::Outgoing => self.matrix.index(self.src.to_usize(), dst),
                     Direction::Incoming => self.matrix.index(dst, self.src.to_usize()),
                 };
 
-                if self.matrix.contains(index) {
-                    return Some((Id::VertexId::from_usize(dst), index, self.src, self.dir));
+                if self.matrix.contains(id) {
+                    return Some((Id::VertexId::from_usize(dst), id, self.src, self.dir));
                 }
             }
         }
@@ -753,32 +752,32 @@ mod raw {
             }
         }
 
-        pub fn contains(&self, index: Id::EdgeId) -> bool {
-            self.data.contains(index.to_usize())
+        pub fn contains(&self, id: Id::EdgeId) -> bool {
+            self.data.contains(id.to_usize())
         }
 
-        pub fn get(&self, index: Id::EdgeId) -> Option<&E> {
-            self.data.get(index.to_usize())
+        pub fn get(&self, id: Id::EdgeId) -> Option<&E> {
+            self.data.get(id.to_usize())
         }
 
-        pub fn get_mut(&mut self, index: Id::EdgeId) -> Option<&mut E> {
-            self.data.get_mut(index.to_usize())
+        pub fn get_mut(&mut self, id: Id::EdgeId) -> Option<&mut E> {
+            self.data.get_mut(id.to_usize())
         }
 
-        pub fn insert(&mut self, index: Id::EdgeId, edge: E) {
-            self.data.insert(index.to_usize(), edge);
+        pub fn insert(&mut self, id: Id::EdgeId, edge: E) {
+            self.data.insert(id.to_usize(), edge);
         }
 
-        pub fn remove(&mut self, index: Id::EdgeId) -> Option<E> {
-            self.data.remove(index.to_usize())
+        pub fn remove(&mut self, id: Id::EdgeId) -> Option<E> {
+            self.data.remove(id.to_usize())
         }
 
         pub fn index(&self, row: usize, col: usize) -> Id::EdgeId {
             Id::EdgeId::from_usize(index::<Ty>(row, col, self.capacity))
         }
 
-        pub fn coords(&self, index: Id::EdgeId) -> (usize, usize) {
-            coords::<Ty>(index.to_usize(), self.capacity)
+        pub fn coords(&self, id: Id::EdgeId) -> (usize, usize) {
+            coords::<Ty>(id.to_usize(), self.capacity)
         }
 
         pub fn degree_directed(&self, v: Id::VertexId, dir: Direction, n_vertices: usize) -> usize {
@@ -839,8 +838,8 @@ mod raw {
     where
         Id::EdgeId: NumIdType,
     {
-        pub fn contains(&self, index: Id::EdgeId) -> bool {
-            self.data[index.to_usize()]
+        pub fn contains(&self, id: Id::EdgeId) -> bool {
+            self.data[id.to_usize()]
         }
 
         pub fn index(&self, row: usize, col: usize) -> Id::EdgeId {
@@ -848,8 +847,8 @@ mod raw {
         }
 
         #[allow(unused)]
-        pub fn coords(&self, index: Id::EdgeId) -> (usize, usize) {
-            coords::<Ty>(index.to_usize(), self.capacity)
+        pub fn coords(&self, id: Id::EdgeId) -> (usize, usize) {
+            coords::<Ty>(id.to_usize(), self.capacity)
         }
     }
 

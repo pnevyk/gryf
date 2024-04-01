@@ -223,8 +223,8 @@ impl<V, E, Ty: EdgeType> Vertices<V> for Model<V, E, Ty> {
         Self: 'a,
         V: 'a;
 
-    fn vertex(&self, index: &Self::VertexId) -> Option<&V> {
-        self.vertices.get(index.to_usize()).and_then(Option::as_ref)
+    fn vertex(&self, id: &Self::VertexId) -> Option<&V> {
+        self.vertices.get(id.to_usize()).and_then(Option::as_ref)
     }
 
     fn vertices(&self) -> Self::VerticesIter<'_> {
@@ -233,9 +233,9 @@ impl<V, E, Ty: EdgeType> Vertices<V> for Model<V, E, Ty> {
 }
 
 impl<V, E, Ty: EdgeType> VerticesMut<V> for Model<V, E, Ty> {
-    fn vertex_mut(&mut self, index: &Self::VertexId) -> Option<&mut V> {
+    fn vertex_mut(&mut self, id: &Self::VertexId) -> Option<&mut V> {
         self.vertices
-            .get_mut(index.to_usize())
+            .get_mut(id.to_usize())
             .and_then(Option::as_mut)
     }
 
@@ -244,16 +244,16 @@ impl<V, E, Ty: EdgeType> VerticesMut<V> for Model<V, E, Ty> {
             return Err(AddVertexError::new(vertex));
         }
 
-        let index = VertexId::from_usize(self.vertices.len());
+        let id = VertexId::from_usize(self.vertices.len());
         self.vertices.push(Some(vertex));
 
-        Ok(index)
+        Ok(id)
     }
 
-    fn remove_vertex(&mut self, index: &Self::VertexId) -> Option<V> {
-        self.vertex(index)?;
+    fn remove_vertex(&mut self, id: &Self::VertexId) -> Option<V> {
+        self.vertex(id)?;
 
-        let index = index.to_usize();
+        let index = id.to_usize();
         self.removed_vertices += 1;
 
         match self.params.removal_behavior {
@@ -316,8 +316,8 @@ impl<V, E, Ty: EdgeType> EdgesBase<Ty> for Model<V, E, Ty> {
         self.edges.len()
     }
 
-    fn endpoints(&self, index: &Self::EdgeId) -> Option<(Self::VertexId, Self::VertexId)> {
-        let &(src, dst) = self.neighbors.get(index.to_usize())?.as_ref()?;
+    fn endpoints(&self, id: &Self::EdgeId) -> Option<(Self::VertexId, Self::VertexId)> {
+        let &(src, dst) = self.neighbors.get(id.to_usize())?.as_ref()?;
         Some((VertexId::from_usize(src), VertexId::from_usize(dst)))
     }
 
@@ -342,8 +342,8 @@ impl<V, E, Ty: EdgeType> Edges<E, Ty> for Model<V, E, Ty> {
         Self: 'a,
         E: 'a;
 
-    fn edge(&self, index: &Self::EdgeId) -> Option<&E> {
-        self.edges.get(index.to_usize()).and_then(Option::as_ref)
+    fn edge(&self, id: &Self::EdgeId) -> Option<&E> {
+        self.edges.get(id.to_usize()).and_then(Option::as_ref)
     }
 
     fn edges(&self) -> Self::EdgesIter<'_> {
@@ -352,10 +352,8 @@ impl<V, E, Ty: EdgeType> Edges<E, Ty> for Model<V, E, Ty> {
 }
 
 impl<V, E, Ty: EdgeType> EdgesMut<E, Ty> for Model<V, E, Ty> {
-    fn edge_mut(&mut self, index: &Self::EdgeId) -> Option<&mut E> {
-        self.edges
-            .get_mut(index.to_usize())
-            .and_then(Option::as_mut)
+    fn edge_mut(&mut self, id: &Self::EdgeId) -> Option<&mut E> {
+        self.edges.get_mut(id.to_usize()).and_then(Option::as_mut)
     }
 
     fn try_add_edge(
@@ -382,17 +380,17 @@ impl<V, E, Ty: EdgeType> EdgesMut<E, Ty> for Model<V, E, Ty> {
             return Err(AddEdgeError::new(edge, AddEdgeErrorKind::MultiEdge));
         }
 
-        let index = EdgeId::from_usize(self.edges.len());
+        let id = EdgeId::from_usize(self.edges.len());
         self.edges.push(Some(edge));
         self.neighbors.push(Some((src, dst)));
 
-        Ok(index)
+        Ok(id)
     }
 
-    fn remove_edge(&mut self, index: &Self::EdgeId) -> Option<E> {
-        self.edge(index)?;
+    fn remove_edge(&mut self, id: &Self::EdgeId) -> Option<E> {
+        self.edge(id)?;
 
-        let index = index.to_usize();
+        let index = id.to_usize();
         self.removed_edges += 1;
 
         match self.params.removal_behavior {
@@ -480,11 +478,11 @@ impl<'a, T> Iterator for VerticesIter<'a, T> {
             let (head, tail) = self.data.split_first()?;
             self.data = tail;
 
-            let index = VertexId::from_usize(self.index);
+            let id = VertexId::from_usize(self.index);
             self.index += 1;
 
             if let Some(value) = head {
-                return Some((index, value));
+                return Some((id, value));
             }
         }
     }
@@ -518,13 +516,13 @@ impl<'a, T> Iterator for EdgesIter<'a, T> {
             let (pair, tail) = self.neighbors.split_first()?;
             self.neighbors = tail;
 
-            let index = EdgeId::from_usize(self.index);
+            let id = EdgeId::from_usize(self.index);
             self.index += 1;
 
             if let Some(value) = head {
                 let (src, dst) = pair.unwrap();
                 return Some((
-                    index,
+                    id,
                     value,
                     VertexId::from_usize(src),
                     VertexId::from_usize(dst),
@@ -610,7 +608,7 @@ impl<'a, Ty: EdgeType> Iterator for NeighborsIter<'a, Ty> {
             let (pair, tail) = self.neighbors.split_first()?;
             self.neighbors = tail;
 
-            let index = EdgeId::from_usize(self.index);
+            let id = EdgeId::from_usize(self.index);
             self.index += 1;
 
             match (pair.as_ref(), self.dir, Ty::is_directed()) {
@@ -626,7 +624,7 @@ impl<'a, Ty: EdgeType> Iterator for NeighborsIter<'a, Ty> {
                 {
                     return Some((
                         VertexId::from_usize(dst),
-                        index,
+                        id,
                         VertexId::from_usize(src),
                         Direction::Outgoing,
                     ));
@@ -636,7 +634,7 @@ impl<'a, Ty: EdgeType> Iterator for NeighborsIter<'a, Ty> {
                 (Some(&(src, dst)), _, false) if dst == self.src => {
                     return Some((
                         VertexId::from_usize(src),
-                        index,
+                        id,
                         VertexId::from_usize(dst),
                         Direction::Outgoing,
                     ));
@@ -651,7 +649,7 @@ impl<'a, Ty: EdgeType> Iterator for NeighborsIter<'a, Ty> {
                 {
                     return Some((
                         VertexId::from_usize(src),
-                        index,
+                        id,
                         VertexId::from_usize(dst),
                         Direction::Incoming,
                     ));

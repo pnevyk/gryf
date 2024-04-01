@@ -73,12 +73,12 @@ where
         self.neighbors(src)
     }
 
-    fn degree(&self, index: &Self::VertexId) -> usize {
-        self.graph.degree(index)
+    fn degree(&self, id: &Self::VertexId) -> usize {
+        self.graph.degree(id)
     }
 
-    fn degree_directed(&self, index: &Self::VertexId, _dir: Direction) -> usize {
-        self.graph.degree(index)
+    fn degree_directed(&self, id: &Self::VertexId, _dir: Direction) -> usize {
+        self.graph.degree(id)
     }
 }
 

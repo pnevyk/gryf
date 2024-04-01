@@ -253,12 +253,12 @@ where
         self.storage.vertex_ids()
     }
 
-    pub fn vertex<VId>(&self, index: VId) -> Option<&V>
+    pub fn vertex<VId>(&self, id: VId) -> Option<&V>
     where
         G: Vertices<V>,
         VId: Borrow<G::VertexId>,
     {
-        self.storage.vertex(index.borrow())
+        self.storage.vertex(id.borrow())
     }
 
     pub fn vertices(&self) -> G::VerticesIter<'_>
@@ -268,12 +268,12 @@ where
         self.storage.vertices()
     }
 
-    pub fn vertex_mut<VId>(&mut self, index: VId) -> Option<&mut V>
+    pub fn vertex_mut<VId>(&mut self, id: VId) -> Option<&mut V>
     where
         G: VerticesMut<V>,
         VId: Borrow<G::VertexId>,
     {
-        self.storage.vertex_mut(index.borrow())
+        self.storage.vertex_mut(id.borrow())
     }
 
     pub fn try_add_vertex<VId>(
@@ -359,59 +359,53 @@ where
         // We made sure that we provide all necessary, correct inputs so that
         // `try_add_vertex` cannot fail (unless underlying storage fails).
         match self.try_add_vertex(vertex, Some(E::default()), &end) {
-            Ok(index) => index,
+            Ok(id) => id,
             Err(error) => panic!("{error}"),
         }
     }
 
-    pub fn remove_vertex<VId>(&mut self, index: VId, edge: Option<E>) -> Option<V>
+    pub fn remove_vertex<VId>(&mut self, id: VId, edge: Option<E>) -> Option<V>
     where
         G: VerticesMut<V> + EdgesMut<E, Ty> + Neighbors,
         VId: Borrow<G::VertexId>,
     {
-        let index = index.borrow();
+        let id = id.borrow();
 
         match self.ends.as_mut() {
             Some(ends) if ends[0] == ends[1] => {
-                if &ends[0] == index {
+                if &ends[0] == id {
                     self.ends = None;
-                    self.storage.remove_vertex(index)
+                    self.storage.remove_vertex(id)
                 } else {
                     None
                 }
             }
             Some(ends) => match ends {
-                [end, _] | [_, end] if end == index => {
+                [end, _] | [_, end] if end == id => {
                     // The removed vertex is an end.
-                    *end = self
-                        .storage
-                        .neighbors(index)
-                        .next()
-                        .unwrap()
-                        .id()
-                        .into_owned();
-                    self.storage.remove_vertex(index)
+                    *end = self.storage.neighbors(id).next().unwrap().id().into_owned();
+                    self.storage.remove_vertex(id)
                 }
                 _ => {
                     // The removed vertex is an inner vertex.
                     let (u, v) = if Ty::is_directed() {
                         let u = self
                             .storage
-                            .neighbors_directed(index, Direction::Incoming)
+                            .neighbors_directed(id, Direction::Incoming)
                             .next()
                             .unwrap()
                             .id()
                             .into_owned();
                         let v = self
                             .storage
-                            .neighbors_directed(index, Direction::Outgoing)
+                            .neighbors_directed(id, Direction::Outgoing)
                             .next()
                             .unwrap()
                             .id()
                             .into_owned();
                         (u, v)
                     } else {
-                        let mut neighbors = self.storage.neighbors(index);
+                        let mut neighbors = self.storage.neighbors(id);
                         let u = neighbors.next().unwrap().id().into_owned();
                         let v = neighbors.next().unwrap().id().into_owned();
                         (u, v)
@@ -423,7 +417,7 @@ where
                         // one of its neighbors.
                         let e = self
                             .storage
-                            .neighbors(index)
+                            .neighbors(id)
                             .next()
                             .unwrap()
                             .edge()
@@ -434,31 +428,31 @@ where
                     // Connect the neighbors of the removed vertex.
                     self.storage.add_edge(&u, &v, edge);
 
-                    self.storage.remove_vertex(index)
+                    self.storage.remove_vertex(id)
                 }
             },
             None => None,
         }
     }
 
-    pub fn replace_vertex<VId>(&mut self, index: VId, vertex: V) -> V
+    pub fn replace_vertex<VId>(&mut self, id: VId, vertex: V) -> V
     where
         G: VerticesMut<V>,
         VId: Borrow<G::VertexId>,
     {
-        self.storage.replace_vertex(index.borrow(), vertex)
+        self.storage.replace_vertex(id.borrow(), vertex)
     }
 
     pub fn try_replace_vertex<VId>(
         &mut self,
-        index: VId,
+        id: VId,
         vertex: V,
     ) -> Result<V, ReplaceVertexError<V>>
     where
         G: VerticesMut<V>,
         VId: Borrow<G::VertexId>,
     {
-        self.storage.try_replace_vertex(index.borrow(), vertex)
+        self.storage.try_replace_vertex(id.borrow(), vertex)
     }
 
     pub fn clear(&mut self)
@@ -483,12 +477,12 @@ where
         self.storage.edge_bound()
     }
 
-    pub fn endpoints<EId>(&self, index: EId) -> Option<(G::VertexId, G::VertexId)>
+    pub fn endpoints<EId>(&self, id: EId) -> Option<(G::VertexId, G::VertexId)>
     where
         G: EdgesBase<Ty>,
         EId: Borrow<G::EdgeId>,
     {
-        self.storage.endpoints(index.borrow())
+        self.storage.endpoints(id.borrow())
     }
 
     pub fn edge_id<VId>(&self, src: VId, dst: VId) -> G::EdgeIdIter<'_>
@@ -514,12 +508,12 @@ where
         self.storage.edge_ids()
     }
 
-    pub fn contains_edge<EId>(&self, index: EId) -> bool
+    pub fn contains_edge<EId>(&self, id: EId) -> bool
     where
         G: EdgesBase<Ty>,
         EId: Borrow<G::EdgeId>,
     {
-        self.storage.contains_edge(index.borrow())
+        self.storage.contains_edge(id.borrow())
     }
 
     pub fn is_directed(&self) -> bool
@@ -529,12 +523,12 @@ where
         self.storage.is_directed()
     }
 
-    pub fn edge<EId>(&self, index: EId) -> Option<&E>
+    pub fn edge<EId>(&self, id: EId) -> Option<&E>
     where
         G: Edges<E, Ty>,
         EId: Borrow<G::EdgeId>,
     {
-        self.storage.edge(index.borrow())
+        self.storage.edge(id.borrow())
     }
 
     pub fn edges(&self) -> G::EdgesIter<'_>
@@ -544,28 +538,28 @@ where
         self.storage.edges()
     }
 
-    pub fn edge_mut<EId>(&mut self, index: EId) -> Option<&mut E>
+    pub fn edge_mut<EId>(&mut self, id: EId) -> Option<&mut E>
     where
         G: EdgesMut<E, Ty>,
         EId: Borrow<G::EdgeId>,
     {
-        self.storage.edge_mut(index.borrow())
+        self.storage.edge_mut(id.borrow())
     }
 
-    pub fn replace_edge<EId>(&mut self, index: EId, edge: E) -> E
+    pub fn replace_edge<EId>(&mut self, id: EId, edge: E) -> E
     where
         G: EdgesMut<E, Ty>,
         EId: Borrow<G::EdgeId>,
     {
-        self.storage.replace_edge(index.borrow(), edge)
+        self.storage.replace_edge(id.borrow(), edge)
     }
 
-    pub fn try_replace_edge<EId>(&mut self, index: EId, edge: E) -> Result<E, ReplaceEdgeError<E>>
+    pub fn try_replace_edge<EId>(&mut self, id: EId, edge: E) -> Result<E, ReplaceEdgeError<E>>
     where
         G: EdgesMut<E, Ty>,
         EId: Borrow<G::EdgeId>,
     {
-        self.storage.try_replace_edge(index.borrow(), edge)
+        self.storage.try_replace_edge(id.borrow(), edge)
     }
 
     pub fn neighbors<VId>(&self, src: VId) -> G::NeighborsIter<'_>
@@ -663,8 +657,8 @@ where
 {
     type Output = V;
 
-    fn index(&self, index: VId) -> &Self::Output {
-        self.vertex(index).expect("vertex does not exist")
+    fn index(&self, id: VId) -> &Self::Output {
+        self.vertex(id).expect("vertex does not exist")
     }
 }
 
@@ -673,8 +667,8 @@ where
     G: VerticesMut<V>,
     VId: Borrow<G::VertexId>,
 {
-    fn index_mut(&mut self, index: VId) -> &mut Self::Output {
-        self.vertex_mut(index).expect("vertex does not exist")
+    fn index_mut(&mut self, id: VId) -> &mut Self::Output {
+        self.vertex_mut(id).expect("vertex does not exist")
     }
 }
 
@@ -703,8 +697,8 @@ mod tests {
 
     use assert_matches::assert_matches;
 
-    fn v(index: usize) -> VertexId {
-        index.into()
+    fn v(id: usize) -> VertexId {
+        id.into()
     }
 
     #[test]

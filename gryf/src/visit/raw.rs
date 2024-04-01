@@ -207,7 +207,7 @@ impl<Id: GraphIdTypes, U: UseId<Id>, A: RawAlgo<Id, U>, S: VisitStarts<U::Id>>
                 }
 
                 // Get the next vertex that has not been visited yet if there is
-                // any. Make sure that the index is still valid -- at the very
+                // any. Make sure that the id is still valid -- at the very
                 // minimum if it is still in the graph (it could have been
                 // removed during visiting).
                 let root = VisitStartsIter::new(&mut self.starts)
@@ -245,8 +245,8 @@ impl<Id: GraphIdTypes> RawAlgo<Id, UseVertexId> for RawBfs {
         item.clone()
     }
 
-    fn start(index: &Id::VertexId) -> Id::VertexId {
-        index.clone()
+    fn start(id: &Id::VertexId) -> Id::VertexId {
+        id.clone()
     }
 
     fn visit_on_start() -> bool {
@@ -300,8 +300,8 @@ impl<Id: GraphIdTypes> RawAlgo<Id, UseVertexId> for RawDfs {
         item.clone()
     }
 
-    fn start(index: &Id::VertexId) -> Id::VertexId {
-        index.clone()
+    fn start(id: &Id::VertexId) -> Id::VertexId {
+        id.clone()
     }
 
     fn visit_on_start() -> bool {
@@ -429,8 +429,8 @@ impl<G: GraphBase> RawAlgo<G, UseVertexId> for RawDfsExtra {
         item.vertex.clone()
     }
 
-    fn start(index: &G::VertexId) -> RawDfsExtraItem<G> {
-        RawDfsExtraItem::start(index.clone())
+    fn start(id: &G::VertexId) -> RawDfsExtraItem<G> {
+        RawDfsExtraItem::start(id.clone())
     }
 
     fn visit_on_start() -> bool {
@@ -506,8 +506,8 @@ impl<Id: GraphIdTypes> RawAlgo<Id, UseVertexId> for RawDfsNoBacktrack {
         item.clone()
     }
 
-    fn start(index: &Id::VertexId) -> Id::VertexId {
-        index.clone()
+    fn start(id: &Id::VertexId) -> Id::VertexId {
+        id.clone()
     }
 
     fn visit_on_start() -> bool {

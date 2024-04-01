@@ -71,7 +71,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         self.inner
             .next()
-            .map(|(index, vertex)| (NumIdType::from_usize(index), vertex))
+            .map(|(id, vertex)| (NumIdType::from_usize(id), vertex))
     }
 }
 
@@ -96,7 +96,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         self.inner
             .next()
-            .map(|(index, vertex)| (NumIdType::from_usize(index), &vertex.data))
+            .map(|(id, vertex)| (NumIdType::from_usize(id), &vertex.data))
     }
 }
 

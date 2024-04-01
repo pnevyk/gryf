@@ -93,8 +93,8 @@ impl<V, E> MutOp<V, E> {
         match self {
             MutOp::AddVertex(vertex) => MutOpResult::AddVertex(graph.try_add_vertex(vertex)),
             MutOp::RemoveVertex(index) => {
-                let index = G::VertexId::from_usize(index.get(n).unwrap_or_default());
-                MutOpResult::RemoveVertex(graph.remove_vertex(&index))
+                let id = G::VertexId::from_usize(index.get(n).unwrap_or_default());
+                MutOpResult::RemoveVertex(graph.remove_vertex(&id))
             }
             MutOp::Clear => {
                 graph.clear();
@@ -108,11 +108,11 @@ impl<V, E> MutOp<V, E> {
             MutOp::RemoveEdge(src, dst) => {
                 let src = G::VertexId::from_usize(src.get(n).unwrap_or_default());
                 let dst = G::VertexId::from_usize(dst.get(n).unwrap_or_default());
-                let index = match graph.edge_id_any(&src, &dst) {
-                    Some(index) => index,
+                let id = match graph.edge_id_any(&src, &dst) {
+                    Some(id) => id,
                     None => return MutOpResult::RemoveEdge(None),
                 };
-                MutOpResult::RemoveEdge(graph.remove_edge(&index))
+                MutOpResult::RemoveEdge(graph.remove_edge(&id))
             }
             MutOp::ClearEdges => {
                 graph.clear_edges();

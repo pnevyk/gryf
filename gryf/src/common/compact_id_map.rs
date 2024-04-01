@@ -18,7 +18,7 @@ impl<I: NumIdType> CompactIdMap<I> {
         A: Iterator<Item = I>,
     {
         let mut map = iter.collect::<Vec<_>>();
-        map.sort_unstable_by_key(|index| index.to_bits());
+        map.sort_unstable_by_key(|id| id.to_bits());
         let len = map.len();
 
         Self { map, len }
@@ -43,39 +43,39 @@ impl<I: NumIdType> CompactIdMap<I> {
         self.map.len() != self.len
     }
 
-    pub fn real<V: Into<Virtual<I>>>(&self, index: V) -> Option<I> {
+    pub fn real<V: Into<Virtual<I>>>(&self, id: V) -> Option<I> {
         // Into<Virtual<I>> is used instead of Virtual<I> because the algorithms
         // will usually work with numeric ids with their data structures and so
         // it is more convenient to use this.
-        let index: Virtual<I> = index.into();
+        let id: Virtual<I> = id.into();
 
         if self.is_isomorphic() {
-            (index.to_usize() < self.len()).then(|| I::from_bits(index.to_bits()))
+            (id.to_usize() < self.len()).then(|| I::from_bits(id.to_bits()))
         } else {
-            self.map.get(index.to_usize()).copied()
+            self.map.get(id.to_usize()).copied()
         }
     }
 
-    pub fn virt(&self, index: I) -> Option<Virtual<I>> {
+    pub fn virt(&self, id: I) -> Option<Virtual<I>> {
         if self.is_isomorphic() {
-            (index.to_usize() < self.len()).then(|| Virtual::new(index.to_bits()))
+            (id.to_usize() < self.len()).then(|| Virtual::new(id.to_bits()))
         } else {
             // Using `wrapping_sub` not to panic on overflow.
-            let direct = min(index.to_usize(), self.len().wrapping_sub(1));
+            let direct = min(id.to_usize(), self.len().wrapping_sub(1));
             let direct_elem = self.map.get(direct).copied()?;
 
             // This will always be true for storages without holes, and sometimes
             // for storages with holes.
-            if direct_elem == index {
+            if direct_elem == id {
                 return Some(Virtual::new(direct as u64));
             }
 
-            // TODO: Employ heuristics that would identify that the real index
+            // TODO: Employ heuristics that would identify that the real id
             // is actually not far from the position in the mapping and so it
             // can be found faster than by binary search over the whole map.
 
             // Fallback to binary search otherwise.
-            self.map.binary_search(&index).ok().map(Virtual::from_usize)
+            self.map.binary_search(&id).ok().map(Virtual::from_usize)
         }
     }
 }

@@ -59,8 +59,8 @@ where
             .map(|edge| (edge.src().clone(), edge.id().clone(), edge.dst().clone()))
             .collect::<Vec<_>>();
 
-        for (src, index, dst) in edges {
-            let data = graph.remove_edge(&index).unwrap();
+        for (src, id, dst) in edges {
+            let data = graph.remove_edge(&id).unwrap();
             graph.add_edge(&dst, &src, data);
         }
 
@@ -87,8 +87,8 @@ where
         self.graph.edge_bound()
     }
 
-    fn endpoints(&self, index: &Self::EdgeId) -> Option<(Self::VertexId, Self::VertexId)> {
-        self.graph.endpoints(index).map(|(src, dst)| (dst, src))
+    fn endpoints(&self, id: &Self::EdgeId) -> Option<(Self::VertexId, Self::VertexId)> {
+        self.graph.endpoints(id).map(|(src, dst)| (dst, src))
     }
 
     fn edge_id(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Self::EdgeIdIter<'_> {
@@ -103,8 +103,8 @@ where
         self.graph.edge_ids()
     }
 
-    fn contains_edge(&self, index: &Self::EdgeId) -> bool {
-        self.graph.contains_edge(index)
+    fn contains_edge(&self, id: &Self::EdgeId) -> bool {
+        self.graph.contains_edge(id)
     }
 
     fn edge_id_map(&self) -> CompactIdMap<G::EdgeId>
@@ -129,8 +129,8 @@ where
         Self: 'a,
         E: 'a;
 
-    fn edge(&self, index: &Self::EdgeId) -> Option<&E> {
-        self.graph.edge(index)
+    fn edge(&self, id: &Self::EdgeId) -> Option<&E> {
+        self.graph.edge(id)
     }
 
     fn edges(&self) -> Self::EdgesIter<'_> {
@@ -158,12 +158,12 @@ where
         Iter(self.graph.neighbors_directed(src, dir.opposite()))
     }
 
-    fn degree(&self, index: &Self::VertexId) -> usize {
-        self.graph.degree(index)
+    fn degree(&self, id: &Self::VertexId) -> usize {
+        self.graph.degree(id)
     }
 
-    fn degree_directed(&self, index: &Self::VertexId, dir: Direction) -> usize {
-        self.graph.degree_directed(index, dir.opposite())
+    fn degree_directed(&self, id: &Self::VertexId, dir: Direction) -> usize {
+        self.graph.degree_directed(id, dir.opposite())
     }
 }
 

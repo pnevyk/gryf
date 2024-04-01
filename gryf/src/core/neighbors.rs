@@ -1,16 +1,7 @@
 use super::{
-    base::GraphBase,
-    id::IdType,
+    base::{GraphBase, NeighborRef},
     marker::{Direction, EdgeType},
-    weak::WeakRef,
 };
-
-pub trait NeighborRef<VId: IdType, EId: IdType> {
-    fn id(&self) -> WeakRef<'_, VId>;
-    fn edge(&self) -> WeakRef<'_, EId>;
-    fn src(&self) -> WeakRef<'_, VId>;
-    fn dir(&self) -> Direction;
-}
 
 pub trait Neighbors: GraphBase {
     type NeighborRef<'a>: NeighborRef<Self::VertexId, Self::EdgeId>
@@ -52,24 +43,6 @@ pub trait Neighbors: GraphBase {
                 })
                 .sum()
         }
-    }
-}
-
-impl<VId: IdType, EId: IdType> NeighborRef<VId, EId> for (VId, EId, VId, Direction) {
-    fn id(&self) -> WeakRef<'_, VId> {
-        WeakRef::Borrowed(&self.0)
-    }
-
-    fn edge(&self) -> WeakRef<'_, EId> {
-        WeakRef::Borrowed(&self.1)
-    }
-
-    fn src(&self) -> WeakRef<'_, VId> {
-        WeakRef::Borrowed(&self.2)
-    }
-
-    fn dir(&self) -> Direction {
-        self.3
     }
 }
 

@@ -5,15 +5,10 @@ use thiserror::Error;
 use crate::common::CompactIdMap;
 
 use super::{
-    base::GraphBase,
-    id::{IdType, IntegerIdType},
+    base::{GraphBase, VertexRef},
+    id::IntegerIdType,
     weak::WeakRef,
 };
-
-pub trait VertexRef<VId: IdType, V> {
-    fn id(&self) -> &VId;
-    fn data(&self) -> &V;
-}
 
 pub trait VerticesBase: GraphBase {
     type VertexIdsIter<'a>: Iterator<Item = Self::VertexId>
@@ -173,16 +168,6 @@ pub trait VerticesBaseWeak: GraphBase {
 
 pub trait VerticesWeak<V>: VerticesBaseWeak {
     fn vertex_weak(&self, id: &Self::VertexId) -> Option<WeakRef<'_, V>>;
-}
-
-impl<'a, VId: IdType, V> VertexRef<VId, V> for (VId, &'a V) {
-    fn id(&self) -> &VId {
-        &self.0
-    }
-
-    fn data(&self) -> &V {
-        self.1
-    }
 }
 
 macro_rules! deref_vertices_base {

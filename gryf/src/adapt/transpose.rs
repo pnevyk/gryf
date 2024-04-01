@@ -60,8 +60,8 @@ where
             .collect::<Vec<_>>();
 
         for (src, id, dst) in edges {
-            let data = graph.remove_edge(&id).unwrap();
-            graph.add_edge(&dst, &src, data);
+            let attr = graph.remove_edge(&id).unwrap();
+            graph.add_edge(&dst, &src, attr);
         }
 
         graph
@@ -185,8 +185,8 @@ where
         self.0.id()
     }
 
-    fn data(&self) -> &E {
-        self.0.data()
+    fn attr(&self) -> &E {
+        self.0.attr()
     }
 
     fn src(&self) -> &VId {
@@ -276,7 +276,7 @@ mod tests {
         let graph = Transpose::new(create_graph());
         let mut edges = graph
             .edges()
-            .map(|edge| (*edge.src(), *edge.dst(), *edge.data()));
+            .map(|edge| (*edge.src(), *edge.dst(), *edge.attr()));
 
         assert_eq!(edges.next(), Some((1.into(), 0.into(), 0)));
         assert_eq!(edges.next(), Some((2.into(), 1.into(), 1)));

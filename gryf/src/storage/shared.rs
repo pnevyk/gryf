@@ -12,14 +12,14 @@ use crate::core::{
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AdjVertex<Id: GraphIdTypes, V> {
-    pub data: V,
+    pub attr: V,
     pub edges: [Vec<Id::EdgeId>; 2],
 }
 
 impl<Id: GraphIdTypes, V> AdjVertex<Id, V> {
-    pub fn new(data: V) -> Self {
+    pub fn new(attr: V) -> Self {
         Self {
-            data,
+            attr,
             edges: [Vec::new(), Vec::new()],
         }
     }
@@ -96,7 +96,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         self.inner
             .next()
-            .map(|(id, vertex)| (IdType::from_usize(id), &vertex.data))
+            .map(|(id, vertex)| (IdType::from_usize(id), &vertex.attr))
     }
 }
 

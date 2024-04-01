@@ -169,8 +169,8 @@ where
     }
 
     fn remove_vertex(&mut self, id: &G::VertexId) -> Option<V> {
-        if let Some(data) = self.vertex(id) {
-            let data = data.clone();
+        if let Some(attr) = self.vertex(id) {
+            let attr = attr.clone();
 
             // Iterate over remaining neighbors only to get edges to be marked
             // as removed. An alternative could be to iterate over all neighbors
@@ -188,7 +188,7 @@ where
                 self.removed_edges.insert(edge);
             }
 
-            Some(data)
+            Some(attr)
         } else {
             None
         }
@@ -330,10 +330,10 @@ where
     }
 
     fn remove_edge(&mut self, id: &G::EdgeId) -> Option<E> {
-        if let Some(data) = self.edge(id) {
-            let data = data.clone();
+        if let Some(attr) = self.edge(id) {
+            let attr = attr.clone();
             self.removed_edges.insert(id.clone());
-            Some(data)
+            Some(attr)
         } else {
             None
         }
@@ -569,7 +569,7 @@ mod tests {
 
         let vertices = graph
             .vertices()
-            .map(|v| v.data().to_string())
+            .map(|v| v.attr().to_string())
             .collect::<HashSet<_>>();
 
         assert!(vertices.contains("v"));
@@ -579,7 +579,7 @@ mod tests {
 
         let edges = graph
             .edges()
-            .map(|e| e.data().to_string())
+            .map(|e| e.attr().to_string())
             .collect::<HashSet<_>>();
 
         assert!(edges.contains("f"));

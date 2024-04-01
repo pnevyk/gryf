@@ -5,14 +5,14 @@ use thiserror::Error;
 #[derive(Debug, Error, PartialEq)]
 #[error("adding vertex failed: {kind}")]
 pub struct AddVertexError<V> {
-    pub data: V,
+    pub attr: V,
     pub kind: AddVertexErrorKind,
 }
 
 impl<V> AddVertexError<V> {
-    pub fn new(data: V) -> Self {
+    pub fn new(attr: V) -> Self {
         Self {
-            data,
+            attr,
             kind: AddVertexErrorKind::CapacityOverflow,
         }
     }
@@ -39,13 +39,13 @@ pub struct ReplaceVertexError<V>(pub V);
 #[derive(Debug, Error, PartialEq)]
 #[error("adding edge failed: {kind}")]
 pub struct AddEdgeError<E> {
-    pub data: E,
+    pub attr: E,
     pub kind: AddEdgeErrorKind,
 }
 
 impl<E> AddEdgeError<E> {
-    pub fn new(data: E, kind: AddEdgeErrorKind) -> Self {
-        Self { data, kind }
+    pub fn new(attr: E, kind: AddEdgeErrorKind) -> Self {
+        Self { attr, kind }
     }
 }
 

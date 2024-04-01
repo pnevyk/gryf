@@ -6,12 +6,12 @@ use super::{
 
 pub trait VertexRef<VId: IdType, V> {
     fn id(&self) -> &VId;
-    fn data(&self) -> &V;
+    fn attr(&self) -> &V;
 }
 
 pub trait EdgeRef<VId: IdType, EId: IdType, E> {
     fn id(&self) -> &EId;
-    fn data(&self) -> &E;
+    fn attr(&self) -> &E;
     fn src(&self) -> &VId;
     fn dst(&self) -> &VId;
 }
@@ -67,7 +67,7 @@ mod imp {
             &self.0
         }
 
-        fn data(&self) -> &V {
+        fn attr(&self) -> &V {
             self.1
         }
     }
@@ -77,7 +77,7 @@ mod imp {
             &self.0
         }
 
-        fn data(&self) -> &E {
+        fn attr(&self) -> &E {
             self.1
         }
 

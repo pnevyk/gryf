@@ -14,8 +14,8 @@ pub enum WeakRef<'a, T> {
 impl<T: Clone> WeakRef<'_, T> {
     pub fn into_owned(self) -> T {
         match self {
-            WeakRef::Borrowed(data) => data.clone(),
-            WeakRef::Owned(data) => data,
+            WeakRef::Borrowed(attr) => attr.clone(),
+            WeakRef::Owned(attr) => attr,
         }
     }
 }
@@ -75,8 +75,8 @@ impl<T> Deref for WeakRef<'_, T> {
 
     fn deref(&self) -> &Self::Target {
         match self {
-            WeakRef::Borrowed(data) => data,
-            WeakRef::Owned(ref data) => data,
+            WeakRef::Borrowed(attr) => attr,
+            WeakRef::Owned(ref attr) => attr,
         }
     }
 }
@@ -84,8 +84,8 @@ impl<T> Deref for WeakRef<'_, T> {
 impl<T> AsRef<T> for WeakRef<'_, T> {
     fn as_ref(&self) -> &T {
         match self {
-            WeakRef::Borrowed(data) => data,
-            WeakRef::Owned(ref data) => data,
+            WeakRef::Borrowed(attr) => attr,
+            WeakRef::Owned(ref attr) => attr,
         }
     }
 }

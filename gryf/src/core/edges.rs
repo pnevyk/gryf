@@ -6,7 +6,7 @@ use crate::common::CompactIdMap;
 
 use super::{
     base::{GraphBase, WeakRef},
-    id::{GraphIdTypes, IdType, NumIdType},
+    id::{GraphIdTypes, IdType, IntegerIdType},
     marker::EdgeType,
 };
 
@@ -42,7 +42,7 @@ pub trait EdgesBase<Ty: EdgeType>: GraphBase {
 
     fn edge_id_map(&self) -> CompactIdMap<Self::EdgeId>
     where
-        Self::EdgeId: NumIdType,
+        Self::EdgeId: IntegerIdType,
     {
         // Should be overridden to use `isomorphic` whenever possible.
         CompactIdMap::new(self.edge_ids())
@@ -273,7 +273,7 @@ macro_rules! deref_edges_base {
 
             fn edge_id_map(&self) -> CompactIdMap<Self::EdgeId>
             where
-                Self::EdgeId: NumIdType
+                Self::EdgeId: IntegerIdType
             {
                 (**self).edge_id_map()
             }

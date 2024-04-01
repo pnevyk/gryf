@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use crate::{
     common::CompactIdMap,
     core::{
-        id::{EdgeId, NumIdType, VertexId},
+        id::{EdgeId, IntegerIdType, VertexId},
         marker::{Direction, EdgeType},
         AddEdgeError, AddEdgeErrorKind, AddVertexError, ConnectVertices, Create, EdgeRef, Edges,
         EdgesBase, EdgesMut, GraphBase, NeighborRef, Neighbors, NoReplace, StableId, VertexRef,
@@ -111,7 +111,7 @@ where
 
     fn vertex_id_map(&self) -> CompactIdMap<G::VertexId>
     where
-        Self::VertexId: NumIdType,
+        Self::VertexId: IntegerIdType,
     {
         if self.removed_vertices.is_empty() {
             self.inner.vertex_id_map()
@@ -259,7 +259,7 @@ where
 
     fn edge_id_map(&self) -> CompactIdMap<G::EdgeId>
     where
-        Self::EdgeId: NumIdType,
+        Self::EdgeId: IntegerIdType,
     {
         if self.removed_edges.is_empty() {
             self.inner.edge_id_map()

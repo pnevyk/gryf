@@ -13,7 +13,7 @@ use gryf_derive::{
 // TODO: Remove these imports once hygiene of procedural macros is fixed.
 use crate::common::CompactIdMap;
 use crate::core::{
-    id::NumIdType,
+    id::IntegerIdType,
     marker::{Direction, EdgeType},
     Edges, EdgesBase, EdgesBaseWeak, EdgesWeak, GraphBase, Guarantee, Neighbors, Vertices,
     VerticesBase, VerticesBaseWeak, VerticesWeak, WeakRef,

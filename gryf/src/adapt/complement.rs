@@ -2,7 +2,7 @@ use rustc_hash::FxHashSet;
 
 use crate::core::{
     facts,
-    id::NumIdType,
+    id::IntegerIdType,
     marker::{Direction, Undirected},
     EdgesBase, EdgesMut, Neighbors, Vertices, VerticesBase, VerticesMut, WeakRef,
 };
@@ -68,7 +68,7 @@ where
 impl<E, G> Neighbors for Complement<E, G>
 where
     G: Neighbors + VerticesBase,
-    G::EdgeId: NumIdType,
+    G::EdgeId: IntegerIdType,
 {
     type NeighborRef<'a> = (G::VertexId, G::EdgeId, G::VertexId, Direction)
     where
@@ -118,7 +118,7 @@ where
 impl<'a, G> Iterator for NeighborsIter<'a, G>
 where
     G: VerticesBase + 'a,
-    G::EdgeId: NumIdType,
+    G::EdgeId: IntegerIdType,
 {
     type Item = (G::VertexId, G::EdgeId, G::VertexId, Direction);
 

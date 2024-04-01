@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use crate::{
     common::CompactIdMap,
-    core::{id::NumIdType, marker::Direction, Neighbors, VerticesBase, WeakRef},
+    core::{id::IntegerIdType, marker::Direction, Neighbors, VerticesBase, WeakRef},
 };
 
 use gryf_derive::{

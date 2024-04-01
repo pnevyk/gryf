@@ -70,7 +70,7 @@ pub fn vertices_base(tokens: TokenStream) -> TokenStream {
 
             fn vertex_id_map(&self) -> CompactIdMap<Self::VertexId>
             where
-                Self::VertexId: NumIdType
+                Self::VertexId: IntegerIdType
             {
                 <#field_type as VerticesBase>::vertex_id_map(&self.#field_name)
             }
@@ -288,7 +288,7 @@ pub fn edges_base(tokens: TokenStream) -> TokenStream {
 
             fn edge_id_map(&self) -> CompactIdMap<Self::EdgeId>
             where
-                Self::EdgeId: NumIdType
+                Self::EdgeId: IntegerIdType
             {
                 <#field_type as EdgesBase<Ty>>::edge_id_map(&self.#field_name)
             }

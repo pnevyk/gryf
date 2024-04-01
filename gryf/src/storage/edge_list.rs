@@ -2,7 +2,7 @@ use std::{iter::Enumerate, marker::PhantomData, slice};
 
 use crate::common::CompactIdMap;
 use crate::core::{
-    id::{DefaultId, GraphIdTypes, NumIdType},
+    id::{DefaultId, GraphIdTypes, IntegerIdType},
     marker::{Direction, EdgeType},
     AddEdgeError, AddEdgeErrorKind, AddVertexError, ConnectVertices, Create, Edges, EdgesBase,
     EdgesMut, GraphBase, Guarantee, MultiEdges, Neighbors, Vertices, VerticesBase, VerticesMut,
@@ -37,7 +37,7 @@ impl<V, E, Ty: EdgeType, Id: GraphIdTypes> EdgeList<V, E, Ty, Id> {
 
 impl<V, E, Ty: EdgeType, Id: GraphIdTypes> EdgeList<V, E, Ty, Id>
 where
-    Id::VertexId: NumIdType,
+    Id::VertexId: IntegerIdType,
 {
     fn relocate_vertex(&mut self, old_id: Id::VertexId, new_id: Id::VertexId) {
         self.endpoints.iter_mut().for_each(|endpoints| {
@@ -64,7 +64,7 @@ impl<V, E, Ty: EdgeType, Id: GraphIdTypes> GraphBase for EdgeList<V, E, Ty, Id> 
 
 impl<V, E, Ty: EdgeType, Id: GraphIdTypes> VerticesBase for EdgeList<V, E, Ty, Id>
 where
-    Id::VertexId: NumIdType,
+    Id::VertexId: IntegerIdType,
 {
     type VertexIdsIter<'a> = VertexIds<Self::VertexId>
     where
@@ -84,7 +84,7 @@ where
 
     fn vertex_id_map(&self) -> CompactIdMap<Self::VertexId>
     where
-        Id::VertexId: NumIdType,
+        Id::VertexId: IntegerIdType,
     {
         CompactIdMap::isomorphic(self.vertex_count())
     }
@@ -92,7 +92,7 @@ where
 
 impl<V, E, Ty: EdgeType, Id: GraphIdTypes> Vertices<V> for EdgeList<V, E, Ty, Id>
 where
-    Id::VertexId: NumIdType,
+    Id::VertexId: IntegerIdType,
 {
     type VertexRef<'a> = (Self::VertexId, &'a V)
     where
@@ -115,7 +115,7 @@ where
 
 impl<V, E, Ty: EdgeType, Id: GraphIdTypes> VerticesMut<V> for EdgeList<V, E, Ty, Id>
 where
-    Id::VertexId: NumIdType,
+    Id::VertexId: IntegerIdType,
 {
     fn vertex_mut(&mut self, id: &Self::VertexId) -> Option<&mut V> {
         self.vertices.get_mut(id.to_usize())
@@ -163,8 +163,8 @@ where
 
 impl<V, E, Ty: EdgeType, Id: GraphIdTypes> EdgesBase<Ty> for EdgeList<V, E, Ty, Id>
 where
-    Id::VertexId: NumIdType,
-    Id::EdgeId: NumIdType,
+    Id::VertexId: IntegerIdType,
+    Id::EdgeId: IntegerIdType,
 {
     type EdgeIdsIter<'a> = EdgeIds<Self::EdgeId>
     where
@@ -202,7 +202,7 @@ where
 
     fn edge_id_map(&self) -> CompactIdMap<Self::EdgeId>
     where
-        Id::EdgeId: NumIdType,
+        Id::EdgeId: IntegerIdType,
     {
         CompactIdMap::isomorphic(self.edge_count())
     }
@@ -210,8 +210,8 @@ where
 
 impl<V, E, Ty: EdgeType, Id: GraphIdTypes> Edges<E, Ty> for EdgeList<V, E, Ty, Id>
 where
-    Id::VertexId: NumIdType,
-    Id::EdgeId: NumIdType,
+    Id::VertexId: IntegerIdType,
+    Id::EdgeId: IntegerIdType,
 {
     type EdgeRef<'a> = (Self::EdgeId, &'a E, Self::VertexId, Self::VertexId)
     where
@@ -234,8 +234,8 @@ where
 
 impl<V, E, Ty: EdgeType, Id: GraphIdTypes> EdgesMut<E, Ty> for EdgeList<V, E, Ty, Id>
 where
-    Id::VertexId: NumIdType,
-    Id::EdgeId: NumIdType,
+    Id::VertexId: IntegerIdType,
+    Id::EdgeId: IntegerIdType,
 {
     fn edge_mut(&mut self, id: &Self::EdgeId) -> Option<&mut E> {
         self.edges.get_mut(id.to_usize())
@@ -275,15 +275,15 @@ where
 
 impl<V, E, Ty: EdgeType, Id: GraphIdTypes> MultiEdges<Ty> for EdgeList<V, E, Ty, Id>
 where
-    Id::VertexId: NumIdType,
-    Id::EdgeId: NumIdType,
+    Id::VertexId: IntegerIdType,
+    Id::EdgeId: IntegerIdType,
 {
 }
 
 impl<V, E, Ty: EdgeType, Id: GraphIdTypes> Neighbors for EdgeList<V, E, Ty, Id>
 where
-    Id::VertexId: NumIdType,
-    Id::EdgeId: NumIdType,
+    Id::VertexId: IntegerIdType,
+    Id::EdgeId: IntegerIdType,
 {
     type NeighborRef<'a> = (Id::VertexId, Id::EdgeId, Id::VertexId, Direction)
     where
@@ -353,8 +353,8 @@ where
 
 impl<V, E, Ty: EdgeType, Id: GraphIdTypes> Create<V, E, Ty> for EdgeList<V, E, Ty, Id>
 where
-    Id::VertexId: NumIdType,
-    Id::EdgeId: NumIdType,
+    Id::VertexId: IntegerIdType,
+    Id::EdgeId: IntegerIdType,
 {
     fn with_capacity(vertex_count: usize, edge_count: usize) -> Self {
         Self {
@@ -368,8 +368,8 @@ where
 
 impl<V, E, Ty: EdgeType, Id: GraphIdTypes> ConnectVertices<V, E, Ty> for EdgeList<V, E, Ty, Id>
 where
-    Id::VertexId: NumIdType,
-    Id::EdgeId: NumIdType,
+    Id::VertexId: IntegerIdType,
+    Id::EdgeId: IntegerIdType,
 {
     fn connect_vertices<F>(&mut self, mut connect: F)
     where
@@ -400,7 +400,7 @@ pub struct EdgeIdIter<'a, Ty: EdgeType, Id: GraphIdTypes> {
 
 impl<'a, Ty: EdgeType, Id: GraphIdTypes> Iterator for EdgeIdIter<'a, Ty, Id>
 where
-    Id::EdgeId: NumIdType,
+    Id::EdgeId: IntegerIdType,
 {
     type Item = Id::EdgeId;
 
@@ -429,8 +429,8 @@ pub struct NeighborsIter<'a, Ty, Id: GraphIdTypes> {
 
 impl<'a, Ty: EdgeType, Id: GraphIdTypes> Iterator for NeighborsIter<'a, Ty, Id>
 where
-    Id::VertexId: NumIdType,
-    Id::EdgeId: NumIdType,
+    Id::VertexId: IntegerIdType,
+    Id::EdgeId: IntegerIdType,
 {
     type Item = (Id::VertexId, Id::EdgeId, Id::VertexId, Direction);
 

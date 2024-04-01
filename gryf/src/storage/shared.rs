@@ -6,7 +6,7 @@ use std::{
 };
 
 use crate::core::{
-    id::{GraphIdTypes, NumIdType},
+    id::{GraphIdTypes, IntegerIdType},
     marker::EdgeType,
 };
 
@@ -26,12 +26,12 @@ impl<Id: GraphIdTypes, V> AdjVertex<Id, V> {
 }
 
 #[derive(Debug)]
-pub struct RangeIds<I: NumIdType> {
+pub struct RangeIds<I: IntegerIdType> {
     range: Range<usize>,
     ty: PhantomData<I>,
 }
 
-impl<I: NumIdType> Iterator for RangeIds<I> {
+impl<I: IntegerIdType> Iterator for RangeIds<I> {
     type Item = I;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -39,7 +39,7 @@ impl<I: NumIdType> Iterator for RangeIds<I> {
     }
 }
 
-impl<I: NumIdType> From<Range<usize>> for RangeIds<I> {
+impl<I: IntegerIdType> From<Range<usize>> for RangeIds<I> {
     fn from(range: Range<usize>) -> Self {
         Self {
             range,
@@ -64,14 +64,14 @@ impl<'a, Id, V> VerticesIter<'a, Id, V> {
 
 impl<'a, Id: GraphIdTypes, V> Iterator for VerticesIter<'a, Id, V>
 where
-    Id::VertexId: NumIdType,
+    Id::VertexId: IntegerIdType,
 {
     type Item = (Id::VertexId, &'a V);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner
             .next()
-            .map(|(id, vertex)| (NumIdType::from_usize(id), vertex))
+            .map(|(id, vertex)| (IntegerIdType::from_usize(id), vertex))
     }
 }
 
@@ -89,14 +89,14 @@ impl<'a, Id: GraphIdTypes, V> AdjVerticesIter<'a, Id, V> {
 
 impl<'a, Id: GraphIdTypes, V> Iterator for AdjVerticesIter<'a, Id, V>
 where
-    Id::VertexId: NumIdType,
+    Id::VertexId: IntegerIdType,
 {
     type Item = (Id::VertexId, &'a V);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner
             .next()
-            .map(|(id, vertex)| (NumIdType::from_usize(id), &vertex.data))
+            .map(|(id, vertex)| (IntegerIdType::from_usize(id), &vertex.data))
     }
 }
 
@@ -115,15 +115,15 @@ impl<'a, Id: GraphIdTypes, E> EdgesIter<'a, Id, E> {
 
 impl<'a, Id: GraphIdTypes, E> Iterator for EdgesIter<'a, Id, E>
 where
-    Id::VertexId: NumIdType,
-    Id::EdgeId: NumIdType,
+    Id::VertexId: IntegerIdType,
+    Id::EdgeId: IntegerIdType,
 {
     type Item = (Id::EdgeId, &'a E, Id::VertexId, Id::VertexId);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner.next().map(|(index, (edge, endpoints))| {
             (
-                NumIdType::from_usize(index),
+                IntegerIdType::from_usize(index),
                 edge,
                 endpoints[0],
                 endpoints[1],

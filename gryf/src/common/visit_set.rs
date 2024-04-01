@@ -7,7 +7,7 @@ use std::{
 
 use fixedbitset::FixedBitSet;
 
-use crate::core::id::{IdType, NumIdType};
+use crate::core::id::{IdType, IntegerIdType};
 
 pub trait VisitSet<I: IdType> {
     fn visit(&mut self, id: I) -> bool;
@@ -52,7 +52,7 @@ impl<I: IdType, S: BuildHasher> VisitSet<I> for HashSet<I, S> {
     }
 }
 
-impl<I: NumIdType> VisitSet<I> for FixedBitSet {
+impl<I: IntegerIdType> VisitSet<I> for FixedBitSet {
     fn visit(&mut self, id: I) -> bool {
         if self.len() < id.to_usize() {
             self.grow(id.to_usize() - self.len());
@@ -73,7 +73,7 @@ impl<I: NumIdType> VisitSet<I> for FixedBitSet {
     }
 }
 
-impl<I: NumIdType> VisitSet<I> for TypedBitSet<I> {
+impl<I: IntegerIdType> VisitSet<I> for TypedBitSet<I> {
     fn visit(&mut self, id: I) -> bool {
         (**self).visit(id)
     }

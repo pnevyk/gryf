@@ -2,7 +2,7 @@ use crate::{
     adapt::transpose::TransposeRef,
     common::CompactIdMap,
     core::{
-        id::{IdType, NumIdType, Virtual},
+        id::{IdType, IntegerIdType, Virtual},
         marker::EdgeType,
         weights::GetWeight,
         EdgeRef, Edges, VerticesBase, Weight,
@@ -19,7 +19,7 @@ pub fn bellman_ford<E, Ty: EdgeType, G, W, F>(
 ) -> Result<ShortestPaths<W, G>, Error>
 where
     G: VerticesBase + Edges<E, Ty>,
-    G::VertexId: NumIdType,
+    G::VertexId: IntegerIdType,
     W: Weight,
     F: GetWeight<E, W>,
 {
@@ -127,7 +127,7 @@ fn process_edge<VId, EId, ER, E, W, F>(
     dist: &[W],
 ) -> Option<(W, Virtual<VId>, Virtual<VId>)>
 where
-    VId: NumIdType,
+    VId: IntegerIdType,
     EId: IdType,
     ER: EdgeRef<VId, EId, E>,
     W: Weight,

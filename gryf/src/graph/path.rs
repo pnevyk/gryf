@@ -691,7 +691,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::core::id::VertexId;
+    use crate::core::id::{IdType, VertexId};
 
     use super::*;
 
@@ -999,7 +999,7 @@ mod tests {
     fn try_add_vertex_empty() {
         let mut path = Path::<(), (), Undirected, _>::new();
 
-        let result = path.try_add_vertex((), None, VertexId::null());
+        let result = path.try_add_vertex((), None, VertexId::sentinel());
         assert!(result.is_ok());
 
         let v = result.unwrap();

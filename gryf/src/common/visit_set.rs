@@ -54,14 +54,14 @@ impl<I: IdType, S: BuildHasher> VisitSet<I> for HashSet<I, S> {
 
 impl<I: IntegerIdType> VisitSet<I> for FixedBitSet {
     fn visit(&mut self, id: I) -> bool {
-        if self.len() < id.to_usize() {
-            self.grow(id.to_usize() - self.len());
+        if self.len() < id.as_usize() {
+            self.grow(id.as_usize() - self.len());
         }
-        !self.put(id.to_usize())
+        !self.put(id.as_usize())
     }
 
     fn is_visited(&self, id: &I) -> bool {
-        self.contains(id.to_usize())
+        self.contains(id.as_usize())
     }
 
     fn visited_count(&self) -> usize {

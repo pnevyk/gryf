@@ -2,7 +2,7 @@ use crate::{
     algo::Cycle,
     common::CompactIdMap,
     core::{
-        id::{IntegerIdType, Virtual},
+        id::{IdType, IntegerIdType, Virtual},
         marker::Direction,
         GraphBase, NeighborRef, Neighbors, VerticesBase,
     },
@@ -64,7 +64,7 @@ where
             self.visited += 1;
 
             for n in self.graph.neighbors_directed(&vertex, Direction::Outgoing) {
-                let i = self.map.virt(*n.id()).unwrap().to_usize();
+                let i = self.map.virt(*n.id()).unwrap().as_usize();
                 let deg = &mut self.in_deg[i];
                 *deg -= 1;
 
@@ -101,7 +101,7 @@ where
                     .graph
                     .neighbors_directed(&v, Direction::Incoming)
                     .find_map(|n| {
-                        let i = self.map.virt(*n.id()).unwrap().to_usize();
+                        let i = self.map.virt(*n.id()).unwrap().as_usize();
                         if self.in_deg[i] > 0 {
                             Some(n.edge().into_owned())
                         } else {

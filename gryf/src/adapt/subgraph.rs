@@ -306,7 +306,7 @@ where
 mod tests {
     use crate::{
         core::{
-            id::{DefaultId, EdgeId, IntegerIdType, VertexId},
+            id::{DefaultId, EdgeId, IdType, VertexId},
             marker::Directed,
             EdgesMut, VerticesMut,
         },
@@ -358,10 +358,10 @@ mod tests {
         graph.add_edge(&v4, &v5, 10);
 
         Subgraph::new(graph)
-            .filter_vertex(|v: &VertexId, _, _| v.to_usize() < 4)
+            .filter_vertex(|v: &VertexId, _, _| v.as_usize() < 4)
             .filter_edge(|e, g, _| {
                 let (src, dst): (VertexId, VertexId) = g.endpoints(e).unwrap();
-                src.to_usize() + dst.to_usize() < 4 || dst.to_usize() == 5
+                src.as_usize() + dst.as_usize() < 4 || dst.as_usize() == 5
             })
     }
 

@@ -1,6 +1,6 @@
 use std::cmp::min;
 
-use crate::core::id::{IntegerIdType, Virtual};
+use crate::core::id::{IdType, IntegerIdType, Virtual};
 
 // For compact storages, the space and time for both directions is constant (use
 // `isomorphic`). For storages with holes, the space is O(|V|), virtual to real
@@ -18,7 +18,7 @@ impl<I: IntegerIdType> CompactIdMap<I> {
         A: Iterator<Item = I>,
     {
         let mut map = iter.collect::<Vec<_>>();
-        map.sort_unstable_by_key(|id| id.to_bits());
+        map.sort_unstable_by_key(|id| id.as_bits());
         let len = map.len();
 
         Self { map, len }
@@ -50,19 +50,19 @@ impl<I: IntegerIdType> CompactIdMap<I> {
         let id: Virtual<I> = id.into();
 
         if self.is_isomorphic() {
-            (id.to_usize() < self.len()).then(|| I::from_bits(id.to_bits()))
+            (id.as_usize() < self.len()).then(|| I::from_bits(id.as_bits()))
         } else {
-            self.map.get(id.to_usize()).copied()
+            self.map.get(id.as_usize()).cloned()
         }
     }
 
     pub fn virt(&self, id: I) -> Option<Virtual<I>> {
         if self.is_isomorphic() {
-            (id.to_usize() < self.len()).then(|| Virtual::new(id.to_bits()))
+            (id.as_usize() < self.len()).then(|| Virtual::new(id.as_bits()))
         } else {
             // Using `wrapping_sub` not to panic on overflow.
-            let direct = min(id.to_usize(), self.len().wrapping_sub(1));
-            let direct_elem = self.map.get(direct).copied()?;
+            let direct = min(id.as_usize(), self.len().wrapping_sub(1));
+            let direct_elem = self.map.get(direct).cloned()?;
 
             // This will always be true for storages without holes, and sometimes
             // for storages with holes.

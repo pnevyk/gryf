@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use arbitrary::Arbitrary;
 
 use crate::core::{
-    id::{EdgeId, IntegerIdType, VertexId},
+    id::{EdgeId, IdType, IntegerIdType, VertexId},
     marker::{Direction, EdgeType},
     AddEdgeError, AddEdgeErrorKind, AddVertexError, Edges, EdgesBase, EdgesMut, GraphBase,
     Neighbors, Vertices, VerticesBase, VerticesMut,
@@ -224,7 +224,7 @@ impl<V, E, Ty: EdgeType> Vertices<V> for Model<V, E, Ty> {
         V: 'a;
 
     fn vertex(&self, id: &Self::VertexId) -> Option<&V> {
-        self.vertices.get(id.to_usize()).and_then(Option::as_ref)
+        self.vertices.get(id.as_usize()).and_then(Option::as_ref)
     }
 
     fn vertices(&self) -> Self::VerticesIter<'_> {
@@ -235,7 +235,7 @@ impl<V, E, Ty: EdgeType> Vertices<V> for Model<V, E, Ty> {
 impl<V, E, Ty: EdgeType> VerticesMut<V> for Model<V, E, Ty> {
     fn vertex_mut(&mut self, id: &Self::VertexId) -> Option<&mut V> {
         self.vertices
-            .get_mut(id.to_usize())
+            .get_mut(id.as_usize())
             .and_then(Option::as_mut)
     }
 
@@ -253,7 +253,7 @@ impl<V, E, Ty: EdgeType> VerticesMut<V> for Model<V, E, Ty> {
     fn remove_vertex(&mut self, id: &Self::VertexId) -> Option<V> {
         self.vertex(id)?;
 
-        let index = id.to_usize();
+        let index = id.as_usize();
         self.removed_vertices += 1;
 
         match self.params.removal_behavior {
@@ -317,12 +317,12 @@ impl<V, E, Ty: EdgeType> EdgesBase<Ty> for Model<V, E, Ty> {
     }
 
     fn endpoints(&self, id: &Self::EdgeId) -> Option<(Self::VertexId, Self::VertexId)> {
-        let &(src, dst) = self.neighbors.get(id.to_usize())?.as_ref()?;
+        let &(src, dst) = self.neighbors.get(id.as_usize())?.as_ref()?;
         Some((VertexId::from_usize(src), VertexId::from_usize(dst)))
     }
 
     fn edge_id(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Self::EdgeIdIter<'_> {
-        let (src, dst) = (src.to_usize(), dst.to_usize());
+        let (src, dst) = (src.as_usize(), dst.as_usize());
         EdgeIdIter::new([src, dst], &self.neighbors)
     }
 
@@ -343,7 +343,7 @@ impl<V, E, Ty: EdgeType> Edges<E, Ty> for Model<V, E, Ty> {
         E: 'a;
 
     fn edge(&self, id: &Self::EdgeId) -> Option<&E> {
-        self.edges.get(id.to_usize()).and_then(Option::as_ref)
+        self.edges.get(id.as_usize()).and_then(Option::as_ref)
     }
 
     fn edges(&self) -> Self::EdgesIter<'_> {
@@ -353,7 +353,7 @@ impl<V, E, Ty: EdgeType> Edges<E, Ty> for Model<V, E, Ty> {
 
 impl<V, E, Ty: EdgeType> EdgesMut<E, Ty> for Model<V, E, Ty> {
     fn edge_mut(&mut self, id: &Self::EdgeId) -> Option<&mut E> {
-        self.edges.get_mut(id.to_usize()).and_then(Option::as_mut)
+        self.edges.get_mut(id.as_usize()).and_then(Option::as_mut)
     }
 
     fn try_add_edge(
@@ -374,7 +374,7 @@ impl<V, E, Ty: EdgeType> EdgesMut<E, Ty> for Model<V, E, Ty> {
             return Err(AddEdgeError::new(edge, AddEdgeErrorKind::CapacityOverflow));
         }
 
-        let (src, dst) = (src.to_usize(), dst.to_usize());
+        let (src, dst) = (src.as_usize(), dst.as_usize());
 
         if !self.params.allow_multi_edges && self.edge_exists(src, dst) {
             return Err(AddEdgeError::new(edge, AddEdgeErrorKind::MultiEdge));
@@ -390,7 +390,7 @@ impl<V, E, Ty: EdgeType> EdgesMut<E, Ty> for Model<V, E, Ty> {
     fn remove_edge(&mut self, id: &Self::EdgeId) -> Option<E> {
         self.edge(id)?;
 
-        let index = id.to_usize();
+        let index = id.as_usize();
         self.removed_edges += 1;
 
         match self.params.removal_behavior {
@@ -416,11 +416,11 @@ impl<V, E, Ty: EdgeType> Neighbors for Model<V, E, Ty> {
         Self: 'a;
 
     fn neighbors(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_> {
-        NeighborsIter::new(src.to_usize(), &self.neighbors, None)
+        NeighborsIter::new(src.as_usize(), &self.neighbors, None)
     }
 
     fn neighbors_directed(&self, src: &Self::VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
-        NeighborsIter::new(src.to_usize(), &self.neighbors, Some(dir))
+        NeighborsIter::new(src.as_usize(), &self.neighbors, Some(dir))
     }
 }
 

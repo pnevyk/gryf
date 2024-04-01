@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use crate::{
     common::CompactIdMap,
     core::{
-        id::{DefaultId, GraphIdTypes, IntegerIdType},
+        id::{DefaultId, GraphIdTypes, IdType, IntegerIdType},
         marker::{Direction, EdgeType},
         AddEdgeError, AddEdgeErrorKind, AddVertexError, ConnectVertices, Create, Edges, EdgesBase,
         EdgesMut, GraphBase, Guarantee, Neighbors, Vertices, VerticesBase, VerticesMut,
@@ -94,7 +94,7 @@ where
         V: 'a;
 
     fn vertex(&self, id: &Self::VertexId) -> Option<&V> {
-        self.vertices.get(id.to_usize())
+        self.vertices.get(id.as_usize())
     }
 
     fn vertices(&self) -> Self::VerticesIter<'_> {
@@ -108,7 +108,7 @@ where
     Id::EdgeId: IntegerIdType,
 {
     fn vertex_mut(&mut self, id: &Self::VertexId) -> Option<&mut V> {
-        self.vertices.get_mut(id.to_usize())
+        self.vertices.get_mut(id.as_usize())
     }
 
     fn try_add_vertex(&mut self, vertex: V) -> Result<Self::VertexId, AddVertexError<V>> {
@@ -122,7 +122,7 @@ where
     fn remove_vertex(&mut self, id: &Self::VertexId) -> Option<V> {
         self.vertex(id)?;
 
-        let index = id.to_usize();
+        let index = id.as_usize();
 
         // Remove incident edges.
         for i in 0..self.vertices.len() {
@@ -197,7 +197,7 @@ where
     }
 
     fn edge_bound(&self) -> usize {
-        self.matrix.index(self.vertex_count(), 0).to_usize()
+        self.matrix.index(self.vertex_count(), 0).as_usize()
     }
 
     fn endpoints(&self, id: &Self::EdgeId) -> Option<(Self::VertexId, Self::VertexId)> {
@@ -210,7 +210,7 @@ where
     }
 
     fn edge_id(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Self::EdgeIdIter<'_> {
-        let id = self.matrix.index(src.to_usize(), dst.to_usize());
+        let id = self.matrix.index(src.as_usize(), dst.as_usize());
         self.matrix.get(id).map(|_| id).into_iter()
     }
 
@@ -268,15 +268,15 @@ where
         dst: &Self::VertexId,
         edge: E,
     ) -> Result<Self::EdgeId, AddEdgeError<E>> {
-        if src.to_usize() >= self.vertices.len() {
+        if src.as_usize() >= self.vertices.len() {
             return Err(AddEdgeError::new(edge, AddEdgeErrorKind::SourceAbsent));
         }
 
-        if dst.to_usize() >= self.vertices.len() {
+        if dst.as_usize() >= self.vertices.len() {
             return Err(AddEdgeError::new(edge, AddEdgeErrorKind::DestinationAbsent));
         }
 
-        let id = self.matrix.index(src.to_usize(), dst.to_usize());
+        let id = self.matrix.index(src.as_usize(), dst.as_usize());
 
         if self.matrix.contains(id) {
             return Err(AddEdgeError::new(edge, AddEdgeErrorKind::MultiEdge));
@@ -498,8 +498,8 @@ where
                 self.other += 1;
 
                 let id = match self.dir {
-                    Direction::Outgoing => self.matrix.index(self.src.to_usize(), dst),
-                    Direction::Incoming => self.matrix.index(dst, self.src.to_usize()),
+                    Direction::Outgoing => self.matrix.index(self.src.as_usize(), dst),
+                    Direction::Incoming => self.matrix.index(dst, self.src.as_usize()),
                 };
 
                 if self.matrix.contains(id) {
@@ -517,7 +517,7 @@ mod raw {
     use bitvec::prelude::*;
 
     use crate::common::matrix::*;
-    use crate::core::id::{GraphIdTypes, IntegerIdType};
+    use crate::core::id::{GraphIdTypes, IdType, IntegerIdType};
     use crate::core::marker::{Direction, EdgeType};
 
     #[derive(Debug)]
@@ -753,23 +753,23 @@ mod raw {
         }
 
         pub fn contains(&self, id: Id::EdgeId) -> bool {
-            self.data.contains(id.to_usize())
+            self.data.contains(id.as_usize())
         }
 
         pub fn get(&self, id: Id::EdgeId) -> Option<&E> {
-            self.data.get(id.to_usize())
+            self.data.get(id.as_usize())
         }
 
         pub fn get_mut(&mut self, id: Id::EdgeId) -> Option<&mut E> {
-            self.data.get_mut(id.to_usize())
+            self.data.get_mut(id.as_usize())
         }
 
         pub fn insert(&mut self, id: Id::EdgeId, edge: E) {
-            self.data.insert(id.to_usize(), edge);
+            self.data.insert(id.as_usize(), edge);
         }
 
         pub fn remove(&mut self, id: Id::EdgeId) -> Option<E> {
-            self.data.remove(id.to_usize())
+            self.data.remove(id.as_usize())
         }
 
         pub fn index(&self, row: usize, col: usize) -> Id::EdgeId {
@@ -777,11 +777,11 @@ mod raw {
         }
 
         pub fn coords(&self, id: Id::EdgeId) -> (usize, usize) {
-            coords::<Ty>(id.to_usize(), self.capacity)
+            coords::<Ty>(id.as_usize(), self.capacity)
         }
 
         pub fn degree_directed(&self, v: Id::VertexId, dir: Direction, n_vertices: usize) -> usize {
-            let v = v.to_usize();
+            let v = v.as_usize();
             let mut degree = 0;
 
             if Ty::is_directed() {
@@ -839,7 +839,7 @@ mod raw {
         Id::EdgeId: IntegerIdType,
     {
         pub fn contains(&self, id: Id::EdgeId) -> bool {
-            self.data[id.to_usize()]
+            self.data[id.as_usize()]
         }
 
         pub fn index(&self, row: usize, col: usize) -> Id::EdgeId {
@@ -848,7 +848,7 @@ mod raw {
 
         #[allow(unused)]
         pub fn coords(&self, id: Id::EdgeId) -> (usize, usize) {
-            coords::<Ty>(id.to_usize(), self.capacity)
+            coords::<Ty>(id.as_usize(), self.capacity)
         }
     }
 

@@ -1,27 +1,84 @@
-use std::{hash::Hash, marker::PhantomData};
+use std::{fmt::Debug, hash::Hash, marker::PhantomData};
 
-pub trait IdType: Clone + Ord + Hash + core::fmt::Debug {}
+/// A unique identification of a vertex or edge in a graph.
+///
+/// In standard graph representations, the id type is an integer. Conceptually,
+/// such an integer id is of type `usize`, but one can choose a smaller integer
+/// type (such as u8 or u16) to lower the memory footprint. In these cases, the
+/// algorithms can treat the id as usize with all the benefits (e.g., indexing
+/// to a contiguous array).
+///
+/// For implicit graphs, an id can be of any form as long as it implements
+/// required interface and super traits. In general, such ids can't be treated
+/// as integers and require a different handling, usually with overhead.
+///
+/// Any id must also have a representation for a "sentinel" value. For integers,
+/// we use the maximum value of the corresponding type for the sentinel, so we
+/// don't introduce the overhead of using `Option<int>` and can use 0 as the
+/// first index (as is natural).
+pub trait IdType: Clone + Ord + Hash + Debug {
+    /// Conceptually `None` in `Option<Id>`, but without using `Option`.
+    fn sentinel() -> Self;
 
-pub trait IntegerIdType: IdType + Copy + From<usize> + Into<usize> {
-    fn to_bits(self) -> u64;
+    /// Determines if the id type is `usize`-compatible.
+    ///
+    /// Types that are not `usize`-compatible require a special, often less
+    /// efficient handling.
+    fn is_integer() -> bool;
+
+    /// Converts an id into the corresponding `u64`.
+    ///
+    /// Types for which `is_integer() == false` should panic in this function.
+    fn as_bits(&self) -> u64;
+
+    /// Converts an `u64` into the corresponding id.
+    ///
+    /// Types for which `is_integer() == false` should panic in this function.
     fn from_bits(bits: u64) -> Self;
-    fn null() -> Self;
 
-    fn to_usize(self) -> usize {
-        self.into()
+    /// Converts an id into the corresponding `usize`.
+    ///
+    /// Types for which `is_integer() == false` should panic in this function.
+    fn as_usize(&self) -> usize {
+        self.as_bits() as usize
     }
 
-    fn from_usize(id: usize) -> Self {
-        Self::from(id)
+    /// Converts an `usize` into the corresponding id.
+    ///
+    /// Types for which `is_integer() == false` should panic in this function.
+    fn from_usize(index: usize) -> Self {
+        Self::from_bits(index as u64)
     }
 
-    fn is_null(&self) -> bool {
-        *self == Self::null()
+    fn is_sentinel(&self) -> bool {
+        self == &Self::sentinel()
     }
 }
 
+/// Type-level specification that an id type is integer-like.
+///
+/// All types that implement this trait must return `true` in
+/// `IdType::is_integer`.
+pub trait IntegerIdType: IdType + Copy + From<usize> + Into<usize> {}
+
 // For edge ids that are represented as a pair of vertex ids.
-impl<T: IdType, U: IdType> IdType for (T, U) {}
+impl<T: IdType, U: IdType> IdType for (T, U) {
+    fn sentinel() -> Self {
+        (T::sentinel(), U::sentinel())
+    }
+
+    fn is_integer() -> bool {
+        false
+    }
+
+    fn as_bits(&self) -> u64 {
+        panic!("unsupported")
+    }
+
+    fn from_bits(_: u64) -> Self {
+        panic!("unsupported")
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VertexId<Id = u64>(pub Id);
@@ -38,45 +95,49 @@ impl<I> Virtual<I> {
     }
 }
 
-impl<I: IdType> IdType for Virtual<I> {}
-
-impl<I: IntegerIdType> From<usize> for Virtual<I> {
-    fn from(id: usize) -> Self {
-        Self::new(id.try_into().expect("id type overflow"))
+impl<I: IdType> IdType for Virtual<I> {
+    fn sentinel() -> Self {
+        Self::new(u64::MAX)
     }
-}
 
-impl<I: IntegerIdType> From<Virtual<I>> for usize {
-    fn from(id: Virtual<I>) -> Self {
-        id.0.try_into().expect("id type overflow")
+    fn is_integer() -> bool {
+        true
     }
-}
 
-impl<I: IntegerIdType> From<u64> for Virtual<I> {
-    fn from(id: u64) -> Self {
-        Self::new(id)
-    }
-}
-
-impl<I: IntegerIdType> From<Virtual<I>> for u64 {
-    fn from(id: Virtual<I>) -> Self {
-        id.0
-    }
-}
-
-impl<I: IntegerIdType> IntegerIdType for Virtual<I> {
-    fn to_bits(self) -> u64 {
+    fn as_bits(&self) -> u64 {
         self.0
     }
 
     fn from_bits(bits: u64) -> Self {
         Self::new(bits)
     }
+}
 
-    fn null() -> Self {
-        Self::new(u64::MAX)
+impl<I: IntegerIdType> From<usize> for Virtual<I> {
+    fn from(index: usize) -> Self {
+        Self::from_usize(index)
     }
 }
+
+impl<I: IntegerIdType> From<Virtual<I>> for usize {
+    fn from(id: Virtual<I>) -> Self {
+        id.as_usize()
+    }
+}
+
+impl<I: IntegerIdType> From<u64> for Virtual<I> {
+    fn from(bits: u64) -> Self {
+        Self::from_bits(bits)
+    }
+}
+
+impl<I: IntegerIdType> From<Virtual<I>> for u64 {
+    fn from(id: Virtual<I>) -> Self {
+        id.as_bits()
+    }
+}
+
+impl<I: IntegerIdType> IntegerIdType for Virtual<I> {}
 
 pub trait GraphIdTypes {
     type VertexId: IdType;
@@ -119,22 +180,16 @@ impl<Id: GraphIdTypes> UseId<Id> for UseEdgeId {
 
 macro_rules! impl_int_id {
     ($id_ty:ident, $int_ty:ty) => {
-        impl IdType for $id_ty<$int_ty> {}
-
-        impl From<usize> for $id_ty<$int_ty> {
-            fn from(id: usize) -> Self {
-                Self(id.try_into().expect("id type overflow"))
+        impl IdType for $id_ty<$int_ty> {
+            fn sentinel() -> Self {
+                Self(<$int_ty>::MAX)
             }
-        }
 
-        impl From<$id_ty<$int_ty>> for usize {
-            fn from(id: $id_ty<$int_ty>) -> Self {
-                id.0.try_into().expect("id type overflow")
+            fn is_integer() -> bool {
+                true
             }
-        }
 
-        impl IntegerIdType for $id_ty<$int_ty> {
-            fn to_bits(self) -> u64 {
+            fn as_bits(&self) -> u64 {
                 self.0 as u64
             }
 
@@ -142,10 +197,28 @@ macro_rules! impl_int_id {
                 Self(bits as $int_ty)
             }
 
-            fn null() -> Self {
-                Self(<$int_ty>::MAX)
+            fn as_usize(&self) -> usize {
+                self.0.try_into().expect("id type overflow")
+            }
+
+            fn from_usize(index: usize) -> Self {
+                Self(index.try_into().expect("id type overflow"))
             }
         }
+
+        impl From<usize> for $id_ty<$int_ty> {
+            fn from(index: usize) -> Self {
+                Self::from_usize(index)
+            }
+        }
+
+        impl From<$id_ty<$int_ty>> for usize {
+            fn from(id: $id_ty<$int_ty>) -> Self {
+                id.as_usize()
+            }
+        }
+
+        impl IntegerIdType for $id_ty<$int_ty> {}
     };
 }
 
@@ -161,4 +234,21 @@ impl_int_id!(EdgeId, u32);
 impl_int_id!(EdgeId, u16);
 impl_int_id!(EdgeId, u8);
 
-impl IdType for () {}
+impl IdType for () {
+    #[allow(clippy::unused_unit)]
+    fn sentinel() -> Self {
+        ()
+    }
+
+    fn is_integer() -> bool {
+        false
+    }
+
+    fn as_bits(&self) -> u64 {
+        panic!("unsupported")
+    }
+
+    fn from_bits(_: u64) -> Self {
+        panic!("unsupported")
+    }
+}

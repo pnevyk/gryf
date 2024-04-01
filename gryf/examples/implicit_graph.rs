@@ -5,7 +5,7 @@ use gryf::{
     core::{
         index::{EdgeIndex, VertexIndex},
         marker::{Directed, Direction},
-        GraphBase, NeighborRef, Neighbors, VerticesBaseWeak, VerticesWeak, WeakRef,
+        GraphBase, Neighbors, VerticesBaseWeak, VerticesWeak, WeakRef,
     },
     visit::Dfs,
 };

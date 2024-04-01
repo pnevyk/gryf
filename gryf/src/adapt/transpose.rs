@@ -1,7 +1,7 @@
 use crate::{
     common::CompactIdMap,
     core::{
-        id::{IdType, NumIdType},
+        id::{IdType, IntegerIdType},
         marker::{Directed, Direction},
         EdgeRef, Edges, EdgesBase, EdgesMut, NeighborRef, Neighbors, Stability, StableId,
         VerticesBase, WeakRef,
@@ -109,7 +109,7 @@ where
 
     fn edge_id_map(&self) -> CompactIdMap<G::EdgeId>
     where
-        Self::EdgeId: NumIdType,
+        Self::EdgeId: IntegerIdType,
     {
         self.graph.edge_id_map()
     }

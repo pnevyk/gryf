@@ -2,7 +2,7 @@ use crate::{
     algo::Cycle,
     common::CompactIdMap,
     core::{
-        id::{NumIdType, Virtual},
+        id::{IntegerIdType, Virtual},
         marker::Direction,
         GraphBase, NeighborRef, Neighbors, VerticesBase,
     },
@@ -13,7 +13,7 @@ use super::Error;
 pub fn kahn<'a, G>(graph: &'a G) -> KahnIter<'a, G>
 where
     G: Neighbors + VerticesBase + 'a,
-    G::VertexId: NumIdType,
+    G::VertexId: IntegerIdType,
 {
     let map = graph.vertex_id_map();
     let mut in_deg = Vec::with_capacity(map.len());
@@ -55,7 +55,7 @@ where
 impl<'a, G> Iterator for KahnIter<'a, G>
 where
     G: Neighbors,
-    G::VertexId: NumIdType,
+    G::VertexId: IntegerIdType,
 {
     type Item = Result<G::VertexId, Error<G>>;
 

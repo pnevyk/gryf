@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use arbitrary::Arbitrary;
 
 use crate::core::{
-    id::{EdgeId, NumIdType, VertexId},
+    id::{EdgeId, IntegerIdType, VertexId},
     marker::{Direction, EdgeType},
     AddEdgeError, AddEdgeErrorKind, AddVertexError, Edges, EdgesBase, EdgesMut, GraphBase,
     Neighbors, Vertices, VerticesBase, VerticesMut,
@@ -441,7 +441,7 @@ impl<'a, Id, T> IdIter<'a, Id, T> {
     }
 }
 
-impl<Id: NumIdType, T> Iterator for IdIter<'_, Id, T> {
+impl<Id: IntegerIdType, T> Iterator for IdIter<'_, Id, T> {
     type Item = Id;
 
     fn next(&mut self) -> Option<Self::Item> {

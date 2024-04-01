@@ -2,7 +2,7 @@ use std::{hash::Hash, marker::PhantomData};
 
 pub trait IdType: Clone + Ord + Hash + core::fmt::Debug {}
 
-pub trait NumIdType: IdType + Copy + From<usize> + Into<usize> {
+pub trait IntegerIdType: IdType + Copy + From<usize> + Into<usize> {
     fn to_bits(self) -> u64;
     fn from_bits(bits: u64) -> Self;
     fn null() -> Self;
@@ -40,31 +40,31 @@ impl<I> Virtual<I> {
 
 impl<I: IdType> IdType for Virtual<I> {}
 
-impl<I: NumIdType> From<usize> for Virtual<I> {
+impl<I: IntegerIdType> From<usize> for Virtual<I> {
     fn from(id: usize) -> Self {
         Self::new(id.try_into().expect("id type overflow"))
     }
 }
 
-impl<I: NumIdType> From<Virtual<I>> for usize {
+impl<I: IntegerIdType> From<Virtual<I>> for usize {
     fn from(id: Virtual<I>) -> Self {
         id.0.try_into().expect("id type overflow")
     }
 }
 
-impl<I: NumIdType> From<u64> for Virtual<I> {
+impl<I: IntegerIdType> From<u64> for Virtual<I> {
     fn from(id: u64) -> Self {
         Self::new(id)
     }
 }
 
-impl<I: NumIdType> From<Virtual<I>> for u64 {
+impl<I: IntegerIdType> From<Virtual<I>> for u64 {
     fn from(id: Virtual<I>) -> Self {
         id.0
     }
 }
 
-impl<I: NumIdType> NumIdType for Virtual<I> {
+impl<I: IntegerIdType> IntegerIdType for Virtual<I> {
     fn to_bits(self) -> u64 {
         self.0
     }
@@ -117,7 +117,7 @@ impl<Id: GraphIdTypes> UseId<Id> for UseEdgeId {
     type Id = Id::EdgeId;
 }
 
-macro_rules! impl_num_id {
+macro_rules! impl_int_id {
     ($id_ty:ident, $int_ty:ty) => {
         impl IdType for $id_ty<$int_ty> {}
 
@@ -133,7 +133,7 @@ macro_rules! impl_num_id {
             }
         }
 
-        impl NumIdType for $id_ty<$int_ty> {
+        impl IntegerIdType for $id_ty<$int_ty> {
             fn to_bits(self) -> u64 {
                 self.0 as u64
             }
@@ -149,16 +149,16 @@ macro_rules! impl_num_id {
     };
 }
 
-impl_num_id!(VertexId, usize);
-impl_num_id!(VertexId, u64);
-impl_num_id!(VertexId, u32);
-impl_num_id!(VertexId, u16);
-impl_num_id!(VertexId, u8);
+impl_int_id!(VertexId, usize);
+impl_int_id!(VertexId, u64);
+impl_int_id!(VertexId, u32);
+impl_int_id!(VertexId, u16);
+impl_int_id!(VertexId, u8);
 
-impl_num_id!(EdgeId, usize);
-impl_num_id!(EdgeId, u64);
-impl_num_id!(EdgeId, u32);
-impl_num_id!(EdgeId, u16);
-impl_num_id!(EdgeId, u8);
+impl_int_id!(EdgeId, usize);
+impl_int_id!(EdgeId, u64);
+impl_int_id!(EdgeId, u32);
+impl_int_id!(EdgeId, u16);
+impl_int_id!(EdgeId, u8);
 
 impl IdType for () {}

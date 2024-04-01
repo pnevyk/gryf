@@ -3,7 +3,7 @@ use std::fmt;
 use thiserror::Error;
 
 use crate::{
-    core::{id::NumIdType, marker::Directed, EdgesBase, GraphBase, Neighbors, VerticesBase},
+    core::{id::IntegerIdType, marker::Directed, EdgesBase, GraphBase, Neighbors, VerticesBase},
     visit,
 };
 
@@ -27,7 +27,7 @@ where
 impl<'a, G> Iterator for TopoSort<'a, G>
 where
     G: Neighbors + VerticesBase + EdgesBase<Directed>,
-    G::VertexId: NumIdType,
+    G::VertexId: IntegerIdType,
 {
     type Item = Result<G::VertexId, Error<G>>;
 
@@ -39,7 +39,7 @@ where
 impl<'a, G> TopoSort<'a, G>
 where
     G: Neighbors + VerticesBase + EdgesBase<Directed>,
-    G::VertexId: NumIdType,
+    G::VertexId: IntegerIdType,
 {
     pub fn into_vec(self) -> Result<Vec<G::VertexId>, Error<G>> {
         self.collect()
@@ -124,7 +124,7 @@ where
 impl<'a, G> Iterator for TopoSortInner<'a, G>
 where
     G: Neighbors + VerticesBase + EdgesBase<Directed>,
-    G::VertexId: NumIdType,
+    G::VertexId: IntegerIdType,
 {
     type Item = Result<G::VertexId, Error<G>>;
 
@@ -159,7 +159,7 @@ mod tests {
             + EdgesBase<Directed>
             + VerticesBaseWeak
             + EdgesBaseWeak<Directed>,
-        G::VertexId: NumIdType,
+        G::VertexId: IntegerIdType,
     {
         let sorted = toposort.collect::<Result<Vec<_>, _>>();
 

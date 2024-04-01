@@ -3,7 +3,7 @@ use std::fmt;
 use arbitrary::{Arbitrary, Unstructured};
 
 use crate::core::{
-    id::{GraphIdTypes, IdType, NumIdType},
+    id::{GraphIdTypes, IdType, IntegerIdType},
     marker::EdgeType,
     AddEdgeError, AddVertexError, EdgesBase, EdgesMut, VerticesBase, VerticesMut,
 };
@@ -85,8 +85,8 @@ impl<V, E> MutOp<V, E> {
     where
         Ty: EdgeType,
         G: VerticesMut<V> + EdgesMut<E, Ty>,
-        G::VertexId: NumIdType,
-        G::EdgeId: NumIdType,
+        G::VertexId: IntegerIdType,
+        G::EdgeId: IntegerIdType,
     {
         let n = graph.vertex_bound();
 
@@ -140,8 +140,8 @@ impl<V, E> MutOpsSeq<V, E> {
         E: fmt::Debug,
         Ty: EdgeType,
         G: VerticesMut<V> + EdgesMut<E, Ty>,
-        G::VertexId: NumIdType,
-        G::EdgeId: NumIdType,
+        G::VertexId: IntegerIdType,
+        G::EdgeId: IntegerIdType,
     {
         println!("let mut graph; // graph storage with ArbitraryIndexing");
         println!();
@@ -213,7 +213,7 @@ impl From<Index> for usize {
     }
 }
 
-impl NumIdType for Index {
+impl IntegerIdType for Index {
     fn to_bits(self) -> u64 {
         self.0 as u64
     }

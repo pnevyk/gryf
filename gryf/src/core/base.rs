@@ -7,7 +7,7 @@ use std::{
 
 use super::{
     edges::{EdgesMut, IntoEdge},
-    id::{GraphIdTypes, IdType, NumIdType},
+    id::{GraphIdTypes, IdType, IntegerIdType},
     marker::EdgeType,
     vertices::VerticesMut,
 };
@@ -172,7 +172,7 @@ where
     T: IntoEdge<Self, E, Ty>,
     V: Default,
     G: Create<V, E, Ty>,
-    Self::VertexId: NumIdType,
+    Self::VertexId: IntegerIdType,
 {
     fn extend_with_edges<I>(&mut self, iter: I)
     where

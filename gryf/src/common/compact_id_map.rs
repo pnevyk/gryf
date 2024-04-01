@@ -1,6 +1,6 @@
 use std::cmp::min;
 
-use crate::core::id::{NumIdType, Virtual};
+use crate::core::id::{IntegerIdType, Virtual};
 
 // For compact storages, the space and time for both directions is constant (use
 // `isomorphic`). For storages with holes, the space is O(|V|), virtual to real
@@ -12,7 +12,7 @@ pub struct CompactIdMap<I> {
     len: usize,
 }
 
-impl<I: NumIdType> CompactIdMap<I> {
+impl<I: IntegerIdType> CompactIdMap<I> {
     pub fn new<A>(iter: A) -> Self
     where
         A: Iterator<Item = I>,

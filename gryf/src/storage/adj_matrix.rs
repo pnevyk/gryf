@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use crate::{
     common::CompactIdMap,
     core::{
-        id::{DefaultId, GraphIdTypes, NumIdType},
+        id::{DefaultId, GraphIdTypes, IntegerIdType},
         marker::{Direction, EdgeType},
         AddEdgeError, AddEdgeErrorKind, AddVertexError, ConnectVertices, Create, Edges, EdgesBase,
         EdgesMut, GraphBase, Guarantee, Neighbors, Vertices, VerticesBase, VerticesMut,
@@ -27,8 +27,8 @@ pub struct AdjMatrix<V, E, Ty, Id> {
 
 impl<V, E, Ty: EdgeType, Id: GraphIdTypes> AdjMatrix<V, E, Ty, Id>
 where
-    Id::VertexId: NumIdType,
-    Id::EdgeId: NumIdType,
+    Id::VertexId: IntegerIdType,
+    Id::EdgeId: IntegerIdType,
 {
     pub fn new() -> Self {
         Self {
@@ -53,7 +53,7 @@ impl<V, E, Ty: EdgeType, Id: GraphIdTypes> GraphBase for AdjMatrix<V, E, Ty, Id>
 
 impl<V, E, Ty: EdgeType, Id: GraphIdTypes> VerticesBase for AdjMatrix<V, E, Ty, Id>
 where
-    Id::VertexId: NumIdType,
+    Id::VertexId: IntegerIdType,
 {
     type VertexIdsIter<'a> = VertexIds<Self::VertexId>
     where
@@ -73,7 +73,7 @@ where
 
     fn vertex_id_map(&self) -> CompactIdMap<Self::VertexId>
     where
-        Id::VertexId: NumIdType,
+        Id::VertexId: IntegerIdType,
     {
         CompactIdMap::isomorphic(self.vertex_count())
     }
@@ -81,7 +81,7 @@ where
 
 impl<V, E, Ty: EdgeType, Id: GraphIdTypes> Vertices<V> for AdjMatrix<V, E, Ty, Id>
 where
-    Id::VertexId: NumIdType,
+    Id::VertexId: IntegerIdType,
 {
     type VertexRef<'a> = (Self::VertexId, &'a V)
     where
@@ -104,8 +104,8 @@ where
 
 impl<V, E, Ty: EdgeType, Id: GraphIdTypes> VerticesMut<V> for AdjMatrix<V, E, Ty, Id>
 where
-    Id::VertexId: NumIdType,
-    Id::EdgeId: NumIdType,
+    Id::VertexId: IntegerIdType,
+    Id::EdgeId: IntegerIdType,
 {
     fn vertex_mut(&mut self, id: &Self::VertexId) -> Option<&mut V> {
         self.vertices.get_mut(id.to_usize())
@@ -182,8 +182,8 @@ where
 
 impl<V, E, Ty: EdgeType, Id: GraphIdTypes> EdgesBase<Ty> for AdjMatrix<V, E, Ty, Id>
 where
-    Id::VertexId: NumIdType,
-    Id::EdgeId: NumIdType,
+    Id::VertexId: IntegerIdType,
+    Id::EdgeId: IntegerIdType,
 {
     type EdgeIdsIter<'a> = EdgeIdsIter<'a, Ty, Id>
     where
@@ -226,8 +226,8 @@ where
 
 impl<V, E, Ty: EdgeType, Id: GraphIdTypes> Edges<E, Ty> for AdjMatrix<V, E, Ty, Id>
 where
-    Id::VertexId: NumIdType,
-    Id::EdgeId: NumIdType,
+    Id::VertexId: IntegerIdType,
+    Id::EdgeId: IntegerIdType,
 {
     type EdgeRef<'a> = (Self::EdgeId, &'a E, Self::VertexId, Self::VertexId)
     where
@@ -255,8 +255,8 @@ where
 
 impl<V, E, Ty: EdgeType, Id: GraphIdTypes> EdgesMut<E, Ty> for AdjMatrix<V, E, Ty, Id>
 where
-    Id::VertexId: NumIdType,
-    Id::EdgeId: NumIdType,
+    Id::VertexId: IntegerIdType,
+    Id::EdgeId: IntegerIdType,
 {
     fn edge_mut(&mut self, id: &Id::EdgeId) -> Option<&mut E> {
         self.matrix.get_mut(*id)
@@ -306,8 +306,8 @@ where
 
 impl<V, E, Ty: EdgeType, Id: GraphIdTypes> Neighbors for AdjMatrix<V, E, Ty, Id>
 where
-    Id::VertexId: NumIdType,
-    Id::EdgeId: NumIdType,
+    Id::VertexId: IntegerIdType,
+    Id::EdgeId: IntegerIdType,
 {
     type NeighborRef<'a> = (Self::VertexId, Self::EdgeId, Self::VertexId, Direction)
     where
@@ -366,8 +366,8 @@ where
 
 impl<V, E, Ty: EdgeType, Id: GraphIdTypes> Create<V, E, Ty> for AdjMatrix<V, E, Ty, Id>
 where
-    Id::VertexId: NumIdType,
-    Id::EdgeId: NumIdType,
+    Id::VertexId: IntegerIdType,
+    Id::EdgeId: IntegerIdType,
 {
     fn with_capacity(vertex_count: usize, _edge_count: usize) -> Self {
         Self {
@@ -380,8 +380,8 @@ where
 
 impl<V, E, Ty: EdgeType, Id: GraphIdTypes> ConnectVertices<V, E, Ty> for AdjMatrix<V, E, Ty, Id>
 where
-    Id::VertexId: NumIdType,
-    Id::EdgeId: NumIdType,
+    Id::VertexId: IntegerIdType,
+    Id::EdgeId: IntegerIdType,
 {
     fn connect_vertices<F>(&mut self, mut connect: F)
     where
@@ -412,7 +412,7 @@ pub struct EdgeIdsIter<'a, Ty, Id> {
 
 impl<'a, Ty: EdgeType, Id: GraphIdTypes> Iterator for EdgeIdsIter<'a, Ty, Id>
 where
-    Id::EdgeId: NumIdType,
+    Id::EdgeId: IntegerIdType,
 {
     type Item = Id::EdgeId;
 
@@ -441,8 +441,8 @@ pub struct EdgesIter<'a, E, Ty, Id> {
 
 impl<'a, E, Ty: EdgeType, Id: GraphIdTypes> Iterator for EdgesIter<'a, E, Ty, Id>
 where
-    Id::VertexId: NumIdType,
-    Id::EdgeId: NumIdType,
+    Id::VertexId: IntegerIdType,
+    Id::EdgeId: IntegerIdType,
 {
     type Item = (Id::EdgeId, &'a E, Id::VertexId, Id::VertexId);
 
@@ -474,8 +474,8 @@ pub struct NeighborsIter<'a, Ty, Id: GraphIdTypes> {
 
 impl<'a, Ty: EdgeType, Id: GraphIdTypes> Iterator for NeighborsIter<'a, Ty, Id>
 where
-    Id::VertexId: NumIdType,
-    Id::EdgeId: NumIdType,
+    Id::VertexId: IntegerIdType,
+    Id::EdgeId: IntegerIdType,
 {
     type Item = (Id::VertexId, Id::EdgeId, Id::VertexId, Direction);
 
@@ -517,7 +517,7 @@ mod raw {
     use bitvec::prelude::*;
 
     use crate::common::matrix::*;
-    use crate::core::id::{GraphIdTypes, NumIdType};
+    use crate::core::id::{GraphIdTypes, IntegerIdType};
     use crate::core::marker::{Direction, EdgeType};
 
     #[derive(Debug)]
@@ -721,8 +721,8 @@ mod raw {
 
     impl<E, Ty: EdgeType, Id: GraphIdTypes> Matrix<E, Ty, Id>
     where
-        Id::VertexId: NumIdType,
-        Id::EdgeId: NumIdType,
+        Id::VertexId: IntegerIdType,
+        Id::EdgeId: IntegerIdType,
     {
         pub fn with_capacity(capacity: usize) -> Self {
             if capacity == 0 {
@@ -836,7 +836,7 @@ mod raw {
 
     impl<Ty: EdgeType, Id: GraphIdTypes> DetachedMatrix<'_, Ty, Id>
     where
-        Id::EdgeId: NumIdType,
+        Id::EdgeId: IntegerIdType,
     {
         pub fn contains(&self, id: Id::EdgeId) -> bool {
             self.data[id.to_usize()]

@@ -10,7 +10,7 @@ pub mod visit;
 pub use self::graph::Graph;
 
 pub mod prelude {
-    pub use crate::core::id::{IdType, NumIdType};
+    pub use crate::core::id::{IdType, IntegerIdType};
     pub use crate::core::{EdgeRef, NeighborRef, VertexRef};
     pub use crate::graph::Graph;
     pub use crate::visit::Visitor;

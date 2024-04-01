@@ -306,7 +306,7 @@ where
 mod tests {
     use crate::{
         core::{
-            id::{DefaultId, EdgeId, NumIdType, VertexId},
+            id::{DefaultId, EdgeId, IntegerIdType, VertexId},
             marker::Directed,
             EdgesMut, VerticesMut,
         },

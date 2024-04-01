@@ -6,7 +6,7 @@ use crate::common::CompactIdMap;
 
 use super::{
     base::{GraphBase, WeakRef},
-    id::{IdType, NumIdType},
+    id::{IdType, IntegerIdType},
 };
 
 pub trait VertexRef<VId: IdType, V> {
@@ -29,7 +29,7 @@ pub trait VerticesBase: GraphBase {
 
     fn vertex_id_map(&self) -> CompactIdMap<Self::VertexId>
     where
-        Self::VertexId: NumIdType,
+        Self::VertexId: IntegerIdType,
     {
         // Should be overridden to use `isomorphic` whenever possible.
         CompactIdMap::new(self.vertex_ids())
@@ -212,7 +212,7 @@ macro_rules! deref_vertices_base {
 
             fn vertex_id_map(&self) -> CompactIdMap<Self::VertexId>
             where
-                Self::VertexId: NumIdType,
+                Self::VertexId: IntegerIdType,
             {
                 (**self).vertex_id_map()
             }

@@ -1,11 +1,10 @@
-use std::{fmt, mem};
-
-use thiserror::Error;
+use std::mem;
 
 use crate::common::CompactIdMap;
 
 use super::{
     base::{GraphBase, VertexRef},
+    error::{AddVertexError, ReplaceVertexError},
     id::IntegerIdType,
     weak::WeakRef,
 };
@@ -59,40 +58,6 @@ pub trait Vertices<V>: VerticesBase {
         })
     }
 }
-
-#[derive(Debug, Error, PartialEq)]
-#[error("adding vertex failed: {kind}")]
-pub struct AddVertexError<V> {
-    pub data: V,
-    pub kind: AddVertexErrorKind,
-}
-
-impl<V> AddVertexError<V> {
-    pub fn new(data: V) -> Self {
-        Self {
-            data,
-            kind: AddVertexErrorKind::CapacityOverflow,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum AddVertexErrorKind {
-    CapacityOverflow,
-}
-
-impl fmt::Display for AddVertexErrorKind {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let reason = match self {
-            AddVertexErrorKind::CapacityOverflow => "the graph has exhausted its capacity",
-        };
-        f.write_str(reason)
-    }
-}
-
-#[derive(Debug, Error)]
-#[error("vertex does not exist")]
-pub struct ReplaceVertexError<V>(pub V);
 
 pub trait VerticesMut<V>: Vertices<V> {
     fn vertex_mut(&mut self, id: &Self::VertexId) -> Option<&mut V>;

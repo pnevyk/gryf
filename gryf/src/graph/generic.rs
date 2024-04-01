@@ -6,16 +6,17 @@ use std::{
 
 use crate::{
     core::{
+        error::{
+            AddEdgeConnectingError, AddEdgeError, AddVertexError, ReplaceEdgeError,
+            ReplaceVertexError,
+        },
         id::DefaultId,
         marker::{Directed, Direction, EdgeType, Undirected},
-        AddEdgeError, AddVertexError, ConnectVertices, Create, Edges, EdgesBase, EdgesMut,
-        ExtendWithEdges, ExtendWithVertices, GraphBase, IntoEdge, MultiEdges, Neighbors,
-        ReplaceEdgeError, ReplaceVertexError, Vertices, VerticesBase, VerticesMut,
+        ConnectVertices, Create, Edges, EdgesBase, EdgesMut, ExtendWithEdges, ExtendWithVertices,
+        GraphBase, IntoEdge, MultiEdges, Neighbors, Vertices, VerticesBase, VerticesMut,
     },
     storage::{AdjList, Frozen, Stable},
 };
-
-use super::AddEdgeConnectingError;
 
 use gryf_derive::{
     Edges, EdgesBase, EdgesBaseWeak, EdgesMut, EdgesWeak, GraphBase, Guarantee, MultiEdges,

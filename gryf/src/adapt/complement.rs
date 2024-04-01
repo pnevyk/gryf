@@ -11,7 +11,7 @@ use gryf_derive::{GraphBase, Vertices, VerticesBase, VerticesMut};
 
 // TODO: Remove these imports once hygiene of procedural macros is fixed.
 use crate::common::CompactIdMap;
-use crate::core::{AddVertexError, GraphBase, NeighborRef};
+use crate::core::{error::AddVertexError, GraphBase, NeighborRef};
 
 #[derive(Debug, GraphBase, VerticesBase, Vertices, VerticesMut)]
 pub struct Complement<E, G> {

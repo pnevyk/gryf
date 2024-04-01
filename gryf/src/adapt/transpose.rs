@@ -15,8 +15,8 @@ use gryf_derive::{
 
 // TODO: Remove these imports once hygiene of procedural macros is fixed.
 use crate::core::{
-    marker::EdgeType, AddVertexError, EdgesBaseWeak, EdgesWeak, GraphBase, Guarantee, Vertices,
-    VerticesBaseWeak, VerticesMut, VerticesWeak,
+    error::AddVertexError, marker::EdgeType, EdgesBaseWeak, EdgesWeak, GraphBase, Guarantee,
+    Vertices, VerticesBaseWeak, VerticesMut, VerticesWeak,
 };
 
 #[derive(

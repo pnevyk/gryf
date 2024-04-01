@@ -16,8 +16,10 @@ use gryf_derive::{
 // TODO: Remove these imports once hygiene of procedural macros is fixed.
 use crate::common::CompactIdMap;
 use crate::core::{
-    id::IntegerIdType, AddEdgeError, AddVertexError, EdgesBase, EdgesBaseWeak, EdgesMut, EdgesWeak,
-    GraphBase, MultiEdges, VerticesBase, VerticesBaseWeak, VerticesMut, VerticesWeak, WeakRef,
+    error::{AddEdgeError, AddVertexError},
+    id::IntegerIdType,
+    EdgesBase, EdgesBaseWeak, EdgesMut, EdgesWeak, GraphBase, MultiEdges, VerticesBase,
+    VerticesBaseWeak, VerticesMut, VerticesWeak, WeakRef,
 };
 
 use super::export::Dot;

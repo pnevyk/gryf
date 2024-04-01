@@ -1,11 +1,10 @@
-use std::{fmt, mem};
-
-use thiserror::Error;
+use std::mem;
 
 use crate::common::CompactIdMap;
 
 use super::{
     base::{EdgeRef, GraphBase},
+    error::{AddEdgeError, ReplaceEdgeError},
     id::IntegerIdType,
     marker::EdgeType,
     weak::WeakRef,
@@ -61,45 +60,6 @@ pub trait Edges<E, Ty: EdgeType>: EdgesBase<Ty> {
     fn edge(&self, id: &Self::EdgeId) -> Option<&E>;
     fn edges(&self) -> Self::EdgesIter<'_>;
 }
-
-#[derive(Debug, Error, PartialEq)]
-#[error("adding edge failed: {kind}")]
-pub struct AddEdgeError<E> {
-    pub data: E,
-    pub kind: AddEdgeErrorKind,
-}
-
-impl<E> AddEdgeError<E> {
-    pub fn new(data: E, kind: AddEdgeErrorKind) -> Self {
-        Self { data, kind }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum AddEdgeErrorKind {
-    SourceAbsent,
-    DestinationAbsent,
-    MultiEdge,
-    CapacityOverflow,
-}
-
-impl fmt::Display for AddEdgeErrorKind {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let reason = match self {
-            AddEdgeErrorKind::SourceAbsent => "source does not exist",
-            AddEdgeErrorKind::DestinationAbsent => "destination does not exist",
-            AddEdgeErrorKind::MultiEdge => {
-                "an edge already exists and the graph does not allow multi edges"
-            }
-            AddEdgeErrorKind::CapacityOverflow => "the graph has exhausted its capacity",
-        };
-        f.write_str(reason)
-    }
-}
-
-#[derive(Debug, Error, PartialEq)]
-#[error("edge does not exist")]
-pub struct ReplaceEdgeError<E>(pub E);
 
 pub trait EdgesMut<E, Ty: EdgeType>: Edges<E, Ty> {
     fn edge_mut(&mut self, id: &Self::EdgeId) -> Option<&mut E>;

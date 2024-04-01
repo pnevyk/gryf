@@ -3,8 +3,9 @@ use std::mem;
 use crate::common::CompactIdMap;
 
 use super::{
-    base::{GraphBase, VertexRef},
+    base::VertexRef,
     error::{AddVertexError, ReplaceVertexError},
+    graph::GraphBase,
     id::IntegerIdType,
     weak::WeakRef,
 };

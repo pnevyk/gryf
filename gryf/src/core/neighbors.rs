@@ -1,5 +1,6 @@
 use super::{
-    base::{GraphBase, NeighborRef},
+    base::NeighborRef,
+    graph::GraphBase,
     marker::{Direction, EdgeType},
 };
 

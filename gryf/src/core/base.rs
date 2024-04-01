@@ -27,38 +27,6 @@ pub trait IntoEdge<Id: GraphIdTypes, E, Ty: EdgeType> {
     fn unpack(self) -> (Id::VertexId, Id::VertexId, E);
 }
 
-pub trait GraphBase {
-    type VertexId: IdType;
-    type EdgeId: IdType;
-    type EdgeType: EdgeType;
-}
-
-impl<G> GraphBase for &G
-where
-    G: GraphBase,
-{
-    type VertexId = G::VertexId;
-    type EdgeId = G::EdgeId;
-    type EdgeType = G::EdgeType;
-}
-
-impl<G> GraphBase for &mut G
-where
-    G: GraphBase,
-{
-    type VertexId = G::VertexId;
-    type EdgeId = G::EdgeId;
-    type EdgeType = G::EdgeType;
-}
-
-impl<G> GraphIdTypes for G
-where
-    G: GraphBase,
-{
-    type VertexId = G::VertexId;
-    type EdgeId = G::EdgeId;
-}
-
 mod imp {
     use super::*;
 

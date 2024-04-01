@@ -104,7 +104,7 @@ pub fn augment_where_clause(
 
     let tokens = where_clause
         .map(|wc| wc.to_token_stream())
-        .unwrap_or_else(TokenStream2::new);
+        .unwrap_or_default();
 
     let iter = AugmentWhereClause::new(bounds, tokens);
     iter.collect::<TokenStream2>()

@@ -692,7 +692,7 @@ mod raw {
             let data = mem::take(&mut self.data);
 
             FlaggedIter {
-                inner: flags.into_iter().zip(data.into_iter()),
+                inner: flags.into_iter().zip(data),
             }
         }
     }

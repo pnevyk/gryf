@@ -3,13 +3,13 @@
 use libfuzzer_sys::fuzz_target;
 
 use gryf::{
-    core::{index::DefaultIndexing, marker::Undirected},
+    core::{id::DefaultId, marker::Undirected},
     infra::{arbitrary::MutOpsSeq, testing::check_consistency},
     storage::{AdjList, Stable},
 };
 
 fuzz_target!(|ops: MutOpsSeq<i8, i8>| {
-    let mut graph = Stable::<AdjList<_, _, Undirected, DefaultIndexing>>::new(AdjList::new());
+    let mut graph = Stable::<AdjList<_, _, Undirected, DefaultId>>::new(AdjList::new());
 
     for op in ops {
         op.apply(&mut graph);

@@ -18,9 +18,9 @@ where
     graph: G,
     state: S,
     #[allow(clippy::type_complexity)]
-    filter_vertex: Box<dyn Fn(&G::VertexIndex, &G, &S) -> bool>,
+    filter_vertex: Box<dyn Fn(&G::VertexId, &G, &S) -> bool>,
     #[allow(clippy::type_complexity)]
-    filter_edge: Box<dyn Fn(&G::EdgeIndex, &G, &S) -> bool>,
+    filter_edge: Box<dyn Fn(&G::EdgeId, &G, &S) -> bool>,
 }
 
 impl<G> Subgraph<G>
@@ -51,7 +51,7 @@ where
 
     pub fn filter_vertex<F>(self, predicate: F) -> Self
     where
-        F: Fn(&G::VertexIndex, &G, &S) -> bool + 'static,
+        F: Fn(&G::VertexId, &G, &S) -> bool + 'static,
     {
         Self {
             filter_vertex: Box::new(predicate),
@@ -61,7 +61,7 @@ where
 
     pub fn filter_edge<F>(self, predicate: F) -> Self
     where
-        F: Fn(&G::EdgeIndex, &G, &S) -> bool + 'static,
+        F: Fn(&G::EdgeId, &G, &S) -> bool + 'static,
     {
         Self {
             filter_edge: Box::new(predicate),
@@ -69,11 +69,11 @@ where
         }
     }
 
-    fn check_vertex(&self, index: &G::VertexIndex) -> bool {
+    fn check_vertex(&self, index: &G::VertexId) -> bool {
         (self.filter_vertex)(index, &self.graph, &self.state)
     }
 
-    fn check_edge(&self, index: &G::EdgeIndex) -> bool {
+    fn check_edge(&self, index: &G::EdgeId) -> bool {
         (self.filter_edge)(index, &self.graph, &self.state)
     }
 }
@@ -82,27 +82,27 @@ impl<G, S> VerticesBase for Subgraph<G, S>
 where
     G: VerticesBase,
 {
-    type VertexIndicesIter<'a> = SubsetIter<'a, G::VertexIndicesIter<'a>, G::VertexIndex>
+    type VertexIdsIter<'a> = SubsetIter<'a, G::VertexIdsIter<'a>, G::VertexId>
     where
         Self: 'a;
 
     fn vertex_count(&self) -> usize {
-        self.vertex_indices().count()
+        self.vertex_ids().count()
     }
 
     fn vertex_bound(&self) -> usize {
         self.graph.vertex_bound()
     }
 
-    fn vertex_indices(&self) -> Self::VertexIndicesIter<'_> {
+    fn vertex_ids(&self) -> Self::VertexIdsIter<'_> {
         SubsetIter::new(
-            self.graph.vertex_indices(),
+            self.graph.vertex_ids(),
             |index| self.check_vertex(index),
             true,
         )
     }
 
-    fn contains_vertex(&self, index: &Self::VertexIndex) -> bool {
+    fn contains_vertex(&self, index: &Self::VertexId) -> bool {
         self.check_vertex(index) && self.graph.contains_vertex(index)
     }
 }
@@ -121,7 +121,7 @@ where
         Self: 'a,
         V: 'a;
 
-    fn vertex(&self, index: &G::VertexIndex) -> Option<&V> {
+    fn vertex(&self, index: &G::VertexId) -> Option<&V> {
         if self.check_vertex(index) {
             self.graph.vertex(index)
         } else {
@@ -132,12 +132,12 @@ where
     fn vertices(&self) -> Self::VerticesIter<'_> {
         SubsetIter::<_, G::VertexRef<'_>>::new(
             self.graph.vertices(),
-            |vertex| self.check_vertex(vertex.index()),
+            |vertex| self.check_vertex(vertex.id()),
             true,
         )
     }
 
-    fn find_vertex(&self, vertex: &V) -> Option<Self::VertexIndex>
+    fn find_vertex(&self, vertex: &V) -> Option<Self::VertexId>
     where
         V: Eq,
     {
@@ -152,22 +152,22 @@ impl<Ty: EdgeType, G, S> EdgesBase<Ty> for Subgraph<G, S>
 where
     G: EdgesBase<Ty>,
 {
-    type EdgeIndicesIter<'a> = SubsetIter<'a, G::EdgeIndicesIter<'a>, G::EdgeIndex>
+    type EdgeIdsIter<'a> = SubsetIter<'a, G::EdgeIdsIter<'a>, G::EdgeId>
     where
         Self: 'a;
-    type EdgeIndexIter<'a> = SubsetIter<'a, G::EdgeIndexIter<'a>, G::EdgeIndex>
+    type EdgeIdIter<'a> = SubsetIter<'a, G::EdgeIdIter<'a>, G::EdgeId>
     where
         Self: 'a;
 
     fn edge_count(&self) -> usize {
-        self.edge_indices().count()
+        self.edge_ids().count()
     }
 
     fn edge_bound(&self) -> usize {
         self.graph.edge_bound()
     }
 
-    fn endpoints(&self, index: &G::EdgeIndex) -> Option<(G::VertexIndex, G::VertexIndex)> {
+    fn endpoints(&self, index: &G::EdgeId) -> Option<(G::VertexId, G::VertexId)> {
         if self.check_edge(index) {
             match self.graph.endpoints(index) {
                 Some((src, dst)) if self.check_vertex(&src) && self.check_vertex(&dst) => {
@@ -180,33 +180,29 @@ where
         }
     }
 
-    fn edge_index(&self, src: &G::VertexIndex, dst: &G::VertexIndex) -> Self::EdgeIndexIter<'_> {
+    fn edge_id(&self, src: &G::VertexId, dst: &G::VertexId) -> Self::EdgeIdIter<'_> {
         let endpoints_exist = self.check_vertex(src) && self.check_vertex(dst);
 
         SubsetIter::new(
-            self.graph.edge_index(src, dst),
+            self.graph.edge_id(src, dst),
             |index| self.contains_edge(index),
             endpoints_exist,
         )
     }
 
-    fn edge_index_any(
-        &self,
-        src: &Self::VertexIndex,
-        dst: &Self::VertexIndex,
-    ) -> Option<Self::EdgeIndex> {
-        self.edge_index(src, dst).next()
+    fn edge_id_any(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Option<Self::EdgeId> {
+        self.edge_id(src, dst).next()
     }
 
-    fn edge_indices(&self) -> Self::EdgeIndicesIter<'_> {
+    fn edge_ids(&self) -> Self::EdgeIdsIter<'_> {
         SubsetIter::new(
-            self.graph.edge_indices(),
+            self.graph.edge_ids(),
             |index| self.contains_edge(index),
             true,
         )
     }
 
-    fn contains_edge(&self, index: &G::EdgeIndex) -> bool {
+    fn contains_edge(&self, index: &G::EdgeId) -> bool {
         self.endpoints(index).is_some()
     }
 }
@@ -225,7 +221,7 @@ where
         Self: 'a,
         E: 'a;
 
-    fn edge(&self, index: &G::EdgeIndex) -> Option<&E> {
+    fn edge(&self, index: &G::EdgeId) -> Option<&E> {
         if self.contains_edge(index) {
             self.graph.edge(index)
         } else {
@@ -236,7 +232,7 @@ where
     fn edges(&self) -> Self::EdgesIter<'_> {
         SubsetIter::<_, G::EdgeRef<'_>>::new(
             self.graph.edges(),
-            |edge| self.contains_edge(edge.index()),
+            |edge| self.contains_edge(edge.id()),
             true,
         )
     }
@@ -254,26 +250,26 @@ where
     where
         Self: 'a;
 
-    fn neighbors(&self, src: &G::VertexIndex) -> Self::NeighborsIter<'_> {
+    fn neighbors(&self, src: &G::VertexId) -> Self::NeighborsIter<'_> {
         if !self.check_vertex(src) {
             panic!("vertex does not exist");
         }
 
         SubsetIter::<_, G::NeighborRef<'_>>::new(
             self.graph.neighbors(src),
-            |neighbor| self.check_vertex(&neighbor.index()) && self.check_edge(&neighbor.edge()),
+            |neighbor| self.check_vertex(&neighbor.id()) && self.check_edge(&neighbor.edge()),
             true,
         )
     }
 
-    fn neighbors_directed(&self, src: &G::VertexIndex, dir: Direction) -> Self::NeighborsIter<'_> {
+    fn neighbors_directed(&self, src: &G::VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
         if !self.check_vertex(src) {
             panic!("vertex does not exist");
         }
 
         SubsetIter::<_, G::NeighborRef<'_>>::new(
             self.graph.neighbors_directed(src, dir),
-            |neighbor| self.check_vertex(&neighbor.index()) && self.check_edge(&neighbor.edge()),
+            |neighbor| self.check_vertex(&neighbor.id()) && self.check_edge(&neighbor.edge()),
             true,
         )
     }
@@ -318,7 +314,7 @@ where
 mod tests {
     use crate::{
         core::{
-            index::{DefaultIndexing, EdgeIndex, NumIndexType, VertexIndex},
+            id::{DefaultId, EdgeId, NumIdType, VertexId},
             marker::Directed,
             EdgesMut, VerticesMut,
         },
@@ -327,7 +323,7 @@ mod tests {
 
     use super::*;
 
-    fn create_subgraph() -> Subgraph<AdjList<i32, i32, Directed, DefaultIndexing>> {
+    fn create_subgraph() -> Subgraph<AdjList<i32, i32, Directed, DefaultId>> {
         // digraph G {
         //     v0 [label="0"];
         //     v1 [label="1"];
@@ -370,18 +366,18 @@ mod tests {
         graph.add_edge(&v4, &v5, 10);
 
         Subgraph::new(graph)
-            .filter_vertex(|v: &VertexIndex, _, _| v.to_usize() < 4)
+            .filter_vertex(|v: &VertexId, _, _| v.to_usize() < 4)
             .filter_edge(|e, g, _| {
-                let (src, dst): (VertexIndex, VertexIndex) = g.endpoints(e).unwrap();
+                let (src, dst): (VertexId, VertexId) = g.endpoints(e).unwrap();
                 src.to_usize() + dst.to_usize() < 4 || dst.to_usize() == 5
             })
     }
 
-    fn v(index: usize) -> VertexIndex {
+    fn v(index: usize) -> VertexId {
         index.into()
     }
 
-    fn e(index: usize) -> EdgeIndex {
+    fn e(index: usize) -> EdgeId {
         index.into()
     }
 
@@ -398,10 +394,10 @@ mod tests {
     }
 
     #[test]
-    fn subgraph_vertex_indices() {
+    fn subgraph_vertex_ids() {
         let subgraph = create_subgraph();
 
-        let mut vertex_indices = subgraph.vertex_indices().collect::<Vec<_>>();
+        let mut vertex_indices = subgraph.vertex_ids().collect::<Vec<_>>();
         vertex_indices.sort_unstable();
         assert_eq!(&vertex_indices, &[v(0), v(1), v(2), v(3)]);
     }
@@ -426,7 +422,7 @@ mod tests {
     fn subgraph_vertices() {
         let subgraph = create_subgraph();
 
-        let mut vertex_indices = subgraph.vertices().map(|v| *v.index()).collect::<Vec<_>>();
+        let mut vertex_indices = subgraph.vertices().map(|v| *v.id()).collect::<Vec<_>>();
         vertex_indices.sort_unstable();
         assert_eq!(&vertex_indices, &[v(0), v(1), v(2), v(3)]);
     }
@@ -461,19 +457,19 @@ mod tests {
     }
 
     #[test]
-    fn subgraph_edge_index_any() {
+    fn subgraph_edge_id_any() {
         let subgraph = create_subgraph();
 
-        assert!(subgraph.edge_index_any(&v(1), &v(2)).is_some());
-        assert!(subgraph.edge_index_any(&v(1), &v(3)).is_none());
-        assert!(subgraph.edge_index_any(&v(1), &v(5)).is_none());
+        assert!(subgraph.edge_id_any(&v(1), &v(2)).is_some());
+        assert!(subgraph.edge_id_any(&v(1), &v(3)).is_none());
+        assert!(subgraph.edge_id_any(&v(1), &v(5)).is_none());
     }
 
     #[test]
-    fn subgraph_edge_indices() {
+    fn subgraph_edge_ids() {
         let subgraph = create_subgraph();
 
-        let mut edge_indices = subgraph.edge_indices().collect::<Vec<_>>();
+        let mut edge_indices = subgraph.edge_ids().collect::<Vec<_>>();
         edge_indices.sort_unstable();
         assert_eq!(&edge_indices, &[e(0), e(1), e(2), e(3)]);
     }
@@ -500,7 +496,7 @@ mod tests {
     fn subgraph_edges() {
         let subgraph = create_subgraph();
 
-        let mut edge_indices = subgraph.edges().map(|e| *e.index()).collect::<Vec<_>>();
+        let mut edge_indices = subgraph.edges().map(|e| *e.id()).collect::<Vec<_>>();
         edge_indices.sort_unstable();
         assert_eq!(&edge_indices, &[e(0), e(1), e(2), e(3)]);
     }

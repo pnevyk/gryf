@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use arbitrary::Arbitrary;
 
 use crate::core::{
-    index::{EdgeIndex, NumIndexType, VertexIndex},
+    id::{EdgeId, NumIdType, VertexId},
     marker::{Direction, EdgeType},
     AddEdgeError, AddEdgeErrorKind, AddVertexError, Edges, EdgesBase, EdgesMut, GraphBase,
     Neighbors, Vertices, VerticesBase, VerticesMut,
@@ -185,13 +185,13 @@ impl<V, E, Ty: EdgeType> Model<V, E, Ty> {
 }
 
 impl<V, E, Ty: EdgeType> GraphBase for Model<V, E, Ty> {
-    type VertexIndex = VertexIndex;
-    type EdgeIndex = EdgeIndex;
+    type VertexId = VertexId;
+    type EdgeId = EdgeId;
     type EdgeType = Ty;
 }
 
 impl<V, E, Ty: EdgeType> VerticesBase for Model<V, E, Ty> {
-    type VertexIndicesIter<'a> = IndexIter<'a, VertexIndex, V>
+    type VertexIdsIter<'a> = IdIter<'a, VertexId, V>
     where
         Self: 'a;
 
@@ -207,13 +207,13 @@ impl<V, E, Ty: EdgeType> VerticesBase for Model<V, E, Ty> {
         self.vertices.len()
     }
 
-    fn vertex_indices(&self) -> Self::VertexIndicesIter<'_> {
-        IndexIter::new(&self.vertices)
+    fn vertex_ids(&self) -> Self::VertexIdsIter<'_> {
+        IdIter::new(&self.vertices)
     }
 }
 
 impl<V, E, Ty: EdgeType> Vertices<V> for Model<V, E, Ty> {
-    type VertexRef<'a> = (VertexIndex, &'a V)
+    type VertexRef<'a> = (VertexId, &'a V)
     where
         Self: 'a,
         V: 'a;
@@ -223,7 +223,7 @@ impl<V, E, Ty: EdgeType> Vertices<V> for Model<V, E, Ty> {
         Self: 'a,
         V: 'a;
 
-    fn vertex(&self, index: &Self::VertexIndex) -> Option<&V> {
+    fn vertex(&self, index: &Self::VertexId) -> Option<&V> {
         self.vertices.get(index.to_usize()).and_then(Option::as_ref)
     }
 
@@ -233,24 +233,24 @@ impl<V, E, Ty: EdgeType> Vertices<V> for Model<V, E, Ty> {
 }
 
 impl<V, E, Ty: EdgeType> VerticesMut<V> for Model<V, E, Ty> {
-    fn vertex_mut(&mut self, index: &Self::VertexIndex) -> Option<&mut V> {
+    fn vertex_mut(&mut self, index: &Self::VertexId) -> Option<&mut V> {
         self.vertices
             .get_mut(index.to_usize())
             .and_then(Option::as_mut)
     }
 
-    fn try_add_vertex(&mut self, vertex: V) -> Result<Self::VertexIndex, AddVertexError<V>> {
+    fn try_add_vertex(&mut self, vertex: V) -> Result<Self::VertexId, AddVertexError<V>> {
         if Some(self.vertex_count()) == self.params.max_vertex_count {
             return Err(AddVertexError::new(vertex));
         }
 
-        let index = VertexIndex::from_usize(self.vertices.len());
+        let index = VertexId::from_usize(self.vertices.len());
         self.vertices.push(Some(vertex));
 
         Ok(index)
     }
 
-    fn remove_vertex(&mut self, index: &Self::VertexIndex) -> Option<V> {
+    fn remove_vertex(&mut self, index: &Self::VertexId) -> Option<V> {
         self.vertex(index)?;
 
         let index = index.to_usize();
@@ -297,10 +297,10 @@ impl<V, E, Ty: EdgeType> VerticesMut<V> for Model<V, E, Ty> {
 }
 
 impl<V, E, Ty: EdgeType> EdgesBase<Ty> for Model<V, E, Ty> {
-    type EdgeIndicesIter<'a> = IndexIter<'a, EdgeIndex, E>
+    type EdgeIdsIter<'a> = IdIter<'a, EdgeId, E>
     where
         Self: 'a;
-    type EdgeIndexIter<'a> = EdgeIndexIter<'a, Ty>
+    type EdgeIdIter<'a> = EdgeIdIter<'a, Ty>
     where
         Self: 'a;
 
@@ -316,27 +316,23 @@ impl<V, E, Ty: EdgeType> EdgesBase<Ty> for Model<V, E, Ty> {
         self.edges.len()
     }
 
-    fn endpoints(&self, index: &Self::EdgeIndex) -> Option<(Self::VertexIndex, Self::VertexIndex)> {
+    fn endpoints(&self, index: &Self::EdgeId) -> Option<(Self::VertexId, Self::VertexId)> {
         let &(src, dst) = self.neighbors.get(index.to_usize())?.as_ref()?;
-        Some((VertexIndex::from_usize(src), VertexIndex::from_usize(dst)))
+        Some((VertexId::from_usize(src), VertexId::from_usize(dst)))
     }
 
-    fn edge_index(
-        &self,
-        src: &Self::VertexIndex,
-        dst: &Self::VertexIndex,
-    ) -> Self::EdgeIndexIter<'_> {
+    fn edge_id(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Self::EdgeIdIter<'_> {
         let (src, dst) = (src.to_usize(), dst.to_usize());
-        EdgeIndexIter::new([src, dst], &self.neighbors)
+        EdgeIdIter::new([src, dst], &self.neighbors)
     }
 
-    fn edge_indices(&self) -> Self::EdgeIndicesIter<'_> {
-        IndexIter::new(&self.edges)
+    fn edge_ids(&self) -> Self::EdgeIdsIter<'_> {
+        IdIter::new(&self.edges)
     }
 }
 
 impl<V, E, Ty: EdgeType> Edges<E, Ty> for Model<V, E, Ty> {
-    type EdgeRef<'a> = (EdgeIndex, &'a E, VertexIndex, VertexIndex)
+    type EdgeRef<'a> = (EdgeId, &'a E, VertexId, VertexId)
     where
         Self: 'a,
         E: 'a;
@@ -346,7 +342,7 @@ impl<V, E, Ty: EdgeType> Edges<E, Ty> for Model<V, E, Ty> {
         Self: 'a,
         E: 'a;
 
-    fn edge(&self, index: &Self::EdgeIndex) -> Option<&E> {
+    fn edge(&self, index: &Self::EdgeId) -> Option<&E> {
         self.edges.get(index.to_usize()).and_then(Option::as_ref)
     }
 
@@ -356,7 +352,7 @@ impl<V, E, Ty: EdgeType> Edges<E, Ty> for Model<V, E, Ty> {
 }
 
 impl<V, E, Ty: EdgeType> EdgesMut<E, Ty> for Model<V, E, Ty> {
-    fn edge_mut(&mut self, index: &Self::EdgeIndex) -> Option<&mut E> {
+    fn edge_mut(&mut self, index: &Self::EdgeId) -> Option<&mut E> {
         self.edges
             .get_mut(index.to_usize())
             .and_then(Option::as_mut)
@@ -364,10 +360,10 @@ impl<V, E, Ty: EdgeType> EdgesMut<E, Ty> for Model<V, E, Ty> {
 
     fn try_add_edge(
         &mut self,
-        src: &Self::VertexIndex,
-        dst: &Self::VertexIndex,
+        src: &Self::VertexId,
+        dst: &Self::VertexId,
         edge: E,
-    ) -> Result<Self::EdgeIndex, AddEdgeError<E>> {
+    ) -> Result<Self::EdgeId, AddEdgeError<E>> {
         if self.vertex(src).is_none() {
             return Err(AddEdgeError::new(edge, AddEdgeErrorKind::SourceAbsent));
         }
@@ -386,14 +382,14 @@ impl<V, E, Ty: EdgeType> EdgesMut<E, Ty> for Model<V, E, Ty> {
             return Err(AddEdgeError::new(edge, AddEdgeErrorKind::MultiEdge));
         }
 
-        let index = EdgeIndex::from_usize(self.edges.len());
+        let index = EdgeId::from_usize(self.edges.len());
         self.edges.push(Some(edge));
         self.neighbors.push(Some((src, dst)));
 
         Ok(index)
     }
 
-    fn remove_edge(&mut self, index: &Self::EdgeIndex) -> Option<E> {
+    fn remove_edge(&mut self, index: &Self::EdgeId) -> Option<E> {
         self.edge(index)?;
 
         let index = index.to_usize();
@@ -413,7 +409,7 @@ impl<V, E, Ty: EdgeType> EdgesMut<E, Ty> for Model<V, E, Ty> {
 }
 
 impl<V, E, Ty: EdgeType> Neighbors for Model<V, E, Ty> {
-    type NeighborRef<'a> = (VertexIndex, EdgeIndex, VertexIndex, Direction)
+    type NeighborRef<'a> = (VertexId, EdgeId, VertexId, Direction)
     where
         Self: 'a;
 
@@ -421,27 +417,23 @@ impl<V, E, Ty: EdgeType> Neighbors for Model<V, E, Ty> {
     where
         Self: 'a;
 
-    fn neighbors(&self, src: &Self::VertexIndex) -> Self::NeighborsIter<'_> {
+    fn neighbors(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_> {
         NeighborsIter::new(src.to_usize(), &self.neighbors, None)
     }
 
-    fn neighbors_directed(
-        &self,
-        src: &Self::VertexIndex,
-        dir: Direction,
-    ) -> Self::NeighborsIter<'_> {
+    fn neighbors_directed(&self, src: &Self::VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
         NeighborsIter::new(src.to_usize(), &self.neighbors, Some(dir))
     }
 }
 
 #[derive(Debug)]
-pub struct IndexIter<'a, Idx, T> {
+pub struct IdIter<'a, Id, T> {
     data: &'a [Option<T>],
     index: usize,
-    ty: PhantomData<Idx>,
+    ty: PhantomData<Id>,
 }
 
-impl<'a, Idx, T> IndexIter<'a, Idx, T> {
+impl<'a, Id, T> IdIter<'a, Id, T> {
     fn new(data: &'a [Option<T>]) -> Self {
         Self {
             data,
@@ -451,8 +443,8 @@ impl<'a, Idx, T> IndexIter<'a, Idx, T> {
     }
 }
 
-impl<Idx: NumIndexType, T> Iterator for IndexIter<'_, Idx, T> {
-    type Item = Idx;
+impl<Id: NumIdType, T> Iterator for IdIter<'_, Id, T> {
+    type Item = Id;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -460,7 +452,7 @@ impl<Idx: NumIndexType, T> Iterator for IndexIter<'_, Idx, T> {
             self.data = tail;
 
             if head.is_some() {
-                return Some(Idx::from_usize(self.index));
+                return Some(Id::from_usize(self.index));
             }
 
             self.index += 1;
@@ -481,14 +473,14 @@ impl<'a, T> VerticesIter<'a, T> {
 }
 
 impl<'a, T> Iterator for VerticesIter<'a, T> {
-    type Item = (VertexIndex, &'a T);
+    type Item = (VertexId, &'a T);
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             let (head, tail) = self.data.split_first()?;
             self.data = tail;
 
-            let index = VertexIndex::from_usize(self.index);
+            let index = VertexId::from_usize(self.index);
             self.index += 1;
 
             if let Some(value) = head {
@@ -516,7 +508,7 @@ impl<'a, T> EdgesIter<'a, T> {
 }
 
 impl<'a, T> Iterator for EdgesIter<'a, T> {
-    type Item = (EdgeIndex, &'a T, VertexIndex, VertexIndex);
+    type Item = (EdgeId, &'a T, VertexId, VertexId);
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -526,7 +518,7 @@ impl<'a, T> Iterator for EdgesIter<'a, T> {
             let (pair, tail) = self.neighbors.split_first()?;
             self.neighbors = tail;
 
-            let index = EdgeIndex::from_usize(self.index);
+            let index = EdgeId::from_usize(self.index);
             self.index += 1;
 
             if let Some(value) = head {
@@ -534,8 +526,8 @@ impl<'a, T> Iterator for EdgesIter<'a, T> {
                 return Some((
                     index,
                     value,
-                    VertexIndex::from_usize(src),
-                    VertexIndex::from_usize(dst),
+                    VertexId::from_usize(src),
+                    VertexId::from_usize(dst),
                 ));
             }
         }
@@ -543,14 +535,14 @@ impl<'a, T> Iterator for EdgesIter<'a, T> {
 }
 
 #[derive(Debug)]
-pub struct EdgeIndexIter<'a, Ty> {
+pub struct EdgeIdIter<'a, Ty> {
     between: [usize; 2],
     neighbors: &'a [Option<(usize, usize)>],
     index: usize,
     ty: PhantomData<Ty>,
 }
 
-impl<'a, Ty> EdgeIndexIter<'a, Ty> {
+impl<'a, Ty> EdgeIdIter<'a, Ty> {
     pub fn new(between: [usize; 2], neighbors: &'a [Option<(usize, usize)>]) -> Self {
         Self {
             between,
@@ -561,15 +553,15 @@ impl<'a, Ty> EdgeIndexIter<'a, Ty> {
     }
 }
 
-impl<'a, Ty: EdgeType> Iterator for EdgeIndexIter<'a, Ty> {
-    type Item = EdgeIndex;
+impl<'a, Ty: EdgeType> Iterator for EdgeIdIter<'a, Ty> {
+    type Item = EdgeId;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             let (pair, tail) = self.neighbors.split_first()?;
             self.neighbors = tail;
 
-            let index = EdgeIndex::from_usize(self.index);
+            let index = EdgeId::from_usize(self.index);
             self.index += 1;
 
             if let Some(&(src, dst)) = pair.as_ref() {
@@ -611,14 +603,14 @@ impl<'a, Ty> NeighborsIter<'a, Ty> {
 }
 
 impl<'a, Ty: EdgeType> Iterator for NeighborsIter<'a, Ty> {
-    type Item = (VertexIndex, EdgeIndex, VertexIndex, Direction);
+    type Item = (VertexId, EdgeId, VertexId, Direction);
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             let (pair, tail) = self.neighbors.split_first()?;
             self.neighbors = tail;
 
-            let index = EdgeIndex::from_usize(self.index);
+            let index = EdgeId::from_usize(self.index);
             self.index += 1;
 
             match (pair.as_ref(), self.dir, Ty::is_directed()) {
@@ -633,9 +625,9 @@ impl<'a, Ty: EdgeType> Iterator for NeighborsIter<'a, Ty> {
                     if src == self.src =>
                 {
                     return Some((
-                        VertexIndex::from_usize(dst),
+                        VertexId::from_usize(dst),
                         index,
-                        VertexIndex::from_usize(src),
+                        VertexId::from_usize(src),
                         Direction::Outgoing,
                     ));
                 }
@@ -643,9 +635,9 @@ impl<'a, Ty: EdgeType> Iterator for NeighborsIter<'a, Ty> {
                 // undirected, we still consider the edge outgoing.
                 (Some(&(src, dst)), _, false) if dst == self.src => {
                     return Some((
-                        VertexIndex::from_usize(src),
+                        VertexId::from_usize(src),
                         index,
-                        VertexIndex::from_usize(dst),
+                        VertexId::from_usize(dst),
                         Direction::Outgoing,
                     ));
                 }
@@ -658,9 +650,9 @@ impl<'a, Ty: EdgeType> Iterator for NeighborsIter<'a, Ty> {
                     if dst == self.src =>
                 {
                     return Some((
-                        VertexIndex::from_usize(src),
+                        VertexId::from_usize(src),
                         index,
-                        VertexIndex::from_usize(dst),
+                        VertexId::from_usize(dst),
                         Direction::Incoming,
                     ));
                 }

@@ -6,7 +6,7 @@ use crate::{
     adapt::Undirect,
     common::VisitSet,
     core::{
-        index::IndexType,
+        id::IdType,
         marker::{Direction, EdgeType},
         EdgesBase, EdgesBaseWeak, GraphBase, NeighborRef, Neighbors, VerticesBase,
         VerticesBaseWeak,
@@ -19,7 +19,7 @@ pub fn bfs_collect<Ty: EdgeType, G>(
     graph: &G,
     cycle: Cycle<G>,
     as_undirected: bool,
-) -> Vec<G::EdgeIndex>
+) -> Vec<G::EdgeId>
 where
     G: Neighbors + VerticesBase + VerticesBaseWeak + EdgesBase<Ty> + EdgesBaseWeak<Ty>,
 {
@@ -30,10 +30,10 @@ where
     }
 }
 
-fn collect<EI, Ty: EdgeType, G>(graph: &G, edge: EI) -> Vec<EI>
+fn collect<EId, Ty: EdgeType, G>(graph: &G, edge: EId) -> Vec<EId>
 where
-    G: Neighbors + VerticesBase + VerticesBaseWeak + EdgesBase<Ty> + GraphBase<EdgeIndex = EI>,
-    EI: IndexType,
+    G: Neighbors + VerticesBase + VerticesBaseWeak + EdgesBase<Ty> + GraphBase<EdgeId = EId>,
+    EId: IdType,
 {
     let (u, v) = match graph.endpoints(&edge) {
         Some(endpoints) => endpoints,
@@ -66,7 +66,7 @@ where
                 continue;
             }
 
-            let next = n.index();
+            let next = n.id();
 
             if visited.is_visited(&*next) {
                 continue;

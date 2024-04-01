@@ -2,42 +2,42 @@ use std::{fmt, mem};
 
 use thiserror::Error;
 
-use crate::common::CompactIndexMap;
+use crate::common::CompactIdMap;
 
 use super::{
     base::{GraphBase, WeakRef},
-    index::{IndexType, NumIndexType},
+    id::{IdType, NumIdType},
 };
 
-pub trait VertexRef<VI: IndexType, V> {
-    fn index(&self) -> &VI;
+pub trait VertexRef<VId: IdType, V> {
+    fn id(&self) -> &VId;
     fn data(&self) -> &V;
 }
 
 pub trait VerticesBase: GraphBase {
-    type VertexIndicesIter<'a>: Iterator<Item = Self::VertexIndex>
+    type VertexIdsIter<'a>: Iterator<Item = Self::VertexId>
     where
         Self: 'a;
 
     fn vertex_count(&self) -> usize;
     fn vertex_bound(&self) -> usize;
-    fn vertex_indices(&self) -> Self::VertexIndicesIter<'_>;
+    fn vertex_ids(&self) -> Self::VertexIdsIter<'_>;
 
-    fn contains_vertex(&self, index: &Self::VertexIndex) -> bool {
-        self.vertex_indices().any(|v| &v == index)
+    fn contains_vertex(&self, index: &Self::VertexId) -> bool {
+        self.vertex_ids().any(|v| &v == index)
     }
 
-    fn vertex_index_map(&self) -> CompactIndexMap<Self::VertexIndex>
+    fn vertex_id_map(&self) -> CompactIdMap<Self::VertexId>
     where
-        Self::VertexIndex: NumIndexType,
+        Self::VertexId: NumIdType,
     {
         // Should be overridden to use `isomorphic` whenever possible.
-        CompactIndexMap::new(self.vertex_indices())
+        CompactIdMap::new(self.vertex_ids())
     }
 }
 
 pub trait Vertices<V>: VerticesBase {
-    type VertexRef<'a>: VertexRef<Self::VertexIndex, V>
+    type VertexRef<'a>: VertexRef<Self::VertexId, V>
     where
         Self: 'a,
         V: 'a;
@@ -47,16 +47,16 @@ pub trait Vertices<V>: VerticesBase {
         Self: 'a,
         V: 'a;
 
-    fn vertex(&self, index: &Self::VertexIndex) -> Option<&V>;
+    fn vertex(&self, index: &Self::VertexId) -> Option<&V>;
     fn vertices(&self) -> Self::VerticesIter<'_>;
 
-    fn find_vertex(&self, vertex: &V) -> Option<Self::VertexIndex>
+    fn find_vertex(&self, vertex: &V) -> Option<Self::VertexId>
     where
         V: Eq,
     {
         self.vertices().find_map(|v| {
             if v.data() == vertex {
-                Some(v.index().clone())
+                Some(v.id().clone())
             } else {
                 None
             }
@@ -99,11 +99,11 @@ impl fmt::Display for AddVertexErrorKind {
 pub struct ReplaceVertexError<V>(pub V);
 
 pub trait VerticesMut<V>: Vertices<V> {
-    fn vertex_mut(&mut self, index: &Self::VertexIndex) -> Option<&mut V>;
-    fn try_add_vertex(&mut self, vertex: V) -> Result<Self::VertexIndex, AddVertexError<V>>;
-    fn remove_vertex(&mut self, index: &Self::VertexIndex) -> Option<V>;
+    fn vertex_mut(&mut self, index: &Self::VertexId) -> Option<&mut V>;
+    fn try_add_vertex(&mut self, vertex: V) -> Result<Self::VertexId, AddVertexError<V>>;
+    fn remove_vertex(&mut self, index: &Self::VertexId) -> Option<V>;
 
-    fn add_vertex(&mut self, vertex: V) -> Self::VertexIndex {
+    fn add_vertex(&mut self, vertex: V) -> Self::VertexId {
         match self.try_add_vertex(vertex) {
             Ok(index) => index,
             Err(error) => panic!("{error}"),
@@ -112,7 +112,7 @@ pub trait VerticesMut<V>: Vertices<V> {
 
     fn try_replace_vertex(
         &mut self,
-        index: &Self::VertexIndex,
+        index: &Self::VertexId,
         vertex: V,
     ) -> Result<V, ReplaceVertexError<V>> {
         match self.vertex_mut(index) {
@@ -121,7 +121,7 @@ pub trait VerticesMut<V>: Vertices<V> {
         }
     }
 
-    fn replace_vertex(&mut self, index: &Self::VertexIndex, vertex: V) -> V {
+    fn replace_vertex(&mut self, index: &Self::VertexId, vertex: V) -> V {
         match self.try_replace_vertex(index, vertex) {
             Ok(original) => original,
             Err(error) => panic!("{error}"),
@@ -131,7 +131,7 @@ pub trait VerticesMut<V>: Vertices<V> {
     fn clear(&mut self) {
         // Should be overridden by an efficient implementation whenever
         // possible.
-        let mut vertices = self.vertex_indices().collect::<Vec<_>>();
+        let mut vertices = self.vertex_ids().collect::<Vec<_>>();
         vertices.reverse();
 
         for v in vertices {
@@ -139,7 +139,7 @@ pub trait VerticesMut<V>: Vertices<V> {
         }
     }
 
-    fn try_get_or_add_vertex(&mut self, vertex: V) -> Result<Self::VertexIndex, AddVertexError<V>>
+    fn try_get_or_add_vertex(&mut self, vertex: V) -> Result<Self::VertexId, AddVertexError<V>>
     where
         V: Eq,
     {
@@ -149,7 +149,7 @@ pub trait VerticesMut<V>: Vertices<V> {
         }
     }
 
-    fn get_or_add_vertex(&mut self, vertex: V) -> Self::VertexIndex
+    fn get_or_add_vertex(&mut self, vertex: V) -> Self::VertexId
     where
         V: Eq,
     {
@@ -171,11 +171,11 @@ pub trait VerticesBaseWeak: GraphBase {
 }
 
 pub trait VerticesWeak<V>: VerticesBaseWeak {
-    fn vertex_weak(&self, index: &Self::VertexIndex) -> Option<WeakRef<'_, V>>;
+    fn vertex_weak(&self, index: &Self::VertexId) -> Option<WeakRef<'_, V>>;
 }
 
-impl<'a, VI: IndexType, V> VertexRef<VI, V> for (VI, &'a V) {
-    fn index(&self) -> &VI {
+impl<'a, VId: IdType, V> VertexRef<VId, V> for (VId, &'a V) {
+    fn id(&self) -> &VId {
         &self.0
     }
 
@@ -190,7 +190,7 @@ macro_rules! deref_vertices_base {
         where
             G: VerticesBase,
         {
-            type VertexIndicesIter<'a> = G::VertexIndicesIter<'a>
+            type VertexIdsIter<'a> = G::VertexIdsIter<'a>
             where
                 Self: 'a;
 
@@ -202,19 +202,19 @@ macro_rules! deref_vertices_base {
                 (**self).vertex_bound()
             }
 
-            fn vertex_indices(&self) -> Self::VertexIndicesIter<'_> {
-                (**self).vertex_indices()
+            fn vertex_ids(&self) -> Self::VertexIdsIter<'_> {
+                (**self).vertex_ids()
             }
 
-            fn contains_vertex(&self, index: &Self::VertexIndex) -> bool {
+            fn contains_vertex(&self, index: &Self::VertexId) -> bool {
                 (**self).contains_vertex(index)
             }
 
-            fn vertex_index_map(&self) -> CompactIndexMap<Self::VertexIndex>
+            fn vertex_id_map(&self) -> CompactIdMap<Self::VertexId>
             where
-                Self::VertexIndex: NumIndexType,
+                Self::VertexId: NumIdType,
             {
-                (**self).vertex_index_map()
+                (**self).vertex_id_map()
             }
         }
     };
@@ -239,7 +239,7 @@ macro_rules! deref_vertices {
                 Self: 'a,
                 V: 'a;
 
-            fn vertex(&self, index: &Self::VertexIndex) -> Option<&V> {
+            fn vertex(&self, index: &Self::VertexId) -> Option<&V> {
                 (**self).vertex(index)
             }
 
@@ -257,19 +257,19 @@ impl<V, G> VerticesMut<V> for &mut G
 where
     G: VerticesMut<V>,
 {
-    fn vertex_mut(&mut self, index: &Self::VertexIndex) -> Option<&mut V> {
+    fn vertex_mut(&mut self, index: &Self::VertexId) -> Option<&mut V> {
         (**self).vertex_mut(index)
     }
 
-    fn try_add_vertex(&mut self, vertex: V) -> Result<Self::VertexIndex, AddVertexError<V>> {
+    fn try_add_vertex(&mut self, vertex: V) -> Result<Self::VertexId, AddVertexError<V>> {
         (**self).try_add_vertex(vertex)
     }
 
-    fn remove_vertex(&mut self, index: &Self::VertexIndex) -> Option<V> {
+    fn remove_vertex(&mut self, index: &Self::VertexId) -> Option<V> {
         (**self).remove_vertex(index)
     }
 
-    fn replace_vertex(&mut self, index: &Self::VertexIndex, vertex: V) -> V {
+    fn replace_vertex(&mut self, index: &Self::VertexId, vertex: V) -> V {
         (**self).replace_vertex(index, vertex)
     }
 
@@ -304,7 +304,7 @@ macro_rules! deref_vertices_weak {
             where
                 G: VerticesWeak<V>,
             {
-                fn vertex_weak(&self, index: &Self::VertexIndex) -> Option<WeakRef<'_, V>> {
+                fn vertex_weak(&self, index: &Self::VertexId) -> Option<WeakRef<'_, V>> {
                     (**self).vertex_weak(index)
                 }
             }

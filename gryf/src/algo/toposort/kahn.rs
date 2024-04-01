@@ -1,8 +1,8 @@
 use crate::{
     algo::Cycle,
-    common::CompactIndexMap,
+    common::CompactIdMap,
     core::{
-        index::{NumIndexType, Virtual},
+        id::{NumIdType, Virtual},
         marker::Direction,
         GraphBase, NeighborRef, Neighbors, VerticesBase,
     },
@@ -13,13 +13,13 @@ use super::Error;
 pub fn kahn<'a, G>(graph: &'a G) -> KahnIter<'a, G>
 where
     G: Neighbors + VerticesBase + 'a,
-    G::VertexIndex: NumIndexType,
+    G::VertexId: NumIdType,
 {
-    let map = graph.vertex_index_map();
+    let map = graph.vertex_id_map();
     let mut in_deg = Vec::with_capacity(map.len());
     let mut queue = Vec::new();
 
-    for v in graph.vertex_indices() {
+    for v in graph.vertex_ids() {
         let deg = graph.degree_directed(&v, Direction::Incoming);
         in_deg.push(deg);
 
@@ -43,11 +43,11 @@ where
     G: GraphBase,
 {
     graph: &'a G,
-    map: CompactIndexMap<G::VertexIndex>,
+    map: CompactIdMap<G::VertexId>,
     in_deg: Vec<usize>,
     // Does not need to be FIFO as the order of reported vertices with in degree
     // 0 does not matter.
-    queue: Vec<G::VertexIndex>,
+    queue: Vec<G::VertexId>,
     visited: usize,
     cycle: bool,
 }
@@ -55,21 +55,21 @@ where
 impl<'a, G> Iterator for KahnIter<'a, G>
 where
     G: Neighbors,
-    G::VertexIndex: NumIndexType,
+    G::VertexId: NumIdType,
 {
-    type Item = Result<G::VertexIndex, Error<G>>;
+    type Item = Result<G::VertexId, Error<G>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(vertex) = self.queue.pop() {
             self.visited += 1;
 
             for n in self.graph.neighbors_directed(&vertex, Direction::Outgoing) {
-                let i = self.map.virt(*n.index()).unwrap().to_usize();
+                let i = self.map.virt(*n.id()).unwrap().to_usize();
                 let deg = &mut self.in_deg[i];
                 *deg -= 1;
 
                 if *deg == 0 {
-                    self.queue.push(*n.index());
+                    self.queue.push(*n.id());
                 }
             }
 
@@ -101,7 +101,7 @@ where
                     .graph
                     .neighbors_directed(&v, Direction::Incoming)
                     .find_map(|n| {
-                        let i = self.map.virt(*n.index()).unwrap().to_usize();
+                        let i = self.map.virt(*n.id()).unwrap().to_usize();
                         if self.in_deg[i] > 0 {
                             Some(n.edge().into_owned())
                         } else {

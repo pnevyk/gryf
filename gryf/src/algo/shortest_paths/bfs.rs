@@ -14,8 +14,8 @@ use super::{Error, ShortestPaths};
 
 pub fn bfs<G, W>(
     graph: &G,
-    start: G::VertexIndex,
-    goal: Option<G::VertexIndex>,
+    start: G::VertexId,
+    goal: Option<G::VertexId>,
     edge_dist: W,
 ) -> Result<ShortestPaths<W, G>, Error>
 where
@@ -35,7 +35,7 @@ where
     // processed vertex). This should be changed after the capabilities of the
     // visit module are extended.
 
-    // Not using FixedBitSet with CompactIndexMap because the algorithm supports
+    // Not using FixedBitSet with CompactIdMap because the algorithm supports
     // early termination when reaching given goal. It is likely that reaching
     // goal means visiting a subgraph which is significantly smaller than the
     // original graph.
@@ -60,7 +60,7 @@ where
         }
 
         for neighbor in graph.neighbors_directed(&vertex, Direction::Outgoing) {
-            let next = neighbor.index();
+            let next = neighbor.id();
 
             if visited.is_visited(&*next) {
                 continue;

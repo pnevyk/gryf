@@ -1,13 +1,13 @@
 use std::collections::BTreeSet;
 
 use crate::{
-    common::CompactIndexMap,
+    common::CompactIdMap,
     core::{
-        index::{EdgeIndex, NumIndexType, VertexIndex},
+        id::{EdgeId, NumIdType, VertexId},
         marker::{Direction, EdgeType},
         AddEdgeError, AddEdgeErrorKind, AddVertexError, ConnectVertices, Create, EdgeRef, Edges,
-        EdgesBase, EdgesMut, GraphBase, NeighborRef, Neighbors, NoReplace, StableIndices,
-        VertexRef, Vertices, VerticesBase, VerticesMut,
+        EdgesBase, EdgesMut, GraphBase, NeighborRef, Neighbors, NoReplace, StableId, VertexRef,
+        Vertices, VerticesBase, VerticesMut,
     },
 };
 
@@ -20,8 +20,8 @@ use crate::core::{EdgesBaseWeak, EdgesWeak, Guarantee, VerticesBaseWeak, Vertice
 pub struct Stable<G: GraphBase> {
     #[graph]
     inner: G,
-    removed_vertices: BTreeSet<G::VertexIndex>,
-    removed_edges: BTreeSet<G::EdgeIndex>,
+    removed_vertices: BTreeSet<G::VertexId>,
+    removed_edges: BTreeSet<G::EdgeId>,
 }
 
 impl<G> Stable<G>
@@ -42,8 +42,8 @@ where
     {
         let mut inner = self.inner;
 
-        // Propagate the removals. The descending order of indices is important
-        // for not invalidating the stored indices when creating "holes" in the
+        // Propagate the removals. The descending order of ids is important for
+        // not invalidating the stored ids when creating "holes" in the
         // underlying graph.
         for edge in self.removed_edges.iter().rev() {
             let removed = inner.remove_edge(edge);
@@ -82,7 +82,7 @@ impl<G> VerticesBase for Stable<G>
 where
     G: VerticesBase,
 {
-    type VertexIndicesIter<'a> = VertexIndices<'a, G>
+    type VertexIdsIter<'a> = VertexIds<'a, G>
     where
         Self: 'a;
 
@@ -94,14 +94,14 @@ where
         self.inner.vertex_bound()
     }
 
-    fn vertex_indices(&self) -> Self::VertexIndicesIter<'_> {
-        VertexIndices {
-            inner: self.inner.vertex_indices(),
+    fn vertex_ids(&self) -> Self::VertexIdsIter<'_> {
+        VertexIds {
+            inner: self.inner.vertex_ids(),
             removed_vertices: &self.removed_vertices,
         }
     }
 
-    fn contains_vertex(&self, index: &G::VertexIndex) -> bool {
+    fn contains_vertex(&self, index: &G::VertexId) -> bool {
         if self.removed_vertices.contains(index) {
             false
         } else {
@@ -109,14 +109,14 @@ where
         }
     }
 
-    fn vertex_index_map(&self) -> CompactIndexMap<G::VertexIndex>
+    fn vertex_id_map(&self) -> CompactIdMap<G::VertexId>
     where
-        Self::VertexIndex: NumIndexType,
+        Self::VertexId: NumIdType,
     {
         if self.removed_vertices.is_empty() {
-            self.inner.vertex_index_map()
+            self.inner.vertex_id_map()
         } else {
-            CompactIndexMap::new(self.vertex_indices())
+            CompactIdMap::new(self.vertex_ids())
         }
     }
 }
@@ -135,7 +135,7 @@ where
         Self: 'a,
         V: 'a;
 
-    fn vertex(&self, index: &G::VertexIndex) -> Option<&V> {
+    fn vertex(&self, index: &G::VertexId) -> Option<&V> {
         if self.removed_vertices.contains(index) {
             None
         } else {
@@ -156,7 +156,7 @@ where
     G: VerticesMut<V> + Neighbors,
     V: Clone,
 {
-    fn vertex_mut(&mut self, index: &G::VertexIndex) -> Option<&mut V> {
+    fn vertex_mut(&mut self, index: &G::VertexId) -> Option<&mut V> {
         if self.removed_vertices.contains(index) {
             None
         } else {
@@ -164,11 +164,11 @@ where
         }
     }
 
-    fn try_add_vertex(&mut self, vertex: V) -> Result<G::VertexIndex, AddVertexError<V>> {
+    fn try_add_vertex(&mut self, vertex: V) -> Result<G::VertexId, AddVertexError<V>> {
         self.inner.try_add_vertex(vertex)
     }
 
-    fn remove_vertex(&mut self, index: &G::VertexIndex) -> Option<V> {
+    fn remove_vertex(&mut self, index: &G::VertexId) -> Option<V> {
         if let Some(data) = self.vertex(index) {
             let data = data.clone();
 
@@ -195,7 +195,7 @@ where
     }
 
     fn clear(&mut self) {
-        for vertex in self.inner.vertex_indices() {
+        for vertex in self.inner.vertex_ids() {
             for neighbor in self.inner.neighbors(&vertex) {
                 self.removed_edges.insert(neighbor.edge().into_owned());
             }
@@ -209,10 +209,10 @@ impl<Ty: EdgeType, G> EdgesBase<Ty> for Stable<G>
 where
     G: EdgesBase<Ty>,
 {
-    type EdgeIndicesIter<'a> = EdgeIndicesIter<'a, Ty, G>
+    type EdgeIdsIter<'a> = EdgeIdsIter<'a, Ty, G>
     where
         Self: 'a;
-    type EdgeIndexIter<'a> = EdgeIndexIter<'a, Ty, G>
+    type EdgeIdIter<'a> = EdgeIdIter<'a, Ty, G>
     where
         Self: 'a;
 
@@ -224,7 +224,7 @@ where
         self.inner.edge_bound()
     }
 
-    fn endpoints(&self, index: &G::EdgeIndex) -> Option<(G::VertexIndex, G::VertexIndex)> {
+    fn endpoints(&self, index: &G::EdgeId) -> Option<(G::VertexId, G::VertexId)> {
         if self.removed_edges.contains(index) {
             None
         } else {
@@ -232,24 +232,24 @@ where
         }
     }
 
-    fn edge_index(&self, src: &G::VertexIndex, dst: &G::VertexIndex) -> Self::EdgeIndexIter<'_> {
+    fn edge_id(&self, src: &G::VertexId, dst: &G::VertexId) -> Self::EdgeIdIter<'_> {
         let endpoints_exist =
             !self.removed_vertices.contains(src) && !self.removed_vertices.contains(dst);
-        EdgeIndexIter {
-            inner: self.inner.edge_index(src, dst),
+        EdgeIdIter {
+            inner: self.inner.edge_id(src, dst),
             removed_edges: &self.removed_edges,
             endpoints_exist,
         }
     }
 
-    fn edge_indices(&self) -> Self::EdgeIndicesIter<'_> {
-        EdgeIndicesIter {
-            inner: self.inner.edge_indices(),
+    fn edge_ids(&self) -> Self::EdgeIdsIter<'_> {
+        EdgeIdsIter {
+            inner: self.inner.edge_ids(),
             removed_edges: &self.removed_edges,
         }
     }
 
-    fn contains_edge(&self, index: &G::EdgeIndex) -> bool {
+    fn contains_edge(&self, index: &G::EdgeId) -> bool {
         if self.removed_edges.contains(index) {
             false
         } else {
@@ -257,14 +257,14 @@ where
         }
     }
 
-    fn edge_index_map(&self) -> CompactIndexMap<G::EdgeIndex>
+    fn edge_id_map(&self) -> CompactIdMap<G::EdgeId>
     where
-        Self::EdgeIndex: NumIndexType,
+        Self::EdgeId: NumIdType,
     {
         if self.removed_edges.is_empty() {
-            self.inner.edge_index_map()
+            self.inner.edge_id_map()
         } else {
-            CompactIndexMap::new(self.edge_indices())
+            CompactIdMap::new(self.edge_ids())
         }
     }
 }
@@ -283,7 +283,7 @@ where
         Self: 'a,
         E: 'a;
 
-    fn edge(&self, index: &G::EdgeIndex) -> Option<&E> {
+    fn edge(&self, index: &G::EdgeId) -> Option<&E> {
         if self.removed_edges.contains(index) {
             None
         } else {
@@ -304,7 +304,7 @@ where
     G: EdgesMut<E, Ty>,
     E: Clone,
 {
-    fn edge_mut(&mut self, index: &G::EdgeIndex) -> Option<&mut E> {
+    fn edge_mut(&mut self, index: &G::EdgeId) -> Option<&mut E> {
         if self.removed_edges.contains(index) {
             None
         } else {
@@ -314,10 +314,10 @@ where
 
     fn try_add_edge(
         &mut self,
-        src: &G::VertexIndex,
-        dst: &G::VertexIndex,
+        src: &G::VertexId,
+        dst: &G::VertexId,
         edge: E,
-    ) -> Result<G::EdgeIndex, AddEdgeError<E>> {
+    ) -> Result<G::EdgeId, AddEdgeError<E>> {
         if self.removed_vertices.contains(src) {
             return Err(AddEdgeError::new(edge, AddEdgeErrorKind::SourceAbsent));
         }
@@ -329,7 +329,7 @@ where
         self.inner.try_add_edge(src, dst, edge)
     }
 
-    fn remove_edge(&mut self, index: &G::EdgeIndex) -> Option<E> {
+    fn remove_edge(&mut self, index: &G::EdgeId) -> Option<E> {
         if let Some(data) = self.edge(index) {
             let data = data.clone();
             self.removed_edges.insert(index.clone());
@@ -340,7 +340,7 @@ where
     }
 
     fn clear_edges(&mut self) {
-        for edge in self.inner.edge_indices() {
+        for edge in self.inner.edge_ids() {
             self.removed_edges.insert(edge);
         }
     }
@@ -358,7 +358,7 @@ where
     where
         Self: 'a;
 
-    fn neighbors(&self, src: &G::VertexIndex) -> Self::NeighborsIter<'_> {
+    fn neighbors(&self, src: &G::VertexId) -> Self::NeighborsIter<'_> {
         if self.removed_vertices.contains(src) {
             panic!("vertex does not exist");
         }
@@ -370,7 +370,7 @@ where
         }
     }
 
-    fn neighbors_directed(&self, src: &G::VertexIndex, dir: Direction) -> Self::NeighborsIter<'_> {
+    fn neighbors_directed(&self, src: &G::VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
         if self.removed_vertices.contains(src) {
             panic!("vertex does not exist");
         }
@@ -406,8 +406,8 @@ where
     }
 }
 
-impl<G: GraphBase> StableIndices<VertexIndex, NoReplace> for Stable<G> {}
-impl<G: GraphBase> StableIndices<EdgeIndex, NoReplace> for Stable<G> {}
+impl<G: GraphBase> StableId<VertexId, NoReplace> for Stable<G> {}
+impl<G: GraphBase> StableId<EdgeId, NoReplace> for Stable<G> {}
 
 pub trait Stabilize {
     fn stabilize(self) -> Stable<Self>
@@ -415,13 +415,13 @@ pub trait Stabilize {
         Self: Sized + GraphBase;
 }
 
-pub struct VertexIndices<'a, G: VerticesBase + 'a> {
-    inner: G::VertexIndicesIter<'a>,
-    removed_vertices: &'a BTreeSet<G::VertexIndex>,
+pub struct VertexIds<'a, G: VerticesBase + 'a> {
+    inner: G::VertexIdsIter<'a>,
+    removed_vertices: &'a BTreeSet<G::VertexId>,
 }
 
-impl<'a, G: VerticesBase> Iterator for VertexIndices<'a, G> {
-    type Item = G::VertexIndex;
+impl<'a, G: VerticesBase> Iterator for VertexIds<'a, G> {
+    type Item = G::VertexId;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner
@@ -432,7 +432,7 @@ impl<'a, G: VerticesBase> Iterator for VertexIndices<'a, G> {
 
 pub struct VerticesIter<'a, V: 'a, G: Vertices<V> + 'a> {
     inner: G::VerticesIter<'a>,
-    removed_vertices: &'a BTreeSet<G::VertexIndex>,
+    removed_vertices: &'a BTreeSet<G::VertexId>,
 }
 
 impl<'a, V, G: Vertices<V>> Iterator for VerticesIter<'a, V, G> {
@@ -441,17 +441,17 @@ impl<'a, V, G: Vertices<V>> Iterator for VerticesIter<'a, V, G> {
     fn next(&mut self) -> Option<Self::Item> {
         self.inner
             .by_ref()
-            .find(|vertex| !self.removed_vertices.contains(vertex.index()))
+            .find(|vertex| !self.removed_vertices.contains(vertex.id()))
     }
 }
 
-pub struct EdgeIndicesIter<'a, Ty: EdgeType, G: EdgesBase<Ty> + 'a> {
-    inner: G::EdgeIndicesIter<'a>,
-    removed_edges: &'a BTreeSet<G::EdgeIndex>,
+pub struct EdgeIdsIter<'a, Ty: EdgeType, G: EdgesBase<Ty> + 'a> {
+    inner: G::EdgeIdsIter<'a>,
+    removed_edges: &'a BTreeSet<G::EdgeId>,
 }
 
-impl<'a, Ty: EdgeType, G: EdgesBase<Ty>> Iterator for EdgeIndicesIter<'a, Ty, G> {
-    type Item = G::EdgeIndex;
+impl<'a, Ty: EdgeType, G: EdgesBase<Ty>> Iterator for EdgeIdsIter<'a, Ty, G> {
+    type Item = G::EdgeId;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner
@@ -462,7 +462,7 @@ impl<'a, Ty: EdgeType, G: EdgesBase<Ty>> Iterator for EdgeIndicesIter<'a, Ty, G>
 
 pub struct EdgesIter<'a, E: 'a, Ty: EdgeType, G: Edges<E, Ty> + 'a> {
     inner: G::EdgesIter<'a>,
-    removed_edges: &'a BTreeSet<G::EdgeIndex>,
+    removed_edges: &'a BTreeSet<G::EdgeId>,
 }
 
 impl<'a, E, Ty: EdgeType, G: Edges<E, Ty>> Iterator for EdgesIter<'a, E, Ty, G> {
@@ -471,18 +471,18 @@ impl<'a, E, Ty: EdgeType, G: Edges<E, Ty>> Iterator for EdgesIter<'a, E, Ty, G> 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner
             .by_ref()
-            .find(|edge| !self.removed_edges.contains(edge.index()))
+            .find(|edge| !self.removed_edges.contains(edge.id()))
     }
 }
 
-pub struct EdgeIndexIter<'a, Ty: EdgeType, G: EdgesBase<Ty> + 'a> {
-    inner: G::EdgeIndexIter<'a>,
-    removed_edges: &'a BTreeSet<G::EdgeIndex>,
+pub struct EdgeIdIter<'a, Ty: EdgeType, G: EdgesBase<Ty> + 'a> {
+    inner: G::EdgeIdIter<'a>,
+    removed_edges: &'a BTreeSet<G::EdgeId>,
     endpoints_exist: bool,
 }
 
-impl<'a, Ty: EdgeType, G: EdgesBase<Ty>> Iterator for EdgeIndexIter<'a, Ty, G> {
-    type Item = G::EdgeIndex;
+impl<'a, Ty: EdgeType, G: EdgesBase<Ty>> Iterator for EdgeIdIter<'a, Ty, G> {
+    type Item = G::EdgeId;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.endpoints_exist {
@@ -497,8 +497,8 @@ impl<'a, Ty: EdgeType, G: EdgesBase<Ty>> Iterator for EdgeIndexIter<'a, Ty, G> {
 
 pub struct NeighborsIter<'a, G: Neighbors + 'a> {
     inner: G::NeighborsIter<'a>,
-    removed_vertices: &'a BTreeSet<G::VertexIndex>,
-    removed_edges: &'a BTreeSet<G::EdgeIndex>,
+    removed_vertices: &'a BTreeSet<G::VertexId>,
+    removed_edges: &'a BTreeSet<G::EdgeId>,
 }
 
 impl<'a, G> Iterator for NeighborsIter<'a, G>
@@ -510,7 +510,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         self.inner.by_ref().find(|neighbor| {
             !self.removed_edges.contains(&neighbor.edge())
-                && !self.removed_vertices.contains(&neighbor.index())
+                && !self.removed_vertices.contains(&neighbor.id())
         })
     }
 }
@@ -520,7 +520,7 @@ mod tests {
     use super::*;
     use crate::{
         core::{
-            index::DefaultIndexing,
+            id::DefaultId,
             marker::{Directed, Undirected},
         },
         storage::{tests::*, AdjList},
@@ -530,18 +530,17 @@ mod tests {
 
     #[test]
     fn basic_undirected() {
-        test_basic::<Undirected, Stable<AdjList<_, _, _, DefaultIndexing>>>();
+        test_basic::<Undirected, Stable<AdjList<_, _, _, DefaultId>>>();
     }
 
     #[test]
     fn basic_directed() {
-        test_basic::<Directed, Stable<AdjList<_, _, _, DefaultIndexing>>>();
+        test_basic::<Directed, Stable<AdjList<_, _, _, DefaultId>>>();
     }
 
     #[test]
     fn apply() {
-        let mut graph: Stable<AdjList<_, _, Undirected, DefaultIndexing>> =
-            Stable::new(AdjList::new());
+        let mut graph: Stable<AdjList<_, _, Undirected, DefaultId>> = Stable::new(AdjList::new());
 
         let u = graph.add_vertex("u");
         let v = graph.add_vertex("v");
@@ -555,7 +554,7 @@ mod tests {
         let g = graph.add_edge(&y, &z, "g");
 
         // Testing if the apply operation successfully removes all vertices and
-        // edges, even if the underlying graph does not have stable indices.
+        // edges, even if the underlying graph does not have stable ids.
 
         graph.remove_edge(&e);
         graph.remove_edge(&g);
@@ -588,8 +587,7 @@ mod tests {
 
     #[test]
     fn contains_vertex() {
-        let mut graph: Stable<AdjList<_, (), Undirected, DefaultIndexing>> =
-            Stable::new(AdjList::new());
+        let mut graph: Stable<AdjList<_, (), Undirected, DefaultId>> = Stable::new(AdjList::new());
 
         let v = graph.add_vertex(());
         graph.remove_vertex(&v);
@@ -599,8 +597,7 @@ mod tests {
 
     #[test]
     fn contains_edge() {
-        let mut graph: Stable<AdjList<_, _, Undirected, DefaultIndexing>> =
-            Stable::new(AdjList::new());
+        let mut graph: Stable<AdjList<_, _, Undirected, DefaultId>> = Stable::new(AdjList::new());
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -612,9 +609,8 @@ mod tests {
     }
 
     #[test]
-    fn edge_index_any() {
-        let mut graph: Stable<AdjList<_, _, Undirected, DefaultIndexing>> =
-            Stable::new(AdjList::new());
+    fn edge_id_any() {
+        let mut graph: Stable<AdjList<_, _, Undirected, DefaultId>> = Stable::new(AdjList::new());
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -622,14 +618,13 @@ mod tests {
 
         graph.remove_edge(&e);
 
-        assert!(graph.edge_index_any(&v0, &v1).is_none());
+        assert!(graph.edge_id_any(&v0, &v1).is_none());
     }
 
     #[test]
     #[should_panic]
     fn replace_vertex() {
-        let mut graph: Stable<AdjList<_, (), Undirected, DefaultIndexing>> =
-            Stable::new(AdjList::new());
+        let mut graph: Stable<AdjList<_, (), Undirected, DefaultId>> = Stable::new(AdjList::new());
 
         let v = graph.add_vertex(());
         graph.remove_vertex(&v);
@@ -639,8 +634,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn replace_edge() {
-        let mut graph: Stable<AdjList<_, _, Undirected, DefaultIndexing>> =
-            Stable::new(AdjList::new());
+        let mut graph: Stable<AdjList<_, _, Undirected, DefaultId>> = Stable::new(AdjList::new());
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());

@@ -1,8 +1,8 @@
 use crate::{
     adapt::transpose::TransposeRef,
-    common::CompactIndexMap,
+    common::CompactIdMap,
     core::{
-        index::{IndexType, NumIndexType, Virtual},
+        id::{IdType, NumIdType, Virtual},
         marker::EdgeType,
         weights::GetWeight,
         EdgeRef, Edges, VerticesBase, Weight,
@@ -13,17 +13,17 @@ use super::{Error, ShortestPaths};
 
 pub fn bellman_ford<E, Ty: EdgeType, G, W, F>(
     graph: &G,
-    start: G::VertexIndex,
-    goal: Option<G::VertexIndex>,
+    start: G::VertexId,
+    goal: Option<G::VertexId>,
     edge_weight: F,
 ) -> Result<ShortestPaths<W, G>, Error>
 where
     G: VerticesBase + Edges<E, Ty>,
-    G::VertexIndex: NumIndexType,
+    G::VertexId: NumIdType,
     W: Weight,
     F: GetWeight<E, W>,
 {
-    let vertex_map = graph.vertex_index_map();
+    let vertex_map = graph.vertex_id_map();
 
     let mut dist = vec![W::inf(); vertex_map.len()];
     let mut pred = vec![Virtual::null(); vertex_map.len()];
@@ -120,16 +120,16 @@ where
 }
 
 #[inline(always)]
-fn process_edge<VI, EI, ER, E, W, F>(
+fn process_edge<VId, EId, ER, E, W, F>(
     edge: &ER,
     edge_weight: &F,
-    vertex_map: &CompactIndexMap<VI>,
+    vertex_map: &CompactIdMap<VId>,
     dist: &[W],
-) -> Option<(W, Virtual<VI>, Virtual<VI>)>
+) -> Option<(W, Virtual<VId>, Virtual<VId>)>
 where
-    VI: NumIndexType,
-    EI: IndexType,
-    ER: EdgeRef<VI, EI, E>,
+    VId: NumIdType,
+    EId: IdType,
+    ER: EdgeRef<VId, EId, E>,
     W: Weight,
     F: GetWeight<E, W>,
 {

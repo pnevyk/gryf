@@ -9,7 +9,7 @@ pub struct Connected<G>
 where
     G: GraphBase,
 {
-    disconnected_any: Option<(G::VertexIndex, G::VertexIndex)>,
+    disconnected_any: Option<(G::VertexId, G::VertexId)>,
     as_undirected: bool,
 }
 
@@ -21,7 +21,7 @@ where
         self.disconnected_any.is_none()
     }
 
-    pub fn disconnected_any(&self) -> Option<(&G::VertexIndex, &G::VertexIndex)> {
+    pub fn disconnected_any(&self) -> Option<(&G::VertexId, &G::VertexId)> {
         self.disconnected_any.as_ref().map(|(ref u, ref v)| (u, v))
     }
 
@@ -37,11 +37,7 @@ where
     Connected::on(graph).run().is()
 }
 
-pub fn is_path_between<Ty: EdgeType, G>(
-    graph: &G,
-    src: &G::VertexIndex,
-    dst: &G::VertexIndex,
-) -> bool
+pub fn is_path_between<Ty: EdgeType, G>(graph: &G, src: &G::VertexId, dst: &G::VertexId) -> bool
 where
     G: Neighbors + VerticesBase + EdgesBase<Ty>,
 {
@@ -57,7 +53,7 @@ mod tests {
     use crate::{
         common::VisitSet,
         core::{
-            index::VertexIndex,
+            id::VertexId,
             marker::{Directed, Direction, Undirected},
             EdgesMut, NeighborRef, VerticesMut,
         },
@@ -70,7 +66,7 @@ mod tests {
     fn assert_valid<G>(
         connected: Connected<G>,
         graph: &G,
-        between: Option<(G::VertexIndex, G::VertexIndex)>,
+        between: Option<(G::VertexId, G::VertexId)>,
     ) where
         G: Neighbors + VerticesBase,
     {
@@ -92,7 +88,7 @@ mod tests {
 
                         if visited.visit(w.clone()) {
                             for n in graph.neighbors_directed(&w, Direction::Outgoing) {
-                                stack.push(n.index().into_owned());
+                                stack.push(n.id().into_owned());
                             }
                         }
                     }
@@ -109,7 +105,7 @@ mod tests {
                 let mut visited = HashSet::with_capacity(graph.vertex_count());
                 let start = match between {
                     Some((ref start, _)) => start.clone(),
-                    None => match graph.vertex_indices().next() {
+                    None => match graph.vertex_ids().next() {
                         Some(start) => start,
                         None => return,
                     },
@@ -119,7 +115,7 @@ mod tests {
                 while let Some(u) = stack.pop() {
                     if visited.visit(u.clone()) {
                         for n in graph.neighbors(&u) {
-                            stack.push(n.index().into_owned());
+                            stack.push(n.id().into_owned());
                         }
                     }
                 }
@@ -361,8 +357,8 @@ mod tests {
             let n = graph.vertex_count() as u64;
             prop_assume!(n > 0);
 
-            let src = VertexIndex(src % n);
-            let dst = VertexIndex(dst % n);
+            let src = VertexId(src % n);
+            let dst = VertexId(dst % n);
             let connected = Connected::on(&graph).between(&src, &dst).run();
             assert_valid(connected, &graph, Some((src, dst)));
         }
@@ -373,8 +369,8 @@ mod tests {
             let n = graph.vertex_count() as u64;
             prop_assume!(n > 0);
 
-            let src = VertexIndex(src % n);
-            let dst = VertexIndex(dst % n);
+            let src = VertexId(src % n);
+            let dst = VertexId(dst % n);
             let connected = Connected::on(&graph).between(&src, &dst).run();
             assert_valid(connected, &graph, Some((src, dst)));
         }

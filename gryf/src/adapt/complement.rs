@@ -2,7 +2,7 @@ use rustc_hash::FxHashSet;
 
 use crate::core::{
     facts,
-    index::NumIndexType,
+    id::NumIdType,
     marker::{Direction, Undirected},
     EdgesBase, EdgesMut, Neighbors, Vertices, VerticesBase, VerticesMut, WeakRef,
 };
@@ -10,7 +10,7 @@ use crate::core::{
 use gryf_derive::{GraphBase, Vertices, VerticesBase, VerticesMut};
 
 // TODO: Remove these imports once hygiene of procedural macros is fixed.
-use crate::common::CompactIndexMap;
+use crate::common::CompactIdMap;
 use crate::core::{AddVertexError, GraphBase, NeighborRef};
 
 #[derive(Debug, GraphBase, VerticesBase, Vertices, VerticesMut)]
@@ -44,10 +44,10 @@ where
     {
         let mut graph = self.graph;
         let original_edges = graph
-            .edge_indices()
+            .edge_ids()
             .map(|e| graph.endpoints(&e).unwrap())
             .collect::<FxHashSet<_>>();
-        let vertices = graph.vertex_indices().collect::<Vec<_>>();
+        let vertices = graph.vertex_ids().collect::<Vec<_>>();
 
         graph.clear_edges();
 
@@ -68,9 +68,9 @@ where
 impl<E, G> Neighbors for Complement<E, G>
 where
     G: Neighbors + VerticesBase,
-    G::EdgeIndex: NumIndexType,
+    G::EdgeId: NumIdType,
 {
-    type NeighborRef<'a> = (G::VertexIndex, G::EdgeIndex, G::VertexIndex, Direction)
+    type NeighborRef<'a> = (G::VertexId, G::EdgeId, G::VertexId, Direction)
     where
         Self: 'a;
 
@@ -78,29 +78,29 @@ where
     where
         Self: 'a;
 
-    fn neighbors(&self, src: &G::VertexIndex) -> Self::NeighborsIter<'_> {
+    fn neighbors(&self, src: &G::VertexId) -> Self::NeighborsIter<'_> {
         NeighborsIter {
             src: src.clone(),
             dir: Direction::Outgoing,
             neighbors: self
                 .graph
                 .neighbors(src)
-                .map(|n| n.index().into_owned().into())
+                .map(|n| n.id().into_owned().into())
                 .collect(),
-            vertices: self.graph.vertex_indices(),
+            vertices: self.graph.vertex_ids(),
         }
     }
 
-    fn neighbors_directed(&self, src: &G::VertexIndex, dir: Direction) -> Self::NeighborsIter<'_> {
+    fn neighbors_directed(&self, src: &G::VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
         NeighborsIter {
             src: src.clone(),
             dir,
             neighbors: self
                 .graph
                 .neighbors_directed(src, dir)
-                .map(|n| n.index().into_owned().into())
+                .map(|n| n.id().into_owned().into())
                 .collect(),
-            vertices: self.graph.vertex_indices(),
+            vertices: self.graph.vertex_ids(),
         }
     }
 }
@@ -109,25 +109,25 @@ pub struct NeighborsIter<'a, G>
 where
     G: VerticesBase + 'a,
 {
-    src: G::VertexIndex,
+    src: G::VertexId,
     dir: Direction,
-    neighbors: FxHashSet<WeakRef<'a, G::VertexIndex>>,
-    vertices: G::VertexIndicesIter<'a>,
+    neighbors: FxHashSet<WeakRef<'a, G::VertexId>>,
+    vertices: G::VertexIdsIter<'a>,
 }
 
 impl<'a, G> Iterator for NeighborsIter<'a, G>
 where
     G: VerticesBase + 'a,
-    G::EdgeIndex: NumIndexType,
+    G::EdgeId: NumIdType,
 {
-    type Item = (G::VertexIndex, G::EdgeIndex, G::VertexIndex, Direction);
+    type Item = (G::VertexId, G::EdgeId, G::VertexId, Direction);
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             let v = self.vertices.next()?;
 
             if v != self.src && !self.neighbors.contains(&v) {
-                return Some((v, G::EdgeIndex::null(), self.src.clone(), self.dir));
+                return Some((v, G::EdgeId::null(), self.src.clone(), self.dir));
             }
         }
     }
@@ -136,7 +136,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate::{
-        core::index::{DefaultIndexing, VertexIndex},
+        core::id::{DefaultId, VertexId},
         storage::{AdjList, Stable},
     };
 
@@ -146,7 +146,7 @@ mod tests {
 
     #[test]
     fn edge_count() {
-        let mut graph: AdjList<_, _, _, DefaultIndexing> = AdjList::new();
+        let mut graph: AdjList<_, _, _, DefaultId> = AdjList::new();
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -164,7 +164,7 @@ mod tests {
 
     #[test]
     fn apply() {
-        let mut graph: AdjList<_, _, _, DefaultIndexing> = AdjList::new();
+        let mut graph: AdjList<_, _, _, DefaultId> = AdjList::new();
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -178,18 +178,18 @@ mod tests {
 
         let complement: AdjList<_, _, _, _> = Complement::new(graph, ()).apply();
 
-        assert!(complement.edge_index_any(&v0, &v1).is_none());
-        assert!(complement.edge_index_any(&v1, &v2).is_none());
-        assert!(complement.edge_index_any(&v2, &v3).is_none());
-        assert!(complement.edge_index_any(&v3, &v1).is_none());
+        assert!(complement.edge_id_any(&v0, &v1).is_none());
+        assert!(complement.edge_id_any(&v1, &v2).is_none());
+        assert!(complement.edge_id_any(&v2, &v3).is_none());
+        assert!(complement.edge_id_any(&v3, &v1).is_none());
 
-        assert!(complement.edge_index_any(&v0, &v3).is_some());
-        assert!(complement.edge_index_any(&v0, &v2).is_some());
+        assert!(complement.edge_id_any(&v0, &v3).is_some());
+        assert!(complement.edge_id_any(&v0, &v2).is_some());
     }
 
     #[test]
     fn neighbors() {
-        let mut graph: AdjList<_, _, _, DefaultIndexing> = AdjList::new();
+        let mut graph: AdjList<_, _, _, DefaultId> = AdjList::new();
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -206,22 +206,22 @@ mod tests {
         assert_eq!(
             complement
                 .neighbors(&v0)
-                .map(|n| n.index().into_owned())
-                .collect::<HashSet<VertexIndex>>(),
+                .map(|n| n.id().into_owned())
+                .collect::<HashSet<VertexId>>(),
             vec![v2, v3].into_iter().collect()
         );
         assert_eq!(complement.neighbors(&v1).count(), 0);
         assert_eq!(
             complement
                 .neighbors(&v2)
-                .map(|n| n.index().into_owned())
+                .map(|n| n.id().into_owned())
                 .collect::<HashSet<_>>(),
             vec![v0].into_iter().collect()
         );
         assert_eq!(
             complement
                 .neighbors(&v3)
-                .map(|n| n.index().into_owned())
+                .map(|n| n.id().into_owned())
                 .collect::<HashSet<_>>(),
             vec![v0].into_iter().collect()
         );
@@ -229,7 +229,7 @@ mod tests {
 
     #[test]
     fn apply_holes() {
-        let mut graph: Stable<AdjList<_, _, _, DefaultIndexing>> = Stable::new(AdjList::new());
+        let mut graph: Stable<AdjList<_, _, _, DefaultId>> = Stable::new(AdjList::new());
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
@@ -247,12 +247,12 @@ mod tests {
 
         let complement: Stable<AdjList<_, _, _, _>> = Complement::new(graph, ()).apply();
 
-        assert!(complement.edge_index_any(&v0, &v1).is_none());
-        assert!(complement.edge_index_any(&v1, &v2).is_none());
-        assert!(complement.edge_index_any(&v4, &v1).is_none());
+        assert!(complement.edge_id_any(&v0, &v1).is_none());
+        assert!(complement.edge_id_any(&v1, &v2).is_none());
+        assert!(complement.edge_id_any(&v4, &v1).is_none());
 
-        assert!(complement.edge_index_any(&v0, &v2).is_some());
-        assert!(complement.edge_index_any(&v0, &v4).is_some());
-        assert!(complement.edge_index_any(&v2, &v4).is_some());
+        assert!(complement.edge_id_any(&v0, &v2).is_some());
+        assert!(complement.edge_id_any(&v0, &v4).is_some());
+        assert!(complement.edge_id_any(&v2, &v4).is_some());
     }
 }

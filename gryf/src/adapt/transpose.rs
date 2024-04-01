@@ -1,9 +1,9 @@
 use crate::{
-    common::CompactIndexMap,
+    common::CompactIdMap,
     core::{
-        index::{IndexType, NumIndexType},
+        id::{IdType, NumIdType},
         marker::{Directed, Direction},
-        EdgeRef, Edges, EdgesBase, EdgesMut, NeighborRef, Neighbors, Stability, StableIndices,
+        EdgeRef, Edges, EdgesBase, EdgesMut, NeighborRef, Neighbors, Stability, StableId,
         VerticesBase, WeakRef,
     },
 };
@@ -50,13 +50,13 @@ where
 
     pub fn apply<E, S: Stability>(self) -> G
     where
-        G: EdgesMut<E, Directed> + StableIndices<G::EdgeIndex, S>,
+        G: EdgesMut<E, Directed> + StableId<G::EdgeId, S>,
     {
         let mut graph = self.graph;
 
         let edges = graph
             .edges()
-            .map(|edge| (edge.src().clone(), edge.index().clone(), edge.dst().clone()))
+            .map(|edge| (edge.src().clone(), edge.id().clone(), edge.dst().clone()))
             .collect::<Vec<_>>();
 
         for (src, index, dst) in edges {
@@ -72,10 +72,10 @@ impl<G> EdgesBase<Directed> for Transpose<G>
 where
     G: EdgesBase<Directed>,
 {
-    type EdgeIndicesIter<'a> = G::EdgeIndicesIter<'a>
+    type EdgeIdsIter<'a> = G::EdgeIdsIter<'a>
     where
         Self: 'a;
-    type EdgeIndexIter<'a> = G::EdgeIndexIter<'a>
+    type EdgeIdIter<'a> = G::EdgeIdIter<'a>
     where
         Self: 'a;
 
@@ -87,39 +87,31 @@ where
         self.graph.edge_bound()
     }
 
-    fn endpoints(&self, index: &Self::EdgeIndex) -> Option<(Self::VertexIndex, Self::VertexIndex)> {
+    fn endpoints(&self, index: &Self::EdgeId) -> Option<(Self::VertexId, Self::VertexId)> {
         self.graph.endpoints(index).map(|(src, dst)| (dst, src))
     }
 
-    fn edge_index(
-        &self,
-        src: &Self::VertexIndex,
-        dst: &Self::VertexIndex,
-    ) -> Self::EdgeIndexIter<'_> {
-        self.graph.edge_index(dst, src)
+    fn edge_id(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Self::EdgeIdIter<'_> {
+        self.graph.edge_id(dst, src)
     }
 
-    fn edge_index_any(
-        &self,
-        src: &Self::VertexIndex,
-        dst: &Self::VertexIndex,
-    ) -> Option<Self::EdgeIndex> {
-        self.graph.edge_index_any(dst, src)
+    fn edge_id_any(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Option<Self::EdgeId> {
+        self.graph.edge_id_any(dst, src)
     }
 
-    fn edge_indices(&self) -> Self::EdgeIndicesIter<'_> {
-        self.graph.edge_indices()
+    fn edge_ids(&self) -> Self::EdgeIdsIter<'_> {
+        self.graph.edge_ids()
     }
 
-    fn contains_edge(&self, index: &Self::EdgeIndex) -> bool {
+    fn contains_edge(&self, index: &Self::EdgeId) -> bool {
         self.graph.contains_edge(index)
     }
 
-    fn edge_index_map(&self) -> CompactIndexMap<G::EdgeIndex>
+    fn edge_id_map(&self) -> CompactIdMap<G::EdgeId>
     where
-        Self::EdgeIndex: NumIndexType,
+        Self::EdgeId: NumIdType,
     {
-        self.graph.edge_index_map()
+        self.graph.edge_id_map()
     }
 }
 
@@ -137,7 +129,7 @@ where
         Self: 'a,
         E: 'a;
 
-    fn edge(&self, index: &Self::EdgeIndex) -> Option<&E> {
+    fn edge(&self, index: &Self::EdgeId) -> Option<&E> {
         self.graph.edge(index)
     }
 
@@ -158,23 +150,19 @@ where
     where
         Self: 'a;
 
-    fn neighbors(&self, src: &Self::VertexIndex) -> Self::NeighborsIter<'_> {
+    fn neighbors(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_> {
         Iter(self.graph.neighbors(src))
     }
 
-    fn neighbors_directed(
-        &self,
-        src: &Self::VertexIndex,
-        dir: Direction,
-    ) -> Self::NeighborsIter<'_> {
+    fn neighbors_directed(&self, src: &Self::VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
         Iter(self.graph.neighbors_directed(src, dir.opposite()))
     }
 
-    fn degree(&self, index: &Self::VertexIndex) -> usize {
+    fn degree(&self, index: &Self::VertexId) -> usize {
         self.graph.degree(index)
     }
 
-    fn degree_directed(&self, index: &Self::VertexIndex, dir: Direction) -> usize {
+    fn degree_directed(&self, index: &Self::VertexId, dir: Direction) -> usize {
         self.graph.degree_directed(index, dir.opposite())
     }
 }
@@ -187,44 +175,44 @@ impl<R> TransposeRef<R> {
     }
 }
 
-impl<VI, EI, E, R> EdgeRef<VI, EI, E> for TransposeRef<R>
+impl<VId, EId, E, R> EdgeRef<VId, EId, E> for TransposeRef<R>
 where
-    VI: IndexType,
-    EI: IndexType,
-    R: EdgeRef<VI, EI, E>,
+    VId: IdType,
+    EId: IdType,
+    R: EdgeRef<VId, EId, E>,
 {
-    fn index(&self) -> &EI {
-        self.0.index()
+    fn id(&self) -> &EId {
+        self.0.id()
     }
 
     fn data(&self) -> &E {
         self.0.data()
     }
 
-    fn src(&self) -> &VI {
+    fn src(&self) -> &VId {
         self.0.dst()
     }
 
-    fn dst(&self) -> &VI {
+    fn dst(&self) -> &VId {
         self.0.src()
     }
 }
 
-impl<VI, EI, R> NeighborRef<VI, EI> for TransposeRef<R>
+impl<VId, EId, R> NeighborRef<VId, EId> for TransposeRef<R>
 where
-    VI: IndexType,
-    EI: IndexType,
-    R: NeighborRef<VI, EI>,
+    VId: IdType,
+    EId: IdType,
+    R: NeighborRef<VId, EId>,
 {
-    fn index(&self) -> WeakRef<'_, VI> {
-        self.0.index()
+    fn id(&self) -> WeakRef<'_, VId> {
+        self.0.id()
     }
 
-    fn edge(&self) -> WeakRef<'_, EI> {
+    fn edge(&self) -> WeakRef<'_, EId> {
         self.0.edge()
     }
 
-    fn src(&self) -> WeakRef<'_, VI> {
+    fn src(&self) -> WeakRef<'_, VId> {
         self.0.src()
     }
 
@@ -250,9 +238,9 @@ where
 mod tests {
     use super::*;
 
-    use crate::{core::index::DefaultIndexing, storage::AdjList};
+    use crate::{core::id::DefaultId, storage::AdjList};
 
-    fn create_graph() -> AdjList<(), i32, Directed, DefaultIndexing> {
+    fn create_graph() -> AdjList<(), i32, Directed, DefaultId> {
         let mut graph = AdjList::new();
 
         let v0 = graph.add_vertex(());
@@ -276,11 +264,11 @@ mod tests {
     }
 
     #[test]
-    fn edge_index() {
+    fn edge_id() {
         let graph = Transpose::new(create_graph());
 
-        assert_eq!(graph.edge_index_any(&2.into(), &1.into()), Some(1.into()));
-        assert_eq!(graph.edge_index_any(&1.into(), &2.into()), Some(3.into()));
+        assert_eq!(graph.edge_id_any(&2.into(), &1.into()), Some(1.into()));
+        assert_eq!(graph.edge_id_any(&1.into(), &2.into()), Some(3.into()));
     }
 
     #[test]
@@ -301,7 +289,7 @@ mod tests {
         let graph = Transpose::new(create_graph());
         let mut neighbors = graph.neighbors(&1.into()).map(|neighbor| {
             (
-                neighbor.index().into_owned(),
+                neighbor.id().into_owned(),
                 neighbor.src().into_owned(),
                 neighbor.dir(),
             )
@@ -328,7 +316,7 @@ mod tests {
             .neighbors_directed(&1.into(), Direction::Outgoing)
             .map(|neighbor| {
                 (
-                    neighbor.index().into_owned(),
+                    neighbor.id().into_owned(),
                     neighbor.src().into_owned(),
                     neighbor.dir(),
                 )
@@ -347,7 +335,7 @@ mod tests {
             .neighbors_directed(&1.into(), Direction::Incoming)
             .map(|neighbor| {
                 (
-                    neighbor.index().into_owned(),
+                    neighbor.id().into_owned(),
                     neighbor.src().into_owned(),
                     neighbor.dir(),
                 )

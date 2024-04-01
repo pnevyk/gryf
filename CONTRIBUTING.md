@@ -27,7 +27,7 @@ their relationships. For more detailed explanation, see [DESIGN](./DESIGN.md)
 document.
 
 * `gryf/src/core` -- Mostly core traits and marker types + their implementations. Most important:
-    * `gryf/src/core/index.rs` -- Index type (vertex index and edge index) traits and implementations.
+    * `gryf/src/core/id.rs` -- Id type (vertex id and edge id) traits and implementations.
     * `gryf/src/core/marker.rs` -- Marker types for directionality of graphs (directed and undirected).
     * `gryf/src/core/{base,vertices,edges,neighbors}.rs` -- Graph access and manipulation traits.
 * `gryf/src/storage` -- Implementations of various graph [representations](https://en.wikipedia.org/wiki/Graph_(abstract_data_type)#Common_data_structures_for_graph_representation).

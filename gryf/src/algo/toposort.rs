@@ -3,7 +3,7 @@ use std::fmt;
 use thiserror::Error;
 
 use crate::{
-    core::{index::NumIndexType, marker::Directed, EdgesBase, GraphBase, Neighbors, VerticesBase},
+    core::{id::NumIdType, marker::Directed, EdgesBase, GraphBase, Neighbors, VerticesBase},
     visit,
 };
 
@@ -27,9 +27,9 @@ where
 impl<'a, G> Iterator for TopoSort<'a, G>
 where
     G: Neighbors + VerticesBase + EdgesBase<Directed>,
-    G::VertexIndex: NumIndexType,
+    G::VertexId: NumIdType,
 {
-    type Item = Result<G::VertexIndex, Error<G>>;
+    type Item = Result<G::VertexId, Error<G>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner.next()
@@ -39,9 +39,9 @@ where
 impl<'a, G> TopoSort<'a, G>
 where
     G: Neighbors + VerticesBase + EdgesBase<Directed>,
-    G::VertexIndex: NumIndexType,
+    G::VertexId: NumIdType,
 {
-    pub fn into_vec(self) -> Result<Vec<G::VertexIndex>, Error<G>> {
+    pub fn into_vec(self) -> Result<Vec<G::VertexId>, Error<G>> {
         self.collect()
     }
 }
@@ -124,9 +124,9 @@ where
 impl<'a, G> Iterator for TopoSortInner<'a, G>
 where
     G: Neighbors + VerticesBase + EdgesBase<Directed>,
-    G::VertexIndex: NumIndexType,
+    G::VertexId: NumIdType,
 {
-    type Item = Result<G::VertexIndex, Error<G>>;
+    type Item = Result<G::VertexId, Error<G>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
@@ -146,7 +146,7 @@ mod tests {
     use super::*;
 
     use crate::{
-        core::{index::DefaultIndexing, EdgesBaseWeak, EdgesMut, VerticesBaseWeak, VerticesMut},
+        core::{id::DefaultId, EdgesBaseWeak, EdgesMut, VerticesBaseWeak, VerticesMut},
         infra::proptest::graph_directed,
         storage::AdjList,
         visit::{DfsEvent, DfsEvents, Visitor},
@@ -159,7 +159,7 @@ mod tests {
             + EdgesBase<Directed>
             + VerticesBaseWeak
             + EdgesBaseWeak<Directed>,
-        G::VertexIndex: NumIndexType,
+        G::VertexId: NumIdType,
     {
         let sorted = toposort.collect::<Result<Vec<_>, _>>();
 
@@ -181,7 +181,7 @@ mod tests {
                     .map(|(k, v)| (v, k))
                     .collect::<HashMap<_, _>>();
 
-                for (src, dst) in graph.edge_indices().map(|e| graph.endpoints(&e).unwrap()) {
+                for (src, dst) in graph.edge_ids().map(|e| graph.endpoints(&e).unwrap()) {
                     let i = map
                         .get(&src)
                         .unwrap_or_else(|| panic!("algorithm omitted vertex {src:?}"));
@@ -199,7 +199,7 @@ mod tests {
         }
     }
 
-    fn create_basic_graph() -> AdjList<(), (), Directed, DefaultIndexing> {
+    fn create_basic_graph() -> AdjList<(), (), Directed, DefaultId> {
         let mut graph = AdjList::default();
 
         let v0 = graph.add_vertex(());
@@ -219,7 +219,7 @@ mod tests {
         graph
     }
 
-    fn create_cyclic_graph() -> AdjList<(), (), Directed, DefaultIndexing> {
+    fn create_cyclic_graph() -> AdjList<(), (), Directed, DefaultId> {
         let mut graph = AdjList::default();
 
         let v0 = graph.add_vertex(());
@@ -241,7 +241,7 @@ mod tests {
         graph
     }
 
-    fn create_disconnected_graph() -> AdjList<(), (), Directed, DefaultIndexing> {
+    fn create_disconnected_graph() -> AdjList<(), (), Directed, DefaultId> {
         let mut graph = AdjList::default();
 
         let v0 = graph.add_vertex(());

@@ -3,9 +3,10 @@ use std::fmt;
 use arbitrary::{Arbitrary, Unstructured};
 
 use crate::core::{
+    error::{AddEdgeError, AddVertexError},
     id::{GraphIdTypes, IdType, IntegerIdType},
     marker::EdgeType,
-    AddEdgeError, AddVertexError, EdgesBase, EdgesMut, VerticesBase, VerticesMut,
+    EdgesBase, EdgesMut, VerticesBase, VerticesMut,
 };
 
 #[derive(Debug, Arbitrary, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]

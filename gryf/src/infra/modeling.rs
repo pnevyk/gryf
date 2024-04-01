@@ -3,10 +3,10 @@ use std::marker::PhantomData;
 use arbitrary::Arbitrary;
 
 use crate::core::{
+    error::{AddEdgeError, AddEdgeErrorKind, AddVertexError},
     id::{EdgeId, IdType, IntegerIdType, VertexId},
     marker::{Direction, EdgeType},
-    AddEdgeError, AddEdgeErrorKind, AddVertexError, Edges, EdgesBase, EdgesMut, GraphBase,
-    Neighbors, Vertices, VerticesBase, VerticesMut,
+    Edges, EdgesBase, EdgesMut, GraphBase, Neighbors, Vertices, VerticesBase, VerticesMut,
 };
 
 use super::arbitrary::MutOp;

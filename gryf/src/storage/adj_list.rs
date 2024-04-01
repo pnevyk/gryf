@@ -3,10 +3,11 @@ use std::marker::PhantomData;
 use crate::{
     common::CompactIdMap,
     core::{
+        error::{AddEdgeError, AddEdgeErrorKind, AddVertexError},
         id::{DefaultId, GraphIdTypes, IdType, IntegerIdType},
         marker::{Direction, EdgeType},
-        AddEdgeError, AddEdgeErrorKind, AddVertexError, ConnectVertices, Create, Edges, EdgesBase,
-        EdgesMut, GraphBase, Guarantee, MultiEdges, Neighbors, Vertices, VerticesBase, VerticesMut,
+        ConnectVertices, Create, Edges, EdgesBase, EdgesMut, GraphBase, Guarantee, MultiEdges,
+        Neighbors, Vertices, VerticesBase, VerticesMut,
     },
 };
 

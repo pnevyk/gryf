@@ -2,10 +2,11 @@ use std::{iter::Enumerate, marker::PhantomData, slice};
 
 use crate::common::CompactIdMap;
 use crate::core::{
+    error::{AddEdgeError, AddEdgeErrorKind, AddVertexError},
     id::{DefaultId, GraphIdTypes, IdType, IntegerIdType},
     marker::{Direction, EdgeType},
-    AddEdgeError, AddEdgeErrorKind, AddVertexError, ConnectVertices, Create, Edges, EdgesBase,
-    EdgesMut, GraphBase, Guarantee, MultiEdges, Neighbors, Vertices, VerticesBase, VerticesMut,
+    ConnectVertices, Create, Edges, EdgesBase, EdgesMut, GraphBase, Guarantee, MultiEdges,
+    Neighbors, Vertices, VerticesBase, VerticesMut,
 };
 
 use gryf_derive::{EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak};

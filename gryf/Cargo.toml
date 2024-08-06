@@ -34,3 +34,6 @@ default = ["arbitrary", "proptest"]
 arbitrary = ["dep:arbitrary"]
 proptest = ["dep:proptest"]
 derive = []
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(proptest)'] }

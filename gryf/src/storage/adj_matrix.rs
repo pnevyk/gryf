@@ -198,7 +198,7 @@ where
     }
 
     fn edge_bound(&self) -> usize {
-        self.matrix.index(self.vertex_count(), 0).as_usize()
+        self.matrix.edge_bound(self.vertex_count())
     }
 
     fn endpoints(&self, id: &Self::EdgeId) -> Option<(Self::VertexId, Self::VertexId)> {
@@ -779,6 +779,10 @@ mod raw {
 
         pub fn coords(&self, id: Id::EdgeId) -> (usize, usize) {
             coords::<Ty>(id.as_usize(), self.capacity)
+        }
+
+        pub fn edge_bound(&self, vertex_count: usize) -> usize {
+            index::<Ty>(vertex_count, 0, self.capacity)
         }
 
         pub fn degree_directed(&self, v: Id::VertexId, dir: Direction, n_vertices: usize) -> usize {

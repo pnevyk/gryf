@@ -5,23 +5,14 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use crate::{
     adapt::Undirect,
     common::VisitSet,
-    core::{
-        id::IdType,
-        marker::{Direction, EdgeType},
-        EdgesBase, EdgesBaseWeak, GraphBase, NeighborRef, Neighbors, VerticesBase,
-        VerticesBaseWeak,
-    },
+    core::{marker::Direction, EdgeSet, NeighborRef, Neighbors, VertexSet},
 };
 
 use super::Cycle;
 
-pub fn bfs_collect<Ty: EdgeType, G>(
-    graph: &G,
-    cycle: Cycle<G>,
-    as_undirected: bool,
-) -> Vec<G::EdgeId>
+pub fn bfs_collect<G>(graph: &G, cycle: Cycle<G>, as_undirected: bool) -> Vec<G::EdgeId>
 where
-    G: Neighbors + VerticesBase + VerticesBaseWeak + EdgesBase<Ty> + EdgesBaseWeak<Ty>,
+    G: Neighbors + VertexSet + EdgeSet,
 {
     if as_undirected {
         collect(&Undirect::new(graph), cycle.edge)
@@ -30,10 +21,9 @@ where
     }
 }
 
-fn collect<EId, Ty: EdgeType, G>(graph: &G, edge: EId) -> Vec<EId>
+fn collect<G>(graph: &G, edge: G::EdgeId) -> Vec<G::EdgeId>
 where
-    G: Neighbors + VerticesBase + VerticesBaseWeak + EdgesBase<Ty> + GraphBase<EdgeId = EId>,
-    EId: IdType,
+    G: Neighbors + VertexSet + EdgeSet,
 {
     let (u, v) = match graph.endpoints(&edge) {
         Some(endpoints) => endpoints,

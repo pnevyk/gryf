@@ -4,16 +4,16 @@ use crate::core::{
     facts,
     id::{IdType, IntegerIdType},
     marker::{Direction, Undirected},
-    EdgesBase, EdgesMut, Neighbors, Vertices, VerticesBase, VerticesMut, WeakRef,
+    EdgeSet, GraphFull, Neighbors, WeakRef,
 };
 
-use gryf_derive::{GraphBase, Vertices, VerticesBase, VerticesMut};
+use gryf_derive::{GraphBase, VertexSet};
 
 // TODO: Remove these imports once hygiene of procedural macros is fixed.
 use crate::common::CompactIdMap;
-use crate::core::{error::AddVertexError, GraphBase, NeighborRef};
+use crate::core::{GraphBase, NeighborRef, VertexSet};
 
-#[derive(Debug, GraphBase, VerticesBase, Vertices, VerticesMut)]
+#[derive(Debug, GraphBase, VertexSet)]
 pub struct Complement<E, G> {
     #[graph]
     graph: G,
@@ -22,7 +22,7 @@ pub struct Complement<E, G> {
 
 impl<E, G> Complement<E, G>
 where
-    G: VerticesBase + EdgesBase<Undirected>,
+    G: GraphBase<EdgeType = Undirected> + VertexSet + EdgeSet,
 {
     pub fn new(graph: G, edge: E) -> Self {
         Self { graph, edge }
@@ -33,13 +33,13 @@ where
     }
 
     pub fn edge_count(&self) -> usize {
-        facts::complete_graph_edge_count::<Undirected>(self.vertex_count())
+        facts::complete_graph_edge_count::<Undirected>(self.graph.vertex_count())
             - self.graph.edge_count()
     }
 
-    pub fn apply(self) -> G
+    pub fn apply<V>(self) -> G
     where
-        G: EdgesMut<E, Undirected>,
+        G: GraphFull<V, E>,
         E: Clone,
     {
         let mut graph = self.graph;
@@ -67,7 +67,7 @@ where
 
 impl<E, G> Neighbors for Complement<E, G>
 where
-    G: Neighbors + VerticesBase,
+    G: Neighbors + VertexSet,
     G::EdgeId: IntegerIdType,
 {
     type NeighborRef<'a> = (G::VertexId, G::EdgeId, G::VertexId, Direction)
@@ -107,7 +107,7 @@ where
 
 pub struct NeighborsIter<'a, G>
 where
-    G: VerticesBase + 'a,
+    G: VertexSet + 'a,
 {
     src: G::VertexId,
     dir: Direction,
@@ -117,7 +117,7 @@ where
 
 impl<'a, G> Iterator for NeighborsIter<'a, G>
 where
-    G: VerticesBase + 'a,
+    G: VertexSet + 'a,
     G::EdgeId: IntegerIdType,
 {
     type Item = (G::VertexId, G::EdgeId, G::VertexId, Direction);
@@ -136,7 +136,10 @@ where
 #[cfg(test)]
 mod tests {
     use crate::{
-        core::id::{DefaultId, VertexId},
+        core::{
+            id::{DefaultId, VertexId},
+            GraphAdd,
+        },
         storage::{AdjList, Stable},
     };
 

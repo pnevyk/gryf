@@ -5,7 +5,7 @@ use gryf::{
     core::{
         id::{EdgeId, VertexId},
         marker::{Directed, Direction},
-        GraphBase, Neighbors, VerticesBaseWeak, VerticesWeak, WeakRef,
+        GraphBase, Neighbors, WeakRef,
     },
     visit::Dfs,
 };
@@ -65,22 +65,6 @@ impl Neighbors for Collatz {
     fn neighbors_directed(&self, src: &VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
         assert_eq!(dir, Direction::Outgoing, "incoming edges are not available");
         iter::once(Neighbor { src: *src })
-    }
-}
-
-impl VerticesBaseWeak for Collatz {
-    fn vertex_count_hint(&self) -> Option<usize> {
-        None
-    }
-
-    fn vertex_bound_hint(&self) -> Option<usize> {
-        None
-    }
-}
-
-impl VerticesWeak<u64> for Collatz {
-    fn vertex_weak(&self, id: &VertexId) -> Option<WeakRef<'_, u64>> {
-        Some(id.as_bits().into())
     }
 }
 

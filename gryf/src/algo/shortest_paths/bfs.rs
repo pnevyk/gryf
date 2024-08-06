@@ -7,7 +7,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
     common::VisitSet,
-    core::{marker::Direction, NeighborRef, Neighbors, VerticesBaseWeak, Weight},
+    core::{marker::Direction, NeighborRef, Neighbors, Weight},
 };
 
 use super::{Error, ShortestPaths};
@@ -19,7 +19,7 @@ pub fn bfs<G, W>(
     edge_dist: W,
 ) -> Result<ShortestPaths<W, G>, Error>
 where
-    G: VerticesBaseWeak + Neighbors,
+    G: Neighbors,
     W: Weight,
 {
     // The check for unsignedness should eliminate the negativity weight check,

@@ -2,13 +2,11 @@ use std::cmp::max;
 
 use super::{
     base::IntoEdge,
-    edges::EdgesMut,
+    graph::GraphAdd,
     id::{IdType, IntegerIdType},
-    marker::EdgeType,
-    vertices::VerticesMut,
 };
 
-pub trait Create<V, E, Ty: EdgeType>: VerticesMut<V> + EdgesMut<E, Ty> + Sized {
+pub trait Create<V, E>: GraphAdd<V, E> + Sized {
     fn with_capacity(vertex_count: usize, edge_count: usize) -> Self;
 
     fn empty() -> Self {
@@ -16,11 +14,11 @@ pub trait Create<V, E, Ty: EdgeType>: VerticesMut<V> + EdgesMut<E, Ty> + Sized {
     }
 }
 
-pub trait ExtendWithEdges<T, V, E, Ty: EdgeType>
+pub trait ExtendWithEdges<T, V, E>
 where
-    T: IntoEdge<Self, E, Ty>,
+    T: IntoEdge<Self, E>,
     V: Default,
-    Self: Create<V, E, Ty>,
+    Self: Create<V, E>,
 {
     fn extend_with_edges<I>(&mut self, iter: I)
     where
@@ -40,11 +38,11 @@ where
     }
 }
 
-impl<T, V, E, Ty: EdgeType, G> ExtendWithEdges<T, V, E, Ty> for G
+impl<T, V, E, G> ExtendWithEdges<T, V, E> for G
 where
-    T: IntoEdge<Self, E, Ty>,
+    T: IntoEdge<Self, E>,
     V: Default,
-    G: Create<V, E, Ty>,
+    G: Create<V, E>,
     Self::VertexId: IntegerIdType,
 {
     fn extend_with_edges<I>(&mut self, iter: I)
@@ -64,9 +62,9 @@ where
     }
 }
 
-pub trait ExtendWithVertices<V, E, Ty: EdgeType>
+pub trait ExtendWithVertices<V, E>
 where
-    Self: Create<V, E, Ty>,
+    Self: Create<V, E>,
 {
     fn extend_with_vertices<I>(&mut self, iter: I)
     where
@@ -85,9 +83,9 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, G> ExtendWithVertices<V, E, Ty> for G
+impl<V, E, G> ExtendWithVertices<V, E> for G
 where
-    G: Create<V, E, Ty>,
+    G: Create<V, E>,
 {
     fn extend_with_vertices<I>(&mut self, iter: I)
     where

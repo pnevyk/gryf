@@ -2,21 +2,18 @@ use rustc_hash::FxHashSet;
 
 use crate::{
     common::VisitSet,
-    core::{
-        marker::{Direction, EdgeType},
-        EdgesBase, NeighborRef, Neighbors, VerticesBase,
-    },
+    core::{marker::Direction, NeighborRef, Neighbors, VertexSet},
 };
 
 use super::Connected;
 
-pub fn dfs<Ty: EdgeType, G>(
+pub fn dfs<G>(
     graph: &G,
     between: Option<(&G::VertexId, &G::VertexId)>,
     as_undirected: bool,
 ) -> Connected<G>
 where
-    G: Neighbors + VerticesBase + EdgesBase<Ty>,
+    G: Neighbors + VertexSet,
 {
     let (start, goal) = match between {
         Some((start, goal)) => {
@@ -30,7 +27,7 @@ where
                 (start.clone(), Some(goal))
             }
         }
-        None if Ty::is_directed() && !as_undirected => match graph
+        None if graph.is_directed() && !as_undirected => match graph
             .vertex_ids()
             // For directed graph, we can't start in any vertex, because then we
             // might miss the predecessors of such vertex and incorrectly mark

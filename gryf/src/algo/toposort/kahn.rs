@@ -4,7 +4,7 @@ use crate::{
     core::{
         id::{IdType, IntegerIdType, Virtual},
         marker::Direction,
-        GraphBase, NeighborRef, Neighbors, VerticesBase,
+        GraphBase, NeighborRef, Neighbors, VertexSet,
     },
 };
 
@@ -12,7 +12,7 @@ use super::Error;
 
 pub fn kahn<'a, G>(graph: &'a G) -> KahnIter<'a, G>
 where
-    G: Neighbors + VerticesBase + 'a,
+    G: Neighbors + VertexSet + 'a,
     G::VertexId: IntegerIdType,
 {
     let map = graph.vertex_id_map();

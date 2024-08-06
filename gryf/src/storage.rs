@@ -14,14 +14,12 @@ pub use stable::Stable;
 #[cfg(test)]
 mod tests {
     use crate::core::{
-        facts,
-        marker::{Direction, EdgeType},
-        ConnectVertices, Create, MultiEdges, Neighbors,
+        facts, marker::Direction, ConnectVertices, Create, GraphFull, MultiEdge, Neighbors,
     };
 
-    pub fn test_basic<Ty: EdgeType, G>()
+    pub fn test_basic<G>()
     where
-        G: Create<(), (), Ty> + Neighbors,
+        G: Create<(), ()> + GraphFull<(), ()> + Neighbors,
     {
         let mut graph = G::empty();
 
@@ -72,7 +70,7 @@ mod tests {
         out_deg.sort_unstable();
         in_deg.sort_unstable();
 
-        if Ty::is_directed() {
+        if graph.is_directed() {
             assert_eq!(deg, vec![1, 1, 2]);
             assert_eq!(out_deg, vec![0, 1, 1]);
             assert_eq!(in_deg, vec![0, 1, 1]);
@@ -94,9 +92,9 @@ mod tests {
         assert_eq!(graph.edge_count(), 0);
     }
 
-    pub fn test_multi<Ty: EdgeType, G>()
+    pub fn test_multi<G>()
     where
-        G: Create<(), i32, Ty> + MultiEdges<Ty>,
+        G: Create<(), i32> + MultiEdge,
     {
         let mut graph = G::empty();
 
@@ -124,9 +122,9 @@ mod tests {
         assert_eq!(e02, vec![Some(&1)]);
     }
 
-    pub fn test_connect_vertices<Ty: EdgeType, G>()
+    pub fn test_connect_vertices<G>()
     where
-        G: Create<i32, (), Ty> + ConnectVertices<i32, (), Ty>,
+        G: Create<i32, ()> + ConnectVertices<i32, ()> + GraphFull<i32, ()>,
     {
         let mut graph = G::empty();
 
@@ -141,7 +139,7 @@ mod tests {
         // Number of edges should be complete graph + all self-loops.
         assert_eq!(
             graph.edge_count(),
-            facts::complete_graph_edge_count::<Ty>(n) + n
+            facts::complete_graph_edge_count::<G::EdgeType>(n) + n
         );
 
         graph.clear_edges();
@@ -152,9 +150,9 @@ mod tests {
         assert_eq!(graph.edge_count(), 2);
     }
 
-    pub fn test_neighbors_edge_cases<Ty: EdgeType, G>()
+    pub fn test_neighbors_edge_cases<G>()
     where
-        G: Create<(), (), Ty> + Neighbors,
+        G: Create<(), ()> + Neighbors,
     {
         let mut graph = G::empty();
 
@@ -165,11 +163,11 @@ mod tests {
         // For undirected graphs, we want to iterate over the self-loop edge
         // only once. But the degree should still be 2. This is the required
         // behavior for neighbors for any storage.
-        let n_neighbors = if Ty::is_directed() { 2 } else { 1 };
+        let n_neighbors = if graph.is_directed() { 2 } else { 1 };
         assert_eq!(graph.neighbors(&v0).count(), n_neighbors);
         assert_eq!(graph.degree(&v0), 2);
 
-        if Ty::is_directed() {
+        if graph.is_directed() {
             assert_eq!(graph.degree_directed(&v0, Direction::Outgoing), 1);
             assert_eq!(graph.degree_directed(&v0, Direction::Incoming), 1);
         }

@@ -5,34 +5,32 @@ use thiserror::Error;
 use crate::core::{
     facts,
     marker::{Direction, EdgeType},
-    Create, Edges, Neighbors, Vertices,
+    Create, GraphRef, Neighbors,
 };
 
 use gryf_derive::{
-    Edges, EdgesBase, EdgesBaseWeak, EdgesMut, EdgesWeak, GraphBase, MultiEdges, Neighbors,
-    Vertices, VerticesBase, VerticesBaseWeak, VerticesMut, VerticesWeak,
+    EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, MultiEdge, Neighbors, VertexSet,
 };
 
 // TODO: Remove these imports once hygiene of procedural macros is fixed.
 use crate::common::CompactIdMap;
 use crate::core::{
-    error::{AddEdgeError, AddVertexError},
+    error::{AddEdgeError, AddVertexError, ReplaceEdgeError, ReplaceVertexError},
     id::IntegerIdType,
-    EdgesBase, EdgesBaseWeak, EdgesMut, EdgesWeak, GraphBase, MultiEdges, VerticesBase,
-    VerticesBaseWeak, VerticesMut, VerticesWeak, WeakRef,
+    EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, MultiEdge, VertexSet,
 };
 
 use super::export::Dot;
 
-pub fn create_complete<V, E, Ty: EdgeType, G>(vertex_count: usize) -> G
+pub fn create_complete<V, E, G>(vertex_count: usize) -> G
 where
     V: Default,
     E: Default,
-    G: Create<V, E, Ty>,
+    G: Create<V, E>,
 {
     let mut graph = G::with_capacity(
         vertex_count,
-        facts::complete_graph_edge_count::<Ty>(vertex_count),
+        facts::complete_graph_edge_count::<G::EdgeType>(vertex_count),
     );
 
     let vertices = (0..vertex_count)
@@ -45,7 +43,7 @@ where
                 continue;
             }
 
-            if !Ty::is_directed() && v > u {
+            if !G::EdgeType::is_directed() && v > u {
                 break;
             }
 
@@ -56,14 +54,14 @@ where
     graph
 }
 
-pub fn create_bipartite<V, E, Ty: EdgeType, G, F>(
+pub fn create_bipartite<V, E, G, F>(
     vertex_count_lhs: usize,
     vertex_count_rhs: usize,
     connect: F,
 ) -> G
 where
     V: Default,
-    G: Create<V, E, Ty>,
+    G: Create<V, E>,
     F: Fn(&G::VertexId, &G::VertexId, Direction) -> Option<E>,
 {
     let vertex_count = vertex_count_lhs + vertex_count_rhs;
@@ -78,7 +76,7 @@ where
         .map(|_| graph.add_vertex(V::default()))
         .collect::<Vec<_>>();
 
-    for dir in Ty::directions() {
+    for dir in G::EdgeType::directions() {
         for i in vertices_lhs.clone() {
             for j in vertices_rhs.clone() {
                 if let Some(edge) = connect(&i, &j, *dir) {
@@ -94,11 +92,11 @@ where
     graph
 }
 
-pub fn create_path<V, E, Ty: EdgeType, G>(vertex_count: usize) -> G
+pub fn create_path<V, E, G>(vertex_count: usize) -> G
 where
     V: Default,
     E: Default,
-    G: Create<V, E, Ty>,
+    G: Create<V, E>,
 {
     if vertex_count == 0 {
         return G::empty();
@@ -147,9 +145,11 @@ pub enum ConsistencyCheckError {
     HandshakingLemmaDirected(usize, usize, Direction),
 }
 
-pub fn check_consistency<V, E, Ty: EdgeType, G>(graph: &G) -> Result<(), ConsistencyCheckError>
+pub fn check_consistency<V, E, G>(graph: &G) -> Result<(), ConsistencyCheckError>
 where
-    G: Vertices<V> + Edges<E, Ty> + Neighbors,
+    G: GraphRef<V, E> + Neighbors,
+    G::VertexId: IntegerIdType,
+    G::EdgeId: IntegerIdType,
 {
     enum Ordering {
         Equal,
@@ -253,7 +253,7 @@ where
         .map(|id| graph.degree_directed(&id, Direction::Incoming))
         .sum::<usize>();
 
-    if Ty::is_directed() {
+    if G::EdgeType::is_directed() {
         cmp(
             out_deg_sum + in_deg_sum,
             deg_sum,
@@ -303,10 +303,10 @@ where
 }
 
 // A fast check for graphs similarity. This is not a full isomorphism check!
-pub fn check_potential_isomorphism<V, E, Ty: EdgeType, G1, G2>(lhs: &G1, rhs: &G2) -> bool
+pub fn check_potential_isomorphism<V, E, G1, G2>(lhs: &G1, rhs: &G2) -> bool
 where
-    G1: Vertices<V> + Edges<E, Ty> + Neighbors,
-    G2: Vertices<V> + Edges<E, Ty> + Neighbors,
+    G1: GraphRef<V, E> + Neighbors,
+    G2: GraphRef<V, E> + Neighbors,
 {
     if lhs.vertex_count() != rhs.vertex_count() {
         return false;
@@ -333,27 +333,15 @@ where
 }
 
 #[derive(
-    GraphBase,
-    VerticesBase,
-    Vertices,
-    VerticesMut,
-    EdgesBase,
-    Edges,
-    EdgesMut,
-    MultiEdges,
-    Neighbors,
-    VerticesBaseWeak,
-    VerticesWeak,
-    EdgesBaseWeak,
-    EdgesWeak,
+    GraphBase, Neighbors, VertexSet, EdgeSet, GraphRef, GraphMut, GraphAdd, GraphFull, MultiEdge,
 )]
-pub struct AsDot<V, E, Ty, G> {
+pub struct AsDot<V, E, G> {
     #[graph]
     graph: G,
-    ty: PhantomData<(V, E, Ty)>,
+    ty: PhantomData<(V, E)>,
 }
 
-impl<V, E, Ty, G> AsDot<V, E, Ty, G> {
+impl<V, E, G> AsDot<V, E, G> {
     pub fn new(graph: G) -> Self {
         Self {
             graph,
@@ -362,9 +350,9 @@ impl<V, E, Ty, G> AsDot<V, E, Ty, G> {
     }
 }
 
-impl<V, E, Ty: EdgeType, G> fmt::Debug for AsDot<V, E, Ty, G>
+impl<V, E, G> fmt::Debug for AsDot<V, E, G>
 where
-    G: Vertices<V> + Edges<E, Ty>,
+    G: GraphRef<V, E>,
     V: fmt::Debug,
     E: fmt::Debug,
 {
@@ -374,9 +362,9 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, G> PartialEq for AsDot<V, E, Ty, G>
+impl<V, E, G> PartialEq for AsDot<V, E, G>
 where
-    G: Vertices<V> + Edges<E, Ty>,
+    G: GraphRef<V, E>,
     V: fmt::Debug,
     E: fmt::Debug,
 {
@@ -385,7 +373,7 @@ where
     }
 }
 
-impl<V, E, Ty, G> From<G> for AsDot<V, E, Ty, G> {
+impl<V, E, G> From<G> for AsDot<V, E, G> {
     fn from(graph: G) -> Self {
         Self::new(graph)
     }

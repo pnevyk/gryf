@@ -1,5 +1,5 @@
 use crate::{
-    core::{id::IntegerIdType, marker::Directed, EdgesBase, GraphBase, Neighbors, VerticesBase},
+    core::{id::IntegerIdType, marker::Directed, GraphBase, Neighbors, VertexSet},
     visit::Visitor,
 };
 
@@ -17,7 +17,7 @@ pub struct TopoSortBuilder<'a, G, A> {
 
 impl<G> TopoSort<'_, G>
 where
-    G: VerticesBase + EdgesBase<Directed>,
+    G: GraphBase<EdgeType = Directed> + VertexSet,
 {
     pub fn on(graph: &G) -> TopoSortBuilder<'_, G, algo::AnyAlgo> {
         TopoSortBuilder {
@@ -71,7 +71,7 @@ impl<'a, G, A> TopoSortBuilder<'a, G, A> {
 
 impl<'a, G> TopoSortBuilder<'a, G, algo::AnyAlgo>
 where
-    G: VerticesBase + EdgesBase<Directed>,
+    G: GraphBase<EdgeType = Directed> + VertexSet,
 {
     pub fn run(self) -> TopoSort<'a, G>
     where
@@ -85,7 +85,7 @@ where
 
 impl<'a, G> TopoSortBuilder<'a, G, algo::Dfs>
 where
-    G: VerticesBase + EdgesBase<Directed>,
+    G: GraphBase<EdgeType = Directed> + VertexSet,
 {
     pub fn run(self) -> DfsVisit<'a, G> {
         dfs_visit(self.graph)
@@ -94,7 +94,7 @@ where
 
 impl<'a, G> TopoSortBuilder<'a, G, algo::Kahn>
 where
-    G: VerticesBase + EdgesBase<Directed>,
+    G: GraphBase<EdgeType = Directed> + VertexSet,
 {
     pub fn run(self) -> TopoSort<'a, G>
     where
@@ -109,7 +109,7 @@ where
 
 impl<'a, G> TopoSortBuilder<'a, G, algo::SpecificAlgo>
 where
-    G: VerticesBase + EdgesBase<Directed>,
+    G: GraphBase<EdgeType = Directed> + VertexSet,
 {
     pub fn run(self) -> TopoSort<'a, G>
     where

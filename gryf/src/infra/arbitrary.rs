@@ -5,8 +5,7 @@ use arbitrary::{Arbitrary, Unstructured};
 use crate::core::{
     error::{AddEdgeError, AddVertexError},
     id::{GraphIdTypes, IdType, IntegerIdType},
-    marker::EdgeType,
-    EdgesBase, EdgesMut, VerticesBase, VerticesMut,
+    GraphFull,
 };
 
 #[derive(Debug, Arbitrary, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
@@ -82,10 +81,9 @@ where
 }
 
 impl<V, E> MutOp<V, E> {
-    pub fn apply<Ty, G>(self, graph: &mut G) -> MutOpResult<V, E, G::VertexId, G::EdgeId>
+    pub fn apply<G>(self, graph: &mut G) -> MutOpResult<V, E, G::VertexId, G::EdgeId>
     where
-        Ty: EdgeType,
-        G: VerticesMut<V> + EdgesMut<E, Ty>,
+        G: GraphFull<V, E>,
         G::VertexId: IntegerIdType,
         G::EdgeId: IntegerIdType,
     {
@@ -135,12 +133,11 @@ impl<V, E> IntoIterator for MutOpsSeq<V, E> {
 }
 
 impl<V, E> MutOpsSeq<V, E> {
-    pub fn replay<Ty, G>(self, graph: &mut G)
+    pub fn replay<G>(self, graph: &mut G)
     where
         V: fmt::Debug,
         E: fmt::Debug,
-        Ty: EdgeType,
-        G: VerticesMut<V> + EdgesMut<E, Ty>,
+        G: GraphFull<V, E>,
         G::VertexId: IntegerIdType,
         G::EdgeId: IntegerIdType,
     {

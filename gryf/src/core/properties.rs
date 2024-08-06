@@ -1,5 +1,7 @@
 use super::id::IdType;
 
+pub trait MultiEdge {}
+
 pub trait Stability: private::Sealed + 'static {
     fn can_replace_removed() -> bool;
 }

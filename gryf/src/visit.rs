@@ -11,10 +11,7 @@ use raw::*;
 
 use crate::{
     common::VisitSet,
-    core::{
-        id::UseVertexId, marker::EdgeType, EdgesBaseWeak, GraphBase, Neighbors, VerticesBase,
-        VerticesBaseWeak,
-    },
+    core::{id::UseVertexId, GraphBase, Neighbors, VertexSet},
 };
 
 pub trait Visitor<G> {
@@ -77,7 +74,7 @@ where
 
 pub struct VisitAll<'a, G>
 where
-    G: VerticesBase,
+    G: VertexSet,
 {
     graph: &'a G,
     ids: G::VertexIdsIter<'a>,
@@ -85,7 +82,7 @@ where
 
 impl<'a, G> VisitAll<'a, G>
 where
-    G: VerticesBase,
+    G: VertexSet,
 {
     pub fn new(graph: &'a G) -> Self {
         Self {
@@ -97,12 +94,15 @@ where
 
 impl<G> VisitStarts<G::VertexId> for VisitAll<'_, G>
 where
-    G: VerticesBase,
+    G: VertexSet,
 {
     fn get_next(&mut self) -> Option<G::VertexId> {
         self.ids.next()
     }
 
+    // Optimize the early return for cases when the whole graph was traversed
+    // yet the `self.ids` iterator (containing all vertices in the graph at the
+    // beginning) has not been exhausted.
     fn is_done(&mut self, visited: &impl VisitSet<G::VertexId>) -> bool {
         // Since we are holding a shared reference to the graph, it could not
         // have been mutated during traversal. In particular, the number of
@@ -140,7 +140,7 @@ where
 {
     pub fn new(graph: &G) -> Self
     where
-        G: VerticesBaseWeak,
+        G: GraphBase,
     {
         Self {
             raw: RawVisit::new(graph.vertex_count_hint()),
@@ -154,7 +154,7 @@ where
 
     pub fn start_all<'a>(&'a mut self, graph: &'a G) -> BfsMulti<'a, G, VisitAll<G>>
     where
-        G: VerticesBase,
+        G: VertexSet,
     {
         BfsMulti {
             raw: &mut self.raw,
@@ -195,7 +195,7 @@ where
 impl<'a, S, G> Visitor<G> for BfsMulti<'a, G, S>
 where
     S: VisitStarts<G::VertexId>,
-    G: Neighbors + VerticesBase,
+    G: Neighbors + VertexSet,
 {
     type Item = G::VertexId;
 
@@ -237,7 +237,7 @@ where
 {
     pub fn new(graph: &G) -> Self
     where
-        G: VerticesBaseWeak,
+        G: GraphBase,
     {
         Self {
             raw: RawVisit::new(graph.vertex_count_hint()),
@@ -251,7 +251,7 @@ where
 
     pub fn start_all<'a>(&'a mut self, graph: &'a G) -> DfsMulti<'a, G, VisitAll<G>>
     where
-        G: VerticesBase,
+        G: VertexSet,
     {
         DfsMulti {
             raw: &mut self.raw,
@@ -292,7 +292,7 @@ where
 impl<'a, S, G> Visitor<G> for DfsMulti<'a, G, S>
 where
     S: VisitStarts<G::VertexId>,
-    G: Neighbors + VerticesBase,
+    G: Neighbors + VertexSet,
 {
     type Item = G::VertexId;
 
@@ -375,11 +375,11 @@ impl<G> DfsEvents<G>
 where
     G: GraphBase,
 {
-    pub fn new<Ty: EdgeType>(graph: &G) -> Self
+    pub fn new(graph: &G) -> Self
     where
-        G: VerticesBaseWeak + EdgesBaseWeak<Ty>,
+        G: GraphBase,
     {
-        let is_directed = graph.is_directed_weak();
+        let is_directed = graph.is_directed();
 
         let raw = RawVisit::new(graph.vertex_count_hint());
         let closed = if is_directed {
@@ -412,7 +412,7 @@ where
 
     pub fn start_all<'a>(&'a mut self, graph: &'a G) -> DfsEventsMulti<'a, G, VisitAll<G>>
     where
-        G: VerticesBase,
+        G: VertexSet,
     {
         DfsEventsMulti {
             raw: &mut self.raw,
@@ -569,7 +569,7 @@ where
 
 impl<'a, S, G> Visitor<G> for DfsEventsMulti<'a, G, S>
 where
-    G: Neighbors + VerticesBase,
+    G: Neighbors + VertexSet,
     S: VisitStarts<G::VertexId>,
 {
     type Item = DfsEvent<G>;
@@ -635,7 +635,7 @@ where
 {
     pub fn new(graph: &G) -> Self
     where
-        G: VerticesBaseWeak,
+        G: GraphBase,
     {
         Self {
             raw: RawVisit::new(graph.vertex_count_hint()),
@@ -649,7 +649,7 @@ where
 
     pub fn start_all<'a>(&'a mut self, graph: &'a G) -> DfsPostOrderMulti<'a, G, VisitAll<G>>
     where
-        G: VerticesBase,
+        G: VertexSet,
     {
         DfsPostOrderMulti {
             raw: &mut self.raw,
@@ -693,7 +693,7 @@ where
 
 impl<'a, S, G> Visitor<G> for DfsPostOrderMulti<'a, G, S>
 where
-    G: Neighbors + VerticesBase,
+    G: Neighbors + VertexSet,
     S: VisitStarts<G::VertexId>,
 {
     type Item = G::VertexId;
@@ -743,7 +743,7 @@ where
 {
     pub fn new(graph: &G) -> Self
     where
-        G: VerticesBaseWeak,
+        G: GraphBase,
     {
         Self {
             raw: RawVisit::new(graph.vertex_count_hint()),
@@ -757,7 +757,7 @@ where
 
     pub fn start_all<'a>(&'a mut self, graph: &'a G) -> DfsNoBacktrackMulti<'a, G, VisitAll<G>>
     where
-        G: VerticesBase,
+        G: VertexSet,
     {
         DfsNoBacktrackMulti {
             raw: &mut self.raw,
@@ -797,7 +797,7 @@ where
 
 impl<'a, S, G> Visitor<G> for DfsNoBacktrackMulti<'a, G, S>
 where
-    G: Neighbors + VerticesBase,
+    G: Neighbors + VertexSet,
     S: VisitStarts<G::VertexId>,
 {
     type Item = G::VertexId;
@@ -817,7 +817,7 @@ mod tests {
         core::{
             id::DefaultId,
             marker::{Directed, Undirected},
-            EdgesMut, VerticesMut,
+            GraphAdd, GraphFull,
         },
         storage::{AdjList, Stable},
     };

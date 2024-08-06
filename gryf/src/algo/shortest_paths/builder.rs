@@ -2,9 +2,8 @@ use std::{cmp::max, marker::PhantomData};
 
 use crate::core::{
     id::IntegerIdType,
-    marker::EdgeType,
     weights::{self, GetWeight, IsConstWeight},
-    Edges, EdgesWeak, GraphBase, Neighbors, VerticesBase, VerticesBaseWeak, Weight,
+    GraphBase, GraphRef, GraphWeak, Neighbors, VertexSet, Weight,
 };
 
 use super::{
@@ -53,12 +52,9 @@ where
         }
     }
 
-    pub fn edge_weight<F2, E, Ty: EdgeType>(
-        self,
-        edge_weight: F2,
-    ) -> ShortestPathsBuilder<'a, W, G, F2, A>
+    pub fn edge_weight<F2, V, E>(self, edge_weight: F2) -> ShortestPathsBuilder<'a, W, G, F2, A>
     where
-        G: Edges<E, Ty>,
+        G: GraphRef<V, E>,
         F2: GetWeight<E, W>,
         W: Weight,
     {
@@ -74,12 +70,9 @@ where
     // Using closures in `edge_weight` gives "type annotations needed" for the
     // closure argument. This method that uses explicit Fn signature circumvents
     // the problem.
-    pub fn edge_weight_fn<F2, E, Ty: EdgeType>(
-        self,
-        edge_weight: F2,
-    ) -> ShortestPathsBuilder<'a, W, G, F2, A>
+    pub fn edge_weight_fn<F2, V, E>(self, edge_weight: F2) -> ShortestPathsBuilder<'a, W, G, F2, A>
     where
-        G: Edges<E, Ty>,
+        G: GraphRef<V, E>,
         F2: Fn(&E) -> W,
         W: Weight,
     {
@@ -96,9 +89,9 @@ where
         }
     }
 
-    pub fn dijkstra<E, Ty: EdgeType>(self) -> ShortestPathsBuilder<'a, W, G, F, algo::Dijkstra>
+    pub fn dijkstra<V, E>(self) -> ShortestPathsBuilder<'a, W, G, F, algo::Dijkstra>
     where
-        G: VerticesBaseWeak + EdgesWeak<E, Ty> + Neighbors,
+        G: Neighbors + GraphWeak<V, E>,
     {
         ShortestPathsBuilder {
             graph: self.graph,
@@ -109,11 +102,9 @@ where
         }
     }
 
-    pub fn bellman_ford<E, Ty: EdgeType>(
-        self,
-    ) -> ShortestPathsBuilder<'a, W, G, F, algo::BellmanFord>
+    pub fn bellman_ford<V, E>(self) -> ShortestPathsBuilder<'a, W, G, F, algo::BellmanFord>
     where
-        G: VerticesBase + Edges<E, Ty>,
+        G: GraphRef<V, E>,
         G::VertexId: IntegerIdType,
     {
         ShortestPathsBuilder {
@@ -127,7 +118,7 @@ where
 
     pub fn bfs(self) -> ShortestPathsBuilder<'a, W, G, F, algo::Bfs>
     where
-        G: VerticesBaseWeak + Neighbors,
+        G: Neighbors,
         F: IsConstWeight,
     {
         ShortestPathsBuilder {
@@ -139,12 +130,9 @@ where
         }
     }
 
-    pub fn with<E, Ty: EdgeType>(
-        self,
-        algo: Algo,
-    ) -> ShortestPathsBuilder<'a, W, G, F, algo::SpecificAlgo>
+    pub fn with<V, E>(self, algo: Algo) -> ShortestPathsBuilder<'a, W, G, F, algo::SpecificAlgo>
     where
-        G: VerticesBase + Edges<E, Ty> + VerticesBaseWeak + EdgesWeak<E, Ty> + Neighbors,
+        G: Neighbors + GraphRef<V, E>,
         G::VertexId: IntegerIdType,
     {
         ShortestPathsBuilder {
@@ -156,12 +144,12 @@ where
         }
     }
 
-    pub fn with_opt<E, Ty: EdgeType>(
+    pub fn with_opt<V, E>(
         self,
         algo: Option<Algo>,
     ) -> ShortestPathsBuilder<'a, W, G, F, algo::SpecificAlgo>
     where
-        G: VerticesBase + Edges<E, Ty> + VerticesBaseWeak + EdgesWeak<E, Ty> + Neighbors,
+        G: Neighbors + GraphRef<V, E>,
         G::VertexId: IntegerIdType,
     {
         ShortestPathsBuilder {
@@ -178,9 +166,9 @@ impl<'a, W, G, F> ShortestPathsBuilder<'a, W, G, F, algo::AnyAlgo>
 where
     G: GraphBase,
 {
-    pub fn run<E, Ty: EdgeType>(self, start: G::VertexId) -> Result<ShortestPaths<W, G>, Error>
+    pub fn run<V, E>(self, start: G::VertexId) -> Result<ShortestPaths<W, G>, Error>
     where
-        G: VerticesBase + Edges<E, Ty> + VerticesBaseWeak + EdgesWeak<E, Ty> + Neighbors,
+        G: Neighbors + GraphRef<V, E>,
         G::VertexId: IntegerIdType,
         F: GetWeight<E, W>,
         W: Weight,
@@ -205,9 +193,9 @@ impl<'a, W, G, F> ShortestPathsBuilder<'a, W, G, F, algo::Dijkstra>
 where
     G: GraphBase,
 {
-    pub fn run<E, Ty: EdgeType>(self, start: G::VertexId) -> Result<ShortestPaths<W, G>, Error>
+    pub fn run<V, E>(self, start: G::VertexId) -> Result<ShortestPaths<W, G>, Error>
     where
-        G: VerticesBaseWeak + EdgesWeak<E, Ty> + Neighbors,
+        G: Neighbors + GraphWeak<V, E>,
         F: GetWeight<E, W>,
         W: Weight,
     {
@@ -226,9 +214,9 @@ impl<'a, W, G, F> ShortestPathsBuilder<'a, W, G, F, algo::BellmanFord>
 where
     G: GraphBase,
 {
-    pub fn run<E, Ty: EdgeType>(self, start: G::VertexId) -> Result<ShortestPaths<W, G>, Error>
+    pub fn run<V, E>(self, start: G::VertexId) -> Result<ShortestPaths<W, G>, Error>
     where
-        G: VerticesBase + Edges<E, Ty>,
+        G: GraphRef<V, E>,
         G::VertexId: IntegerIdType,
         F: GetWeight<E, W>,
         W: Weight,
@@ -250,7 +238,7 @@ where
 {
     pub fn run(self, start: G::VertexId) -> Result<ShortestPaths<W, G>, Error>
     where
-        G: VerticesBaseWeak + Neighbors,
+        G: Neighbors,
         F: GetWeight<(), W>,
         W: Weight,
     {
@@ -268,9 +256,9 @@ impl<'a, W, G, F> ShortestPathsBuilder<'a, W, G, F, algo::SpecificAlgo>
 where
     G: GraphBase,
 {
-    pub fn run<E, Ty: EdgeType>(self, start: G::VertexId) -> Result<ShortestPaths<W, G>, Error>
+    pub fn run<V, E>(self, start: G::VertexId) -> Result<ShortestPaths<W, G>, Error>
     where
-        G: VerticesBase + Edges<E, Ty> + VerticesBaseWeak + EdgesWeak<E, Ty> + Neighbors,
+        G: Neighbors + GraphRef<V, E>,
         G::VertexId: IntegerIdType,
         F: GetWeight<E, W>,
         W: Weight,
@@ -299,9 +287,9 @@ impl<'a, W, G, F, A> ShortestPathsBuilder<'a, W, G, F, A>
 where
     G: GraphBase,
 {
-    fn choose_algo<E, Ty: EdgeType>(&self) -> AlgoExt
+    fn choose_algo<V, E>(&self) -> AlgoExt
     where
-        G: VerticesBase + Edges<E, Ty> + VerticesBaseWeak + EdgesWeak<E, Ty> + Neighbors,
+        G: Neighbors + GraphRef<V, E>,
         G::VertexId: IntegerIdType,
         F: GetWeight<E, W>,
         W: Weight,
@@ -318,7 +306,7 @@ where
             // any overhead.
             AlgoExt::Bfs
         } else if !W::is_unsigned() {
-            if Ty::is_directed() {
+            if graph.is_directed() {
                 // There is a possibility that a negative weight is encountered,
                 // so, for directed graphs, we conservatively use Bellman-Ford.
                 AlgoExt::Algo(Algo::BellmanFord)

@@ -6,20 +6,15 @@ use crate::{
         error::{AddEdgeError, AddEdgeErrorKind, AddVertexError},
         id::{DefaultId, GraphIdTypes, IdType, IntegerIdType},
         marker::{Direction, EdgeType},
-        ConnectVertices, Create, Edges, EdgesBase, EdgesMut, GraphBase, Guarantee, Neighbors,
-        Vertices, VerticesBase, VerticesMut,
+        ConnectVertices, Create, EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef,
+        Guarantee, Neighbors, VertexSet,
     },
 };
-
-use gryf_derive::{EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak};
-
-// TODO: Remove these imports once hygiene of procedural macros is fixed.
-use crate::core::{EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak, WeakRef};
 
 use super::shared;
 pub use super::shared::{RangeIds as VertexIds, VerticesIter};
 
-#[derive(Debug, VerticesBaseWeak, VerticesWeak, EdgesBaseWeak, EdgesWeak)]
+#[derive(Debug)]
 pub struct AdjMatrix<V, E, Ty, Id> {
     matrix: raw::Matrix<E, Ty, Id>,
     vertices: Vec<V>,
@@ -50,259 +45,6 @@ impl<V, E, Ty: EdgeType, Id: GraphIdTypes> GraphBase for AdjMatrix<V, E, Ty, Id>
     type VertexId = Id::VertexId;
     type EdgeId = Id::EdgeId;
     type EdgeType = Ty;
-}
-
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> VerticesBase for AdjMatrix<V, E, Ty, Id>
-where
-    Id::VertexId: IntegerIdType,
-{
-    type VertexIdsIter<'a> = VertexIds<Self::VertexId>
-    where
-        Self: 'a;
-
-    fn vertex_count(&self) -> usize {
-        self.vertices.len()
-    }
-
-    fn vertex_bound(&self) -> usize {
-        self.vertex_count()
-    }
-
-    fn vertex_ids(&self) -> Self::VertexIdsIter<'_> {
-        (0..self.vertex_bound()).into()
-    }
-
-    fn vertex_id_map(&self) -> CompactIdMap<Self::VertexId>
-    where
-        Id::VertexId: IntegerIdType,
-    {
-        CompactIdMap::isomorphic(self.vertex_count())
-    }
-}
-
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> Vertices<V> for AdjMatrix<V, E, Ty, Id>
-where
-    Id::VertexId: IntegerIdType,
-{
-    type VertexRef<'a> = (Self::VertexId, &'a V)
-    where
-        Self: 'a,
-        V: 'a;
-
-    type VerticesIter<'a> = VerticesIter<'a, Id, V>
-    where
-        Self: 'a,
-        V: 'a;
-
-    fn vertex(&self, id: &Self::VertexId) -> Option<&V> {
-        self.vertices.get(id.as_usize())
-    }
-
-    fn vertices(&self) -> Self::VerticesIter<'_> {
-        VerticesIter::new(self.vertices.iter())
-    }
-}
-
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> VerticesMut<V> for AdjMatrix<V, E, Ty, Id>
-where
-    Id::VertexId: IntegerIdType,
-    Id::EdgeId: IntegerIdType,
-{
-    fn vertex_mut(&mut self, id: &Self::VertexId) -> Option<&mut V> {
-        self.vertices.get_mut(id.as_usize())
-    }
-
-    fn try_add_vertex(&mut self, vertex: V) -> Result<Self::VertexId, AddVertexError<V>> {
-        self.matrix.ensure_capacity(self.vertex_count() + 1);
-
-        let index = self.vertices.len();
-        self.vertices.push(vertex);
-        Ok(index.into())
-    }
-
-    fn remove_vertex(&mut self, id: &Self::VertexId) -> Option<V> {
-        self.vertex(id)?;
-
-        let index = id.as_usize();
-
-        // Remove incident edges.
-        for i in 0..self.vertices.len() {
-            let edge_id = self.matrix.index(index, i);
-            if self.matrix.remove(edge_id).is_some() {
-                self.n_edges -= 1;
-            }
-
-            if Ty::is_directed() {
-                let edge_id = self.matrix.index(i, index);
-                if self.matrix.remove(edge_id).is_some() {
-                    self.n_edges -= 1;
-                }
-            }
-        }
-
-        let vertex = self.vertices.swap_remove(index);
-
-        // Relocate the edges of the last vertex, if it is going to replace the
-        // removed vertex.
-        if index < self.vertices.len() {
-            let last_index = self.vertices.len();
-
-            for i in 0..self.vertices.len() {
-                let edge_id = self.matrix.index(last_index, i);
-                if let Some(edge) = self.matrix.remove(edge_id) {
-                    let edge_id = self.matrix.index(index, i);
-                    self.matrix.insert(edge_id, edge);
-                }
-
-                if Ty::is_directed() {
-                    let edge_id = self.matrix.index(i, last_index);
-                    if let Some(edge) = self.matrix.remove(edge_id) {
-                        let edge_id = self.matrix.index(i, index);
-                        self.matrix.insert(edge_id, edge);
-                    }
-                }
-            }
-
-            // Handle self-loops.
-            let edge_id = self.matrix.index(last_index, last_index);
-            if let Some(edge) = self.matrix.remove(edge_id) {
-                let edge_id = self.matrix.index(index, index);
-                self.matrix.insert(edge_id, edge);
-            }
-        }
-
-        Some(vertex)
-    }
-
-    fn clear(&mut self) {
-        self.matrix.clear();
-        self.vertices.clear();
-        self.n_edges = 0;
-    }
-}
-
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> EdgesBase<Ty> for AdjMatrix<V, E, Ty, Id>
-where
-    Id::VertexId: IntegerIdType,
-    Id::EdgeId: IntegerIdType,
-{
-    type EdgeIdsIter<'a> = EdgeIdsIter<'a, Ty, Id>
-    where
-        Self: 'a;
-    type EdgeIdIter<'a> = std::option::IntoIter<Self::EdgeId>
-    where
-        Self: 'a;
-
-    fn edge_count(&self) -> usize {
-        self.n_edges
-    }
-
-    fn edge_bound(&self) -> usize {
-        self.matrix.edge_bound(self.vertex_count())
-    }
-
-    fn endpoints(&self, id: &Self::EdgeId) -> Option<(Self::VertexId, Self::VertexId)> {
-        let (row, col) = self.matrix.coords(*id);
-        if row < self.vertex_count() {
-            Some((row.into(), col.into()))
-        } else {
-            None
-        }
-    }
-
-    fn edge_id(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Self::EdgeIdIter<'_> {
-        let id = self.matrix.index(src.as_usize(), dst.as_usize());
-        self.matrix.get(id).map(|_| id).into_iter()
-    }
-
-    fn edge_ids(&self) -> Self::EdgeIdsIter<'_> {
-        EdgeIdsIter {
-            matrix: self.matrix.detach(),
-            index: 0,
-            edge_bound: self.edge_bound(),
-            ty: PhantomData,
-        }
-    }
-}
-
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> Edges<E, Ty> for AdjMatrix<V, E, Ty, Id>
-where
-    Id::VertexId: IntegerIdType,
-    Id::EdgeId: IntegerIdType,
-{
-    type EdgeRef<'a> = (Self::EdgeId, &'a E, Self::VertexId, Self::VertexId)
-    where
-        Self: 'a,
-        E: 'a;
-
-    type EdgesIter<'a> = EdgesIter<'a, E, Ty, Id>
-    where
-        Self: 'a,
-        E:'a;
-
-    fn edge(&self, id: &Self::EdgeId) -> Option<&E> {
-        self.matrix.get(*id)
-    }
-
-    fn edges(&self) -> Self::EdgesIter<'_> {
-        EdgesIter {
-            matrix: &self.matrix,
-            index: 0,
-            edge_bound: self.edge_bound(),
-            ty: PhantomData,
-        }
-    }
-}
-
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> EdgesMut<E, Ty> for AdjMatrix<V, E, Ty, Id>
-where
-    Id::VertexId: IntegerIdType,
-    Id::EdgeId: IntegerIdType,
-{
-    fn edge_mut(&mut self, id: &Id::EdgeId) -> Option<&mut E> {
-        self.matrix.get_mut(*id)
-    }
-
-    fn try_add_edge(
-        &mut self,
-        src: &Self::VertexId,
-        dst: &Self::VertexId,
-        edge: E,
-    ) -> Result<Self::EdgeId, AddEdgeError<E>> {
-        if src.as_usize() >= self.vertices.len() {
-            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::SourceAbsent));
-        }
-
-        if dst.as_usize() >= self.vertices.len() {
-            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::DestinationAbsent));
-        }
-
-        let id = self.matrix.index(src.as_usize(), dst.as_usize());
-
-        if self.matrix.contains(id) {
-            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::MultiEdge));
-        }
-
-        self.matrix.insert(id, edge);
-        self.n_edges += 1;
-
-        Ok(id)
-    }
-
-    fn remove_edge(&mut self, id: &Self::EdgeId) -> Option<E> {
-        match self.matrix.remove(*id) {
-            Some(edge) => {
-                self.n_edges -= 1;
-                Some(edge)
-            }
-            None => None,
-        }
-    }
-
-    fn clear_edges(&mut self) {
-        self.matrix.clear();
-        self.n_edges = 0;
-    }
 }
 
 impl<V, E, Ty: EdgeType, Id: GraphIdTypes> Neighbors for AdjMatrix<V, E, Ty, Id>
@@ -365,7 +107,276 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> Create<V, E, Ty> for AdjMatrix<V, E, Ty, Id>
+impl<V, E, Ty: EdgeType, Id: GraphIdTypes> VertexSet for AdjMatrix<V, E, Ty, Id>
+where
+    Id::VertexId: IntegerIdType,
+{
+    type VertexIdsIter<'a> = VertexIds<Self::VertexId>
+    where
+        Self: 'a;
+
+    fn vertex_ids(&self) -> Self::VertexIdsIter<'_> {
+        (0..self.vertices.len()).into()
+    }
+
+    fn vertex_count(&self) -> usize {
+        self.vertices.len()
+    }
+
+    fn vertex_bound(&self) -> usize
+    where
+        Self::VertexId: IntegerIdType,
+    {
+        self.vertex_count()
+    }
+
+    fn contains_vertex(&self, id: &Self::VertexId) -> bool {
+        self.vertices.get(id.as_usize()).is_some()
+    }
+
+    fn vertex_id_map(&self) -> CompactIdMap<Self::VertexId>
+    where
+        Self::VertexId: IntegerIdType,
+    {
+        CompactIdMap::isomorphic(self.vertices.len())
+    }
+}
+
+impl<V, E, Ty: EdgeType, Id: GraphIdTypes> EdgeSet for AdjMatrix<V, E, Ty, Id>
+where
+    Id::VertexId: IntegerIdType,
+    Id::EdgeId: IntegerIdType,
+{
+    type EdgeIdsIter<'a> = EdgeIdsIter<'a, Ty, Id>
+    where
+        Self: 'a;
+
+    type EdgeIdIter<'a> = std::option::IntoIter<Self::EdgeId>
+    where
+        Self: 'a;
+
+    fn edge_ids(&self) -> Self::EdgeIdsIter<'_> {
+        EdgeIdsIter {
+            matrix: self.matrix.detach(),
+            index: 0,
+            edge_bound: self.edge_bound(),
+            ty: PhantomData,
+        }
+    }
+
+    fn edge_id(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Self::EdgeIdIter<'_> {
+        let id = self.matrix.index(src.as_usize(), dst.as_usize());
+        self.matrix.get(id).map(|_| id).into_iter()
+    }
+
+    fn endpoints(&self, id: &Self::EdgeId) -> Option<(Self::VertexId, Self::VertexId)> {
+        let (row, col) = self.matrix.coords(*id);
+        if row < self.vertex_count() {
+            Some((row.into(), col.into()))
+        } else {
+            None
+        }
+    }
+
+    fn edge_count(&self) -> usize {
+        self.n_edges
+    }
+
+    fn edge_bound(&self) -> usize
+    where
+        Self::EdgeId: IntegerIdType,
+    {
+        self.matrix.edge_bound(self.vertex_count())
+    }
+
+    fn contains_edge(&self, id: &Self::EdgeId) -> bool {
+        self.matrix.contains(*id)
+    }
+}
+
+impl<V, E, Ty: EdgeType, Id: GraphIdTypes> GraphRef<V, E> for AdjMatrix<V, E, Ty, Id>
+where
+    Id::VertexId: IntegerIdType,
+    Id::EdgeId: IntegerIdType,
+{
+    type VertexRef<'a> = (Self::VertexId, &'a V)
+    where
+        Self: 'a,
+        V: 'a;
+
+    type VerticesIter<'a> = VerticesIter<'a, Id, V>
+    where
+        Self: 'a,
+        V: 'a;
+
+    type EdgeRef<'a> = (Self::EdgeId, &'a E, Self::VertexId, Self::VertexId)
+    where
+        Self: 'a,
+        E: 'a;
+
+    type EdgesIter<'a> = EdgesIter<'a, E, Ty, Id>
+    where
+        Self: 'a,
+        E: 'a;
+
+    fn vertices(&self) -> Self::VerticesIter<'_> {
+        VerticesIter::new(self.vertices.iter())
+    }
+
+    fn edges(&self) -> Self::EdgesIter<'_> {
+        EdgesIter {
+            matrix: &self.matrix,
+            index: 0,
+            edge_bound: self.edge_bound(),
+            ty: PhantomData,
+        }
+    }
+
+    fn vertex(&self, id: &Self::VertexId) -> Option<&V> {
+        self.vertices.get(id.as_usize())
+    }
+
+    fn edge(&self, id: &Self::EdgeId) -> Option<&E> {
+        self.matrix.get(*id)
+    }
+}
+
+impl<V, E, Ty: EdgeType, Id: GraphIdTypes> GraphMut<V, E> for AdjMatrix<V, E, Ty, Id>
+where
+    Id::VertexId: IntegerIdType,
+    Id::EdgeId: IntegerIdType,
+{
+    fn vertex_mut(&mut self, id: &Self::VertexId) -> Option<&mut V> {
+        self.vertices.get_mut(id.as_usize())
+    }
+
+    fn edge_mut(&mut self, id: &Self::EdgeId) -> Option<&mut E> {
+        self.matrix.get_mut(*id)
+    }
+}
+
+impl<V, E, Ty: EdgeType, Id: GraphIdTypes> GraphAdd<V, E> for AdjMatrix<V, E, Ty, Id>
+where
+    Id::VertexId: IntegerIdType,
+    Id::EdgeId: IntegerIdType,
+{
+    fn try_add_vertex(&mut self, vertex: V) -> Result<Self::VertexId, AddVertexError<V>> {
+        self.matrix.ensure_capacity(self.vertex_count() + 1);
+
+        let index = self.vertices.len();
+        self.vertices.push(vertex);
+        Ok(index.into())
+    }
+
+    fn try_add_edge(
+        &mut self,
+        src: &Self::VertexId,
+        dst: &Self::VertexId,
+        edge: E,
+    ) -> Result<Self::EdgeId, AddEdgeError<E>> {
+        if src.as_usize() >= self.vertices.len() {
+            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::SourceAbsent));
+        }
+
+        if dst.as_usize() >= self.vertices.len() {
+            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::DestinationAbsent));
+        }
+
+        let id = self.matrix.index(src.as_usize(), dst.as_usize());
+
+        if self.matrix.contains(id) {
+            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::MultiEdge));
+        }
+
+        self.matrix.insert(id, edge);
+        self.n_edges += 1;
+
+        Ok(id)
+    }
+}
+
+impl<V, E, Ty: EdgeType, Id: GraphIdTypes> GraphFull<V, E> for AdjMatrix<V, E, Ty, Id>
+where
+    Id::VertexId: IntegerIdType,
+    Id::EdgeId: IntegerIdType,
+{
+    fn remove_vertex(&mut self, id: &Self::VertexId) -> Option<V> {
+        self.vertex(id)?;
+
+        let index = id.as_usize();
+
+        // Remove incident edges.
+        for i in 0..self.vertices.len() {
+            let edge_id = self.matrix.index(index, i);
+            if self.matrix.remove(edge_id).is_some() {
+                self.n_edges -= 1;
+            }
+
+            if Ty::is_directed() {
+                let edge_id = self.matrix.index(i, index);
+                if self.matrix.remove(edge_id).is_some() {
+                    self.n_edges -= 1;
+                }
+            }
+        }
+
+        let vertex = self.vertices.swap_remove(index);
+
+        // Relocate the edges of the last vertex, if it is going to replace the
+        // removed vertex.
+        if index < self.vertices.len() {
+            let last_index = self.vertices.len();
+
+            for i in 0..self.vertices.len() {
+                let edge_id = self.matrix.index(last_index, i);
+                if let Some(edge) = self.matrix.remove(edge_id) {
+                    let edge_id = self.matrix.index(index, i);
+                    self.matrix.insert(edge_id, edge);
+                }
+
+                if Ty::is_directed() {
+                    let edge_id = self.matrix.index(i, last_index);
+                    if let Some(edge) = self.matrix.remove(edge_id) {
+                        let edge_id = self.matrix.index(i, index);
+                        self.matrix.insert(edge_id, edge);
+                    }
+                }
+            }
+
+            // Handle self-loops.
+            let edge_id = self.matrix.index(last_index, last_index);
+            if let Some(edge) = self.matrix.remove(edge_id) {
+                let edge_id = self.matrix.index(index, index);
+                self.matrix.insert(edge_id, edge);
+            }
+        }
+
+        Some(vertex)
+    }
+
+    fn remove_edge(&mut self, id: &Self::EdgeId) -> Option<E> {
+        match self.matrix.remove(*id) {
+            Some(edge) => {
+                self.n_edges -= 1;
+                Some(edge)
+            }
+            None => None,
+        }
+    }
+
+    fn clear(&mut self) {
+        self.matrix.clear();
+        self.vertices.clear();
+        self.n_edges = 0;
+    }
+
+    fn clear_edges(&mut self) {
+        self.matrix.clear();
+        self.n_edges = 0;
+    }
+}
+
+impl<V, E, Ty: EdgeType, Id: GraphIdTypes> Create<V, E> for AdjMatrix<V, E, Ty, Id>
 where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
@@ -379,7 +390,7 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> ConnectVertices<V, E, Ty> for AdjMatrix<V, E, Ty, Id>
+impl<V, E, Ty: EdgeType, Id: GraphIdTypes> ConnectVertices<V, E> for AdjMatrix<V, E, Ty, Id>
 where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
@@ -898,32 +909,32 @@ mod tests {
 
     #[test]
     fn basic_undirected() {
-        test_basic::<Undirected, AdjMatrix<_, _, _, DefaultId>>();
+        test_basic::<AdjMatrix<_, _, Undirected, DefaultId>>();
     }
 
     #[test]
     fn basic_directed() {
-        test_basic::<Directed, AdjMatrix<_, _, _, DefaultId>>();
+        test_basic::<AdjMatrix<_, _, Directed, DefaultId>>();
     }
 
     #[test]
     fn connect_vertices_undirected() {
-        test_connect_vertices::<Undirected, AdjMatrix<_, _, _, DefaultId>>();
+        test_connect_vertices::<AdjMatrix<_, _, Undirected, DefaultId>>();
     }
 
     #[test]
     fn connect_vertices_directed() {
-        test_connect_vertices::<Directed, AdjMatrix<_, _, _, DefaultId>>();
+        test_connect_vertices::<AdjMatrix<_, _, Directed, DefaultId>>();
     }
 
     #[test]
     fn neighbors_edge_cases_undirected() {
-        test_neighbors_edge_cases::<Undirected, AdjMatrix<_, _, _, DefaultId>>();
+        test_neighbors_edge_cases::<AdjMatrix<_, _, Undirected, DefaultId>>();
     }
 
     #[test]
     fn neighbors_edge_cases_directed() {
-        test_neighbors_edge_cases::<Directed, AdjMatrix<_, _, _, DefaultId>>();
+        test_neighbors_edge_cases::<AdjMatrix<_, _, Directed, DefaultId>>();
     }
 
     #[test]

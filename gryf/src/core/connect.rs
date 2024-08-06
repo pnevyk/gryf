@@ -1,6 +1,6 @@
-use super::{edges::EdgesMut, marker::EdgeType, vertices::VerticesMut};
+use super::graph::GraphAdd;
 
-pub trait ConnectVertices<V, E, Ty: EdgeType>: VerticesMut<V> + EdgesMut<E, Ty> {
+pub trait ConnectVertices<V, E>: GraphAdd<V, E> {
     fn connect_vertices<F>(&mut self, connect: F)
     where
         // NOTE: Ideally the API here would be `F: FnMut(Self::VertexRef<'_>, Self::VertexRef<'_>) -> Option<E>`,

@@ -9,7 +9,7 @@ use rustc_hash::FxHashSet;
 use crate::{
     core::{
         marker::{Directed, EdgeType, Undirected},
-        Create, EdgesMut, VerticesMut,
+        Create, GraphAdd,
     },
     Graph,
 };
@@ -238,10 +238,10 @@ impl StrategyParams {
 
 impl<V: Strategy, E: Strategy, Ty: EdgeType, G> Strategy for GraphStrategy<V, E, Ty, G>
 where
-    G: VerticesMut<V::Value> + EdgesMut<E::Value, Ty> + Create<V::Value, E::Value, Ty>,
+    G: Create<V::Value, E::Value> + GraphAdd<V::Value, E::Value>,
 {
     type Tree = GraphValueTree<V::Tree, E::Tree, Ty, G>;
-    type Value = AsDot<V::Value, E::Value, Ty, G>;
+    type Value = AsDot<V::Value, E::Value, G>;
 
     fn new_tree(
         &self,
@@ -351,9 +351,9 @@ where
 
 impl<V: ValueTree, E: ValueTree, Ty: EdgeType, G> ValueTree for GraphValueTree<V, E, Ty, G>
 where
-    G: VerticesMut<V::Value> + EdgesMut<E::Value, Ty> + Create<V::Value, E::Value, Ty>,
+    G: Create<V::Value, E::Value> + GraphAdd<V::Value, E::Value>,
 {
-    type Value = AsDot<V::Value, E::Value, Ty, G>;
+    type Value = AsDot<V::Value, E::Value, G>;
 
     fn current(&self) -> Self::Value {
         let empty = FxHashSet::default();
@@ -678,7 +678,7 @@ impl ShrinkAttrState {
 mod tests {
     use proptest::{strategy::check_strategy_sanity, test_runner::TestRunner};
 
-    use crate::core::{EdgeRef, Edges, EdgesBase, VertexRef, Vertices, VerticesBase};
+    use crate::core::{EdgeRef, EdgeSet, GraphRef, VertexRef, VertexSet};
 
     use super::*;
 

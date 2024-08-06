@@ -1,4 +1,4 @@
-use crate::core::{marker::EdgeType, EdgesBase, GraphBase, Neighbors, VerticesBase};
+use crate::core::{GraphBase, Neighbors, VertexSet};
 
 use super::{dfs::dfs, Connected};
 
@@ -47,9 +47,9 @@ impl<'a, G> ConnectedBuilder<'a, G>
 where
     G: GraphBase,
 {
-    pub fn run<Ty: EdgeType>(self) -> Connected<G>
+    pub fn run(self) -> Connected<G>
     where
-        G: Neighbors + VerticesBase + EdgesBase<Ty>,
+        G: Neighbors + VertexSet,
     {
         dfs(self.graph, self.between, self.as_undirected)
     }

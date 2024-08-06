@@ -12,41 +12,22 @@ use crate::{
     common::VisitSet,
     core::{
         error::{AddEdgeError, AddVertexError, ReplaceEdgeError, ReplaceVertexError},
-        id::DefaultId,
+        id::{DefaultId, IntegerIdType},
         marker::{Directed, Direction, EdgeType, Undirected},
-        Constrained, Create, Edges, EdgesBase, EdgesMut, GraphBase, Guarantee, NeighborRef,
-        Neighbors, Vertices, VerticesBase, VerticesMut,
+        Constrained, Create, GraphAdd, GraphBase, GraphFull, Guarantee, NeighborRef, Neighbors,
     },
     storage::{AdjList, Frozen, Stable},
 };
 
-use gryf_derive::{
-    Edges, EdgesBase, EdgesBaseWeak, EdgesWeak, GraphBase, Neighbors, Vertices, VerticesBase,
-    VerticesBaseWeak, VerticesWeak,
-};
+use gryf_derive::{EdgeSet, GraphBase, GraphMut, GraphRef, Neighbors, VertexSet};
 
 // TODO: Remove these imports once hygiene of procedural macros is fixed.
 use crate::common::CompactIdMap;
-use crate::core::{
-    id::IntegerIdType, EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak, WeakRef,
-};
+use crate::core::{EdgeSet, GraphMut, GraphRef, VertexSet};
 
 use super::generic::Graph;
 
-#[derive(
-    Debug,
-    Clone,
-    GraphBase,
-    VerticesBase,
-    Vertices,
-    EdgesBase,
-    Edges,
-    Neighbors,
-    VerticesBaseWeak,
-    VerticesWeak,
-    EdgesBaseWeak,
-    EdgesWeak,
-)]
+#[derive(Debug, Clone, GraphBase, Neighbors, VertexSet, EdgeSet, GraphRef, GraphMut)]
 pub struct Path<V, E, Ty: EdgeType, G = AdjList<V, E, Ty, DefaultId>>
 where
     G: GraphBase,
@@ -130,7 +111,7 @@ where
 
     fn check_runtime(storage: &G) -> Result<Option<[G::VertexId; 2]>, PathError<V, E>>
     where
-        G: Vertices<V> + Neighbors,
+        G: Neighbors + VertexSet,
     {
         let v = match storage.vertex_ids().next() {
             Some(v) => v,
@@ -234,28 +215,29 @@ where
 
     pub fn vertex_count(&self) -> usize
     where
-        G: VerticesBase,
+        G: VertexSet,
     {
         self.storage.vertex_count()
     }
 
     pub fn vertex_bound(&self) -> usize
     where
-        G: VerticesBase,
+        G: VertexSet,
+        G::VertexId: IntegerIdType,
     {
         self.storage.vertex_bound()
     }
 
     pub fn vertex_ids(&self) -> G::VertexIdsIter<'_>
     where
-        G: VerticesBase,
+        G: VertexSet,
     {
         self.storage.vertex_ids()
     }
 
     pub fn vertex<VId>(&self, id: VId) -> Option<&V>
     where
-        G: Vertices<V>,
+        G: GraphRef<V, E>,
         VId: Borrow<G::VertexId>,
     {
         self.storage.vertex(id.borrow())
@@ -263,14 +245,14 @@ where
 
     pub fn vertices(&self) -> G::VerticesIter<'_>
     where
-        G: Vertices<V>,
+        G: GraphRef<V, E>,
     {
         self.storage.vertices()
     }
 
     pub fn vertex_mut<VId>(&mut self, id: VId) -> Option<&mut V>
     where
-        G: VerticesMut<V>,
+        G: GraphMut<V, E>,
         VId: Borrow<G::VertexId>,
     {
         self.storage.vertex_mut(id.borrow())
@@ -283,7 +265,7 @@ where
         end: VId,
     ) -> Result<G::VertexId, PathError<V, E>>
     where
-        G: VerticesMut<V> + EdgesMut<E, Ty> + Neighbors,
+        G: Neighbors + GraphAdd<V, E>,
         VId: Borrow<G::VertexId>,
     {
         let end = end.borrow();
@@ -339,7 +321,7 @@ where
     pub fn add_vertex<VId>(&mut self, vertex: V, end: VId) -> G::VertexId
     where
         E: Default,
-        G: VerticesMut<V> + EdgesMut<E, Ty> + Neighbors,
+        G: Neighbors + GraphAdd<V, E>,
         VId: Borrow<G::VertexId>,
     {
         let end = end.borrow();
@@ -366,7 +348,7 @@ where
 
     pub fn remove_vertex<VId>(&mut self, id: VId, edge: Option<E>) -> Option<V>
     where
-        G: VerticesMut<V> + EdgesMut<E, Ty> + Neighbors,
+        G: Neighbors + GraphFull<V, E>,
         VId: Borrow<G::VertexId>,
     {
         let id = id.borrow();
@@ -437,7 +419,7 @@ where
 
     pub fn replace_vertex<VId>(&mut self, id: VId, vertex: V) -> V
     where
-        G: VerticesMut<V>,
+        G: GraphMut<V, E>,
         VId: Borrow<G::VertexId>,
     {
         self.storage.replace_vertex(id.borrow(), vertex)
@@ -449,7 +431,7 @@ where
         vertex: V,
     ) -> Result<V, ReplaceVertexError<V>>
     where
-        G: VerticesMut<V>,
+        G: GraphMut<V, E>,
         VId: Borrow<G::VertexId>,
     {
         self.storage.try_replace_vertex(id.borrow(), vertex)
@@ -457,7 +439,7 @@ where
 
     pub fn clear(&mut self)
     where
-        G: VerticesMut<V>,
+        G: GraphFull<V, E>,
     {
         self.storage.clear();
         self.ends = None;
@@ -465,21 +447,22 @@ where
 
     pub fn edge_count(&self) -> usize
     where
-        G: EdgesBase<Ty>,
+        G: EdgeSet,
     {
         self.storage.edge_count()
     }
 
     pub fn edge_bound(&self) -> usize
     where
-        G: EdgesBase<Ty>,
+        G: EdgeSet,
+        G::EdgeId: IntegerIdType,
     {
         self.storage.edge_bound()
     }
 
     pub fn endpoints<EId>(&self, id: EId) -> Option<(G::VertexId, G::VertexId)>
     where
-        G: EdgesBase<Ty>,
+        G: EdgeSet,
         EId: Borrow<G::EdgeId>,
     {
         self.storage.endpoints(id.borrow())
@@ -487,7 +470,7 @@ where
 
     pub fn edge_id<VId>(&self, src: VId, dst: VId) -> G::EdgeIdIter<'_>
     where
-        G: EdgesBase<Ty>,
+        G: EdgeSet,
         VId: Borrow<G::VertexId>,
     {
         self.storage.edge_id(src.borrow(), dst.borrow())
@@ -495,7 +478,7 @@ where
 
     pub fn edge_id_any<VId>(&self, src: VId, dst: VId) -> Option<G::EdgeId>
     where
-        G: EdgesBase<Ty>,
+        G: EdgeSet,
         VId: Borrow<G::VertexId>,
     {
         self.storage.edge_id_any(src.borrow(), dst.borrow())
@@ -503,14 +486,14 @@ where
 
     pub fn edge_ids(&self) -> G::EdgeIdsIter<'_>
     where
-        G: EdgesBase<Ty>,
+        G: EdgeSet,
     {
         self.storage.edge_ids()
     }
 
     pub fn contains_edge<EId>(&self, id: EId) -> bool
     where
-        G: EdgesBase<Ty>,
+        G: EdgeSet,
         EId: Borrow<G::EdgeId>,
     {
         self.storage.contains_edge(id.borrow())
@@ -518,14 +501,14 @@ where
 
     pub fn is_directed(&self) -> bool
     where
-        G: EdgesBase<Ty>,
+        G: GraphBase,
     {
         self.storage.is_directed()
     }
 
     pub fn edge<EId>(&self, id: EId) -> Option<&E>
     where
-        G: Edges<E, Ty>,
+        G: GraphRef<V, E>,
         EId: Borrow<G::EdgeId>,
     {
         self.storage.edge(id.borrow())
@@ -533,14 +516,14 @@ where
 
     pub fn edges(&self) -> G::EdgesIter<'_>
     where
-        G: Edges<E, Ty>,
+        G: GraphRef<V, E>,
     {
         self.storage.edges()
     }
 
     pub fn edge_mut<EId>(&mut self, id: EId) -> Option<&mut E>
     where
-        G: EdgesMut<E, Ty>,
+        G: GraphMut<V, E>,
         EId: Borrow<G::EdgeId>,
     {
         self.storage.edge_mut(id.borrow())
@@ -548,7 +531,7 @@ where
 
     pub fn replace_edge<EId>(&mut self, id: EId, edge: E) -> E
     where
-        G: EdgesMut<E, Ty>,
+        G: GraphMut<V, E>,
         EId: Borrow<G::EdgeId>,
     {
         self.storage.replace_edge(id.borrow(), edge)
@@ -556,7 +539,7 @@ where
 
     pub fn try_replace_edge<EId>(&mut self, id: EId, edge: E) -> Result<E, ReplaceEdgeError<E>>
     where
-        G: EdgesMut<E, Ty>,
+        G: GraphMut<V, E>,
         EId: Borrow<G::EdgeId>,
     {
         self.storage.try_replace_edge(id.borrow(), edge)
@@ -618,7 +601,7 @@ where
 
 impl<V, E, Ty: EdgeType, G> Constrained<G> for Path<V, E, Ty, G>
 where
-    G: Vertices<V> + Neighbors + Guarantee,
+    G: Neighbors + VertexSet + Guarantee,
 {
     type Error = PathError<V, E>;
 
@@ -652,7 +635,7 @@ where
 
 impl<V, E, Ty: EdgeType, G, VId> Index<VId> for Path<V, E, Ty, G>
 where
-    G: Vertices<V>,
+    G: GraphRef<V, E>,
     VId: Borrow<G::VertexId>,
 {
     type Output = V;
@@ -664,7 +647,7 @@ where
 
 impl<V, E, Ty: EdgeType, G, VId> IndexMut<VId> for Path<V, E, Ty, G>
 where
-    G: VerticesMut<V>,
+    G: GraphMut<V, E>,
     VId: Borrow<G::VertexId>,
 {
     fn index_mut(&mut self, id: VId) -> &mut Self::Output {

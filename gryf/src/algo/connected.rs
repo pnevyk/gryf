@@ -1,4 +1,4 @@
-use crate::core::{marker::EdgeType, EdgesBase, GraphBase, Neighbors, VerticesBase};
+use crate::core::{GraphBase, Neighbors, VertexSet};
 
 mod builder;
 mod dfs;
@@ -30,16 +30,16 @@ where
     }
 }
 
-pub fn is_connected<Ty: EdgeType, G>(graph: &G) -> bool
+pub fn is_connected<G>(graph: &G) -> bool
 where
-    G: Neighbors + VerticesBase + EdgesBase<Ty>,
+    G: Neighbors + VertexSet,
 {
     Connected::on(graph).run().is()
 }
 
-pub fn is_path_between<Ty: EdgeType, G>(graph: &G, src: &G::VertexId, dst: &G::VertexId) -> bool
+pub fn is_path_between<G>(graph: &G, src: &G::VertexId, dst: &G::VertexId) -> bool
 where
-    G: Neighbors + VerticesBase + EdgesBase<Ty>,
+    G: Neighbors + VertexSet,
 {
     Connected::on(graph).between(src, dst).run().is()
 }
@@ -55,7 +55,7 @@ mod tests {
         core::{
             id::VertexId,
             marker::{Directed, Direction, Undirected},
-            EdgesMut, NeighborRef, VerticesMut,
+            GraphAdd, NeighborRef,
         },
         infra::proptest::{graph_directed, graph_undirected},
         storage::AdjList,
@@ -68,7 +68,7 @@ mod tests {
         graph: &G,
         between: Option<(G::VertexId, G::VertexId)>,
     ) where
-        G: Neighbors + VerticesBase,
+        G: Neighbors + VertexSet,
     {
         match connected.disconnected_any() {
             Some((u, v)) => {

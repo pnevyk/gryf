@@ -3,7 +3,7 @@ use std::fmt;
 use thiserror::Error;
 
 use crate::{
-    core::{id::IntegerIdType, marker::Directed, EdgesBase, GraphBase, Neighbors, VerticesBase},
+    core::{id::IntegerIdType, marker::Directed, GraphBase, Neighbors, VertexSet},
     visit,
 };
 
@@ -19,14 +19,14 @@ use kahn::KahnIter;
 
 pub struct TopoSort<'a, G>
 where
-    G: VerticesBase + EdgesBase<Directed>,
+    G: VertexSet,
 {
     inner: TopoSortInner<'a, G>,
 }
 
 impl<'a, G> Iterator for TopoSort<'a, G>
 where
-    G: Neighbors + VerticesBase + EdgesBase<Directed>,
+    G: GraphBase<EdgeType = Directed> + Neighbors + VertexSet,
     G::VertexId: IntegerIdType,
 {
     type Item = Result<G::VertexId, Error<G>>;
@@ -38,7 +38,7 @@ where
 
 impl<'a, G> TopoSort<'a, G>
 where
-    G: Neighbors + VerticesBase + EdgesBase<Directed>,
+    G: GraphBase<EdgeType = Directed> + Neighbors + VertexSet,
     G::VertexId: IntegerIdType,
 {
     pub fn into_vec(self) -> Result<Vec<G::VertexId>, Error<G>> {
@@ -115,7 +115,7 @@ impl<G> Eq for Error<G> where G: GraphBase {}
 
 enum TopoSortInner<'a, G>
 where
-    G: VerticesBase,
+    G: VertexSet,
 {
     Dfs(visit::IntoIter<'a, DfsVisit<'a, G>, G>),
     Kahn(KahnIter<'a, G>),
@@ -123,7 +123,7 @@ where
 
 impl<'a, G> Iterator for TopoSortInner<'a, G>
 where
-    G: Neighbors + VerticesBase + EdgesBase<Directed>,
+    G: GraphBase<EdgeType = Directed> + Neighbors + VertexSet,
     G::VertexId: IntegerIdType,
 {
     type Item = Result<G::VertexId, Error<G>>;
@@ -146,7 +146,7 @@ mod tests {
     use super::*;
 
     use crate::{
-        core::{id::DefaultId, EdgesBaseWeak, EdgesMut, VerticesBaseWeak, VerticesMut},
+        core::{id::DefaultId, EdgeSet, GraphAdd},
         infra::proptest::graph_directed,
         storage::AdjList,
         visit::{DfsEvent, DfsEvents, Visitor},
@@ -154,11 +154,7 @@ mod tests {
 
     fn assert_valid<'a, G>(toposort: TopoSort<'a, G>, graph: &'a G)
     where
-        G: Neighbors
-            + VerticesBase
-            + EdgesBase<Directed>
-            + VerticesBaseWeak
-            + EdgesBaseWeak<Directed>,
+        G: GraphBase<EdgeType = Directed> + Neighbors + VertexSet + EdgeSet,
         G::VertexId: IntegerIdType,
     {
         let sorted = toposort.collect::<Result<Vec<_>, _>>();

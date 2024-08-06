@@ -1,6 +1,6 @@
 use super::{
     id::{GraphIdTypes, IdType},
-    marker::{Direction, EdgeType},
+    marker::Direction,
     weak::WeakRef,
 };
 
@@ -23,7 +23,7 @@ pub trait NeighborRef<VId: IdType, EId: IdType> {
     fn dir(&self) -> Direction;
 }
 
-pub trait IntoEdge<Id: GraphIdTypes, E, Ty: EdgeType> {
+pub trait IntoEdge<Id: GraphIdTypes, E> {
     fn unpack(self) -> (Id::VertexId, Id::VertexId, E);
 }
 
@@ -76,31 +76,25 @@ mod imp {
         }
     }
 
-    impl<Id: GraphIdTypes, E, Ty: EdgeType, I: Into<Id::VertexId>> IntoEdge<Id, E, Ty> for (I, I, E) {
+    impl<Id: GraphIdTypes, E, I: Into<Id::VertexId>> IntoEdge<Id, E> for (I, I, E) {
         fn unpack(self) -> (Id::VertexId, Id::VertexId, E) {
             (self.0.into(), self.1.into(), self.2)
         }
     }
 
-    impl<Id: GraphIdTypes, E: Clone, Ty: EdgeType, I: Into<Id::VertexId> + Clone>
-        IntoEdge<Id, E, Ty> for &(I, I, E)
-    {
+    impl<Id: GraphIdTypes, E: Clone, I: Into<Id::VertexId> + Clone> IntoEdge<Id, E> for &(I, I, E) {
         fn unpack(self) -> (Id::VertexId, Id::VertexId, E) {
             (self.0.clone().into(), self.1.clone().into(), self.2.clone())
         }
     }
 
-    impl<Id: GraphIdTypes, E: Default, Ty: EdgeType, I: Into<Id::VertexId>> IntoEdge<Id, E, Ty>
-        for (I, I)
-    {
+    impl<Id: GraphIdTypes, E: Default, I: Into<Id::VertexId>> IntoEdge<Id, E> for (I, I) {
         fn unpack(self) -> (Id::VertexId, Id::VertexId, E) {
             (self.0.into(), self.1.into(), E::default())
         }
     }
 
-    impl<Id: GraphIdTypes, E: Default, Ty: EdgeType, I: Into<Id::VertexId> + Clone>
-        IntoEdge<Id, E, Ty> for &(I, I)
-    {
+    impl<Id: GraphIdTypes, E: Default, I: Into<Id::VertexId> + Clone> IntoEdge<Id, E> for &(I, I) {
         fn unpack(self) -> (Id::VertexId, Id::VertexId, E) {
             (self.0.clone().into(), self.1.clone().into(), E::default())
         }

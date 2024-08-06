@@ -6,7 +6,7 @@ use crate::core::{
     error::{AddEdgeError, AddEdgeErrorKind, AddVertexError},
     id::{EdgeId, IdType, IntegerIdType, VertexId},
     marker::{Direction, EdgeType},
-    Edges, EdgesBase, EdgesMut, GraphBase, Neighbors, Vertices, VerticesBase, VerticesMut,
+    EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Neighbors, VertexSet,
 };
 
 use super::arbitrary::MutOp;
@@ -190,10 +190,14 @@ impl<V, E, Ty: EdgeType> GraphBase for Model<V, E, Ty> {
     type EdgeType = Ty;
 }
 
-impl<V, E, Ty: EdgeType> VerticesBase for Model<V, E, Ty> {
+impl<V, E, Ty: EdgeType> VertexSet for Model<V, E, Ty> {
     type VertexIdsIter<'a> = IdIter<'a, VertexId, V>
     where
         Self: 'a;
+
+    fn vertex_ids(&self) -> Self::VertexIdsIter<'_> {
+        IdIter::new(&self.vertices)
+    }
 
     fn vertex_count(&self) -> usize {
         let holes = match self.params.removal_behavior {
@@ -206,13 +210,45 @@ impl<V, E, Ty: EdgeType> VerticesBase for Model<V, E, Ty> {
     fn vertex_bound(&self) -> usize {
         self.vertices.len()
     }
+}
 
-    fn vertex_ids(&self) -> Self::VertexIdsIter<'_> {
-        IdIter::new(&self.vertices)
+impl<V, E, Ty: EdgeType> EdgeSet for Model<V, E, Ty> {
+    type EdgeIdsIter<'a> = IdIter<'a, EdgeId, E>
+    where
+        Self: 'a;
+
+    type EdgeIdIter<'a> = EdgeIdIter<'a, Ty>
+    where
+        Self: 'a;
+
+    fn edge_ids(&self) -> Self::EdgeIdsIter<'_> {
+        IdIter::new(&self.edges)
+    }
+
+    fn edge_id(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Self::EdgeIdIter<'_> {
+        let (src, dst) = (src.as_usize(), dst.as_usize());
+        EdgeIdIter::new([src, dst], &self.neighbors)
+    }
+
+    fn endpoints(&self, id: &Self::EdgeId) -> Option<(Self::VertexId, Self::VertexId)> {
+        let &(src, dst) = self.neighbors.get(id.as_usize())?.as_ref()?;
+        Some((VertexId::from_usize(src), VertexId::from_usize(dst)))
+    }
+
+    fn edge_count(&self) -> usize {
+        let holes = match self.params.removal_behavior {
+            RemovalBehavior::SwapRemove => 0,
+            RemovalBehavior::TombStone => self.removed_edges,
+        };
+        self.edges.len() - holes
+    }
+
+    fn edge_bound(&self) -> usize {
+        self.edges.len()
     }
 }
 
-impl<V, E, Ty: EdgeType> Vertices<V> for Model<V, E, Ty> {
+impl<V, E, Ty: EdgeType> GraphRef<V, E> for Model<V, E, Ty> {
     type VertexRef<'a> = (VertexId, &'a V)
     where
         Self: 'a,
@@ -223,22 +259,46 @@ impl<V, E, Ty: EdgeType> Vertices<V> for Model<V, E, Ty> {
         Self: 'a,
         V: 'a;
 
-    fn vertex(&self, id: &Self::VertexId) -> Option<&V> {
-        self.vertices.get(id.as_usize()).and_then(Option::as_ref)
-    }
+    type EdgeRef<'a> = (EdgeId, &'a E, VertexId, VertexId)
+        where
+            Self: 'a,
+            E: 'a;
+
+    type EdgesIter<'a> = EdgesIter<'a, E>
+        where
+            Self: 'a,
+            E: 'a;
 
     fn vertices(&self) -> Self::VerticesIter<'_> {
         VerticesIter::new(&self.vertices)
     }
+
+    fn edges(&self) -> Self::EdgesIter<'_> {
+        EdgesIter::new(&self.edges, &self.neighbors)
+    }
+
+    fn vertex(&self, id: &Self::VertexId) -> Option<&V> {
+        self.vertices.get(id.as_usize()).and_then(Option::as_ref)
+    }
+
+    fn edge(&self, id: &Self::EdgeId) -> Option<&E> {
+        self.edges.get(id.as_usize()).and_then(Option::as_ref)
+    }
 }
 
-impl<V, E, Ty: EdgeType> VerticesMut<V> for Model<V, E, Ty> {
+impl<V, E, Ty: EdgeType> GraphMut<V, E> for Model<V, E, Ty> {
     fn vertex_mut(&mut self, id: &Self::VertexId) -> Option<&mut V> {
         self.vertices
             .get_mut(id.as_usize())
             .and_then(Option::as_mut)
     }
 
+    fn edge_mut(&mut self, id: &Self::EdgeId) -> Option<&mut E> {
+        self.edges.get_mut(id.as_usize()).and_then(Option::as_mut)
+    }
+}
+
+impl<V, E, Ty: EdgeType> GraphAdd<V, E> for Model<V, E, Ty> {
     fn try_add_vertex(&mut self, vertex: V) -> Result<Self::VertexId, AddVertexError<V>> {
         if Some(self.vertex_count()) == self.params.max_vertex_count {
             return Err(AddVertexError::new(vertex));
@@ -250,6 +310,39 @@ impl<V, E, Ty: EdgeType> VerticesMut<V> for Model<V, E, Ty> {
         Ok(id)
     }
 
+    fn try_add_edge(
+        &mut self,
+        src: &Self::VertexId,
+        dst: &Self::VertexId,
+        edge: E,
+    ) -> Result<Self::EdgeId, AddEdgeError<E>> {
+        if self.vertex(src).is_none() {
+            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::SourceAbsent));
+        }
+
+        if self.vertex(dst).is_none() {
+            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::DestinationAbsent));
+        }
+
+        if Some(self.edge_count()) == self.params.max_edge_count {
+            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::CapacityOverflow));
+        }
+
+        let (src, dst) = (src.as_usize(), dst.as_usize());
+
+        if !self.params.allow_multi_edges && self.edge_exists(src, dst) {
+            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::MultiEdge));
+        }
+
+        let id = EdgeId::from_usize(self.edges.len());
+        self.edges.push(Some(edge));
+        self.neighbors.push(Some((src, dst)));
+
+        Ok(id)
+    }
+}
+
+impl<V, E, Ty: EdgeType> GraphFull<V, E> for Model<V, E, Ty> {
     fn remove_vertex(&mut self, id: &Self::VertexId) -> Option<V> {
         self.vertex(id)?;
 
@@ -293,98 +386,6 @@ impl<V, E, Ty: EdgeType> VerticesMut<V> for Model<V, E, Ty> {
                 self.vertices[index].take()
             }
         }
-    }
-}
-
-impl<V, E, Ty: EdgeType> EdgesBase<Ty> for Model<V, E, Ty> {
-    type EdgeIdsIter<'a> = IdIter<'a, EdgeId, E>
-    where
-        Self: 'a;
-    type EdgeIdIter<'a> = EdgeIdIter<'a, Ty>
-    where
-        Self: 'a;
-
-    fn edge_count(&self) -> usize {
-        let holes = match self.params.removal_behavior {
-            RemovalBehavior::SwapRemove => 0,
-            RemovalBehavior::TombStone => self.removed_edges,
-        };
-        self.edges.len() - holes
-    }
-
-    fn edge_bound(&self) -> usize {
-        self.edges.len()
-    }
-
-    fn endpoints(&self, id: &Self::EdgeId) -> Option<(Self::VertexId, Self::VertexId)> {
-        let &(src, dst) = self.neighbors.get(id.as_usize())?.as_ref()?;
-        Some((VertexId::from_usize(src), VertexId::from_usize(dst)))
-    }
-
-    fn edge_id(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Self::EdgeIdIter<'_> {
-        let (src, dst) = (src.as_usize(), dst.as_usize());
-        EdgeIdIter::new([src, dst], &self.neighbors)
-    }
-
-    fn edge_ids(&self) -> Self::EdgeIdsIter<'_> {
-        IdIter::new(&self.edges)
-    }
-}
-
-impl<V, E, Ty: EdgeType> Edges<E, Ty> for Model<V, E, Ty> {
-    type EdgeRef<'a> = (EdgeId, &'a E, VertexId, VertexId)
-    where
-        Self: 'a,
-        E: 'a;
-
-    type EdgesIter<'a> = EdgesIter<'a, E>
-    where
-        Self: 'a,
-        E: 'a;
-
-    fn edge(&self, id: &Self::EdgeId) -> Option<&E> {
-        self.edges.get(id.as_usize()).and_then(Option::as_ref)
-    }
-
-    fn edges(&self) -> Self::EdgesIter<'_> {
-        EdgesIter::new(&self.edges, &self.neighbors)
-    }
-}
-
-impl<V, E, Ty: EdgeType> EdgesMut<E, Ty> for Model<V, E, Ty> {
-    fn edge_mut(&mut self, id: &Self::EdgeId) -> Option<&mut E> {
-        self.edges.get_mut(id.as_usize()).and_then(Option::as_mut)
-    }
-
-    fn try_add_edge(
-        &mut self,
-        src: &Self::VertexId,
-        dst: &Self::VertexId,
-        edge: E,
-    ) -> Result<Self::EdgeId, AddEdgeError<E>> {
-        if self.vertex(src).is_none() {
-            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::SourceAbsent));
-        }
-
-        if self.vertex(dst).is_none() {
-            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::DestinationAbsent));
-        }
-
-        if Some(self.edge_count()) == self.params.max_edge_count {
-            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::CapacityOverflow));
-        }
-
-        let (src, dst) = (src.as_usize(), dst.as_usize());
-
-        if !self.params.allow_multi_edges && self.edge_exists(src, dst) {
-            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::MultiEdge));
-        }
-
-        let id = EdgeId::from_usize(self.edges.len());
-        self.edges.push(Some(edge));
-        self.neighbors.push(Some((src, dst)));
-
-        Ok(id)
     }
 
     fn remove_edge(&mut self, id: &Self::EdgeId) -> Option<E> {

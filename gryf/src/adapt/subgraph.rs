@@ -1,15 +1,11 @@
 use crate::core::{
-    marker::{Direction, EdgeType},
-    EdgeRef, Edges, EdgesBase, GraphBase, NeighborRef, Neighbors, VertexRef, Vertices,
-    VerticesBase,
+    marker::Direction, EdgeRef, EdgeSet, GraphBase, GraphRef, NeighborRef, Neighbors, VertexRef,
+    VertexSet,
 };
 
-use gryf_derive::{EdgesBaseWeak, EdgesWeak, GraphBase, VerticesBaseWeak, VerticesWeak};
+use gryf_derive::GraphBase;
 
-// TODO: Remove these imports once hygiene of procedural macros is fixed.
-use crate::core::{EdgesBaseWeak, EdgesWeak, VerticesBaseWeak, VerticesWeak, WeakRef};
-
-#[derive(GraphBase, VerticesBaseWeak, VerticesWeak, EdgesBaseWeak, EdgesWeak)]
+#[derive(GraphBase)]
 pub struct Subgraph<G, S = ()>
 where
     G: GraphBase,
@@ -78,158 +74,6 @@ where
     }
 }
 
-impl<G, S> VerticesBase for Subgraph<G, S>
-where
-    G: VerticesBase,
-{
-    type VertexIdsIter<'a> = SubsetIter<'a, G::VertexIdsIter<'a>, G::VertexId>
-    where
-        Self: 'a;
-
-    fn vertex_count(&self) -> usize {
-        self.vertex_ids().count()
-    }
-
-    fn vertex_bound(&self) -> usize {
-        self.graph.vertex_bound()
-    }
-
-    fn vertex_ids(&self) -> Self::VertexIdsIter<'_> {
-        SubsetIter::new(self.graph.vertex_ids(), |id| self.check_vertex(id), true)
-    }
-
-    fn contains_vertex(&self, id: &Self::VertexId) -> bool {
-        self.check_vertex(id) && self.graph.contains_vertex(id)
-    }
-}
-
-impl<V, G, S> Vertices<V> for Subgraph<G, S>
-where
-    G: Vertices<V>,
-{
-    type VertexRef<'a> = G::VertexRef<'a>
-    where
-        Self: 'a,
-        V: 'a;
-
-    type VerticesIter<'a> = SubsetIter<'a, G::VerticesIter<'a>, G::VertexRef<'a>>
-    where
-        Self: 'a,
-        V: 'a;
-
-    fn vertex(&self, id: &G::VertexId) -> Option<&V> {
-        if self.check_vertex(id) {
-            self.graph.vertex(id)
-        } else {
-            None
-        }
-    }
-
-    fn vertices(&self) -> Self::VerticesIter<'_> {
-        SubsetIter::<_, G::VertexRef<'_>>::new(
-            self.graph.vertices(),
-            |vertex| self.check_vertex(vertex.id()),
-            true,
-        )
-    }
-
-    fn find_vertex(&self, vertex: &V) -> Option<Self::VertexId>
-    where
-        V: Eq,
-    {
-        match self.graph.find_vertex(vertex) {
-            Some(id) if self.check_vertex(&id) => Some(id),
-            _ => None,
-        }
-    }
-}
-
-impl<Ty: EdgeType, G, S> EdgesBase<Ty> for Subgraph<G, S>
-where
-    G: EdgesBase<Ty>,
-{
-    type EdgeIdsIter<'a> = SubsetIter<'a, G::EdgeIdsIter<'a>, G::EdgeId>
-    where
-        Self: 'a;
-    type EdgeIdIter<'a> = SubsetIter<'a, G::EdgeIdIter<'a>, G::EdgeId>
-    where
-        Self: 'a;
-
-    fn edge_count(&self) -> usize {
-        self.edge_ids().count()
-    }
-
-    fn edge_bound(&self) -> usize {
-        self.graph.edge_bound()
-    }
-
-    fn endpoints(&self, id: &G::EdgeId) -> Option<(G::VertexId, G::VertexId)> {
-        if self.check_edge(id) {
-            match self.graph.endpoints(id) {
-                Some((src, dst)) if self.check_vertex(&src) && self.check_vertex(&dst) => {
-                    Some((src, dst))
-                }
-                _ => None,
-            }
-        } else {
-            None
-        }
-    }
-
-    fn edge_id(&self, src: &G::VertexId, dst: &G::VertexId) -> Self::EdgeIdIter<'_> {
-        let endpoints_exist = self.check_vertex(src) && self.check_vertex(dst);
-
-        SubsetIter::new(
-            self.graph.edge_id(src, dst),
-            |id| self.contains_edge(id),
-            endpoints_exist,
-        )
-    }
-
-    fn edge_id_any(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Option<Self::EdgeId> {
-        self.edge_id(src, dst).next()
-    }
-
-    fn edge_ids(&self) -> Self::EdgeIdsIter<'_> {
-        SubsetIter::new(self.graph.edge_ids(), |id| self.contains_edge(id), true)
-    }
-
-    fn contains_edge(&self, id: &G::EdgeId) -> bool {
-        self.endpoints(id).is_some()
-    }
-}
-
-impl<E, Ty: EdgeType, G, S> Edges<E, Ty> for Subgraph<G, S>
-where
-    G: Edges<E, Ty>,
-{
-    type EdgeRef<'a> = G::EdgeRef<'a>
-    where
-        Self: 'a,
-        E: 'a;
-
-    type EdgesIter<'a> = SubsetIter<'a, G::EdgesIter<'a>, G::EdgeRef<'a>>
-    where
-        Self: 'a,
-        E: 'a;
-
-    fn edge(&self, id: &G::EdgeId) -> Option<&E> {
-        if self.contains_edge(id) {
-            self.graph.edge(id)
-        } else {
-            None
-        }
-    }
-
-    fn edges(&self) -> Self::EdgesIter<'_> {
-        SubsetIter::<_, G::EdgeRef<'_>>::new(
-            self.graph.edges(),
-            |edge| self.contains_edge(edge.id()),
-            true,
-        )
-    }
-}
-
 impl<G, S> Neighbors for Subgraph<G, S>
 where
     G: Neighbors,
@@ -264,6 +108,138 @@ where
             |neighbor| self.check_vertex(&neighbor.id()) && self.check_edge(&neighbor.edge()),
             true,
         )
+    }
+}
+
+impl<G, S> VertexSet for Subgraph<G, S>
+where
+    G: VertexSet,
+{
+    type VertexIdsIter<'a> = SubsetIter<'a, G::VertexIdsIter<'a>, G::VertexId>
+    where
+        Self: 'a;
+
+    fn vertex_ids(&self) -> Self::VertexIdsIter<'_> {
+        SubsetIter::new(self.graph.vertex_ids(), |id| self.check_vertex(id), true)
+    }
+
+    fn vertex_bound(&self) -> usize
+    where
+        Self::VertexId: crate::prelude::IntegerIdType,
+    {
+        self.graph.vertex_bound()
+    }
+
+    fn contains_vertex(&self, id: &Self::VertexId) -> bool {
+        self.check_vertex(id) && self.graph.contains_vertex(id)
+    }
+}
+
+impl<G, S> EdgeSet for Subgraph<G, S>
+where
+    G: EdgeSet,
+{
+    type EdgeIdsIter<'a> = SubsetIter<'a, G::EdgeIdsIter<'a>, G::EdgeId>
+    where
+        Self: 'a;
+
+    type EdgeIdIter<'a> = SubsetIter<'a, G::EdgeIdIter<'a>, G::EdgeId>
+    where
+        Self: 'a;
+
+    fn edge_ids(&self) -> Self::EdgeIdsIter<'_> {
+        SubsetIter::new(self.graph.edge_ids(), |id| self.contains_edge(id), true)
+    }
+
+    fn edge_id(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Self::EdgeIdIter<'_> {
+        let endpoints_exist = self.check_vertex(src) && self.check_vertex(dst);
+
+        SubsetIter::new(
+            self.graph.edge_id(src, dst),
+            |id| self.contains_edge(id),
+            endpoints_exist,
+        )
+    }
+
+    fn endpoints(&self, id: &Self::EdgeId) -> Option<(Self::VertexId, Self::VertexId)> {
+        if self.check_edge(id) {
+            match self.graph.endpoints(id) {
+                Some((src, dst)) if self.check_vertex(&src) && self.check_vertex(&dst) => {
+                    Some((src, dst))
+                }
+                _ => None,
+            }
+        } else {
+            None
+        }
+    }
+
+    fn edge_bound(&self) -> usize
+    where
+        Self::EdgeId: crate::prelude::IntegerIdType,
+    {
+        self.graph.edge_bound()
+    }
+
+    fn contains_edge(&self, id: &Self::EdgeId) -> bool {
+        self.endpoints(id).is_some()
+    }
+}
+
+impl<V, E, G, S> GraphRef<V, E> for Subgraph<G, S>
+where
+    G: GraphRef<V, E>,
+{
+    type VertexRef<'a> = G::VertexRef<'a>
+    where
+        Self: 'a,
+        V: 'a;
+
+    type VerticesIter<'a> = SubsetIter<'a, G::VerticesIter<'a>, G::VertexRef<'a>>
+    where
+        Self: 'a,
+        V: 'a;
+
+    type EdgeRef<'a> = G::EdgeRef<'a>
+        where
+            Self: 'a,
+            E: 'a;
+
+    type EdgesIter<'a> = SubsetIter<'a, G::EdgesIter<'a>, G::EdgeRef<'a>>
+        where
+            Self: 'a,
+            E: 'a;
+
+    fn vertices(&self) -> Self::VerticesIter<'_> {
+        SubsetIter::<_, G::VertexRef<'_>>::new(
+            self.graph.vertices(),
+            |vertex| self.check_vertex(vertex.id()),
+            true,
+        )
+    }
+
+    fn edges(&self) -> Self::EdgesIter<'_> {
+        SubsetIter::<_, G::EdgeRef<'_>>::new(
+            self.graph.edges(),
+            |edge| self.contains_edge(edge.id()),
+            true,
+        )
+    }
+
+    fn vertex(&self, id: &Self::VertexId) -> Option<&V> {
+        if self.check_vertex(id) {
+            self.graph.vertex(id)
+        } else {
+            None
+        }
+    }
+
+    fn edge(&self, id: &Self::EdgeId) -> Option<&E> {
+        if self.contains_edge(id) {
+            self.graph.edge(id)
+        } else {
+            None
+        }
     }
 }
 
@@ -308,7 +284,7 @@ mod tests {
         core::{
             id::{DefaultId, EdgeId, IdType, VertexId},
             marker::Directed,
-            EdgesMut, VerticesMut,
+            GraphAdd,
         },
         storage::AdjList,
     };

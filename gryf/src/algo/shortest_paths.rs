@@ -118,7 +118,7 @@ mod tests {
         core::{
             id::{DefaultId, EdgeId, VertexId},
             marker::{Directed, Undirected},
-            EdgesMut, VerticesBase, VerticesMut,
+            GraphAdd, GraphMut, VertexSet,
         },
         infra::proptest::{graph_directed, graph_undirected},
         storage::AdjList,

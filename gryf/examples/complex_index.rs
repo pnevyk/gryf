@@ -3,7 +3,7 @@ use gryf::{
     algo::ShortestPaths,
     core::{
         marker::{Direction, Undirected},
-        EdgesBaseWeak, EdgesWeak, GraphBase, Neighbors, VerticesBaseWeak, WeakRef,
+        GraphBase, Neighbors,
     },
 };
 
@@ -34,34 +34,9 @@ impl GraphBase for Chessboard {
     type VertexId = ChessSquare;
     type EdgeId = (ChessSquare, ChessSquare);
     type EdgeType = Undirected;
-}
 
-impl VerticesBaseWeak for Chessboard {
     fn vertex_count_hint(&self) -> Option<usize> {
         Some(8 * 8)
-    }
-
-    fn vertex_bound_hint(&self) -> Option<usize> {
-        Some(8 * 8)
-    }
-}
-
-impl EdgesBaseWeak<Undirected> for Chessboard {
-    fn endpoints_weak(
-        &self,
-        &(src, dst): &Self::EdgeId,
-    ) -> Option<(Self::VertexId, Self::VertexId)> {
-        Some((src, dst))
-    }
-
-    fn edge_id_weak(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Option<Self::EdgeId> {
-        Some((*src, *dst))
-    }
-}
-
-impl EdgesWeak<(), Undirected> for Chessboard {
-    fn edge_weak(&self, _id: &Self::EdgeId) -> Option<WeakRef<'_, ()>> {
-        None
     }
 }
 

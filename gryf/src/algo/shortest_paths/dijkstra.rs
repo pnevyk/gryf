@@ -9,22 +9,22 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use crate::{
     common::VisitSet,
     core::{
-        marker::{Direction, EdgeType},
+        marker::Direction,
         weights::{GetWeight, Weighted},
-        EdgesWeak, NeighborRef, Neighbors, VerticesBaseWeak, Weight,
+        GraphWeak, NeighborRef, Neighbors, Weight,
     },
 };
 
 use super::{Error, ShortestPaths};
 
-pub fn dijkstra<E, Ty: EdgeType, G, W, F>(
+pub fn dijkstra<V, E, G, W, F>(
     graph: &G,
     start: G::VertexId,
     goal: Option<G::VertexId>,
     edge_weight: F,
 ) -> Result<ShortestPaths<W, G>, Error>
 where
-    G: VerticesBaseWeak + EdgesWeak<E, Ty> + Neighbors,
+    G: Neighbors + GraphWeak<V, E>,
     W: Weight,
     F: GetWeight<E, W>,
 {

@@ -2,23 +2,21 @@ use std::{
     collections::HashMap,
     fmt::Display,
     io::{self, Cursor, Write},
-    marker::PhantomData,
 };
 
-use crate::core::{id::IdType, marker::EdgeType, EdgeRef, Edges, VertexRef, Vertices};
+use crate::core::{id::IdType, EdgeRef, GraphRef, VertexRef};
 
 pub trait Export<G> {
     fn export<W: Write>(&self, graph: &G, out: &mut W) -> io::Result<()>;
 }
 
-pub struct Dot<V, E, Ty: EdgeType> {
+pub struct Dot<V, E> {
     name: String,
     get_vertex_label: Box<dyn Fn(&V) -> String>,
     get_edge_label: Box<dyn Fn(&E) -> String>,
-    ty: PhantomData<Ty>,
 }
 
-impl<V, E, Ty: EdgeType> Dot<V, E, Ty> {
+impl<V, E> Dot<V, E> {
     pub fn new<FV, FE>(name: Option<String>, get_vertex_label: FV, get_edge_label: FE) -> Self
     where
         FV: Fn(&V) -> String + 'static,
@@ -28,13 +26,12 @@ impl<V, E, Ty: EdgeType> Dot<V, E, Ty> {
             name: name.unwrap_or_else(|| String::from("G")),
             get_vertex_label: Box::new(get_vertex_label),
             get_edge_label: Box::new(get_edge_label),
-            ty: PhantomData,
         }
     }
 
     pub fn to_string<G>(&self, graph: &G) -> String
     where
-        G: Vertices<V> + Edges<E, Ty>,
+        G: GraphRef<V, E>,
     {
         let mut cursor = Cursor::new(Vec::new());
         self.export(graph, &mut cursor)
@@ -44,18 +41,18 @@ impl<V, E, Ty: EdgeType> Dot<V, E, Ty> {
     }
 }
 
-impl<V: Display, E: Display, Ty: EdgeType> Dot<V, E, Ty> {
+impl<V: Display, E: Display> Dot<V, E> {
     pub fn with_display(name: Option<String>) -> Self {
         Self::new(name, |v| format!("{v}"), |e| format!("{e}"))
     }
 }
 
-impl<V, E, Ty: EdgeType, G> Export<G> for Dot<V, E, Ty>
+impl<V, E, G> Export<G> for Dot<V, E>
 where
-    G: Vertices<V> + Edges<E, Ty>,
+    G: GraphRef<V, E>,
 {
     fn export<W: Write>(&self, graph: &G, out: &mut W) -> io::Result<()> {
-        if Ty::is_directed() {
+        if graph.is_directed() {
             out.write_all(b"digraph ")?;
         } else {
             out.write_all(b"graph ")?;
@@ -78,7 +75,7 @@ where
         }
 
         for edge in graph.edges() {
-            let line = if Ty::is_directed() { "->" } else { "--" };
+            let line = if graph.is_directed() { "->" } else { "--" };
             out.write_all(
                 format!(
                     "    v{} {} v{} [label={:?}];\n",

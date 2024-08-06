@@ -1,53 +1,22 @@
-use std::marker::PhantomData;
-
 use crate::{
     common::CompactIdMap,
-    core::{id::IntegerIdType, marker::Direction, Neighbors, VerticesBase, WeakRef},
+    core::{id::IntegerIdType, marker::Direction, Neighbors},
 };
 
-use gryf_derive::{
-    Edges, EdgesBase, EdgesBaseWeak, EdgesMut, EdgesWeak, GraphBase, Guarantee, Vertices,
-    VerticesBase, VerticesBaseWeak, VerticesMut, VerticesWeak,
-};
+use gryf_derive::{EdgeSet, GraphBase, Guarantee, VertexSet};
 
 // TODO: Remove these imports once hygiene of procedural macros is fixed.
-use crate::core::{
-    error::{AddEdgeError, AddVertexError},
-    marker::EdgeType,
-    Edges, EdgesBase, EdgesBaseWeak, EdgesMut, EdgesWeak, GraphBase, Guarantee, Vertices,
-    VerticesBaseWeak, VerticesMut, VerticesWeak,
-};
+use crate::core::{EdgeSet, GraphBase, Guarantee, VertexSet};
 
-#[derive(
-    Debug,
-    GraphBase,
-    VerticesBase,
-    Vertices,
-    VerticesMut,
-    EdgesBase,
-    Edges,
-    EdgesMut,
-    VerticesBaseWeak,
-    VerticesWeak,
-    EdgesBaseWeak,
-    EdgesWeak,
-    Guarantee,
-)]
-pub struct Undirect<Ty: EdgeType, G> {
+#[derive(Debug, GraphBase, VertexSet, EdgeSet, Guarantee)]
+pub struct Undirect<G> {
     #[graph]
     graph: G,
-    ty: PhantomData<Ty>,
 }
 
-impl<Ty: EdgeType, G> Undirect<Ty, G>
-where
-    G: EdgesBaseWeak<Ty>,
-{
+impl<G> Undirect<G> {
     pub fn new(graph: G) -> Self {
-        Self {
-            graph,
-            ty: PhantomData,
-        }
+        Self { graph }
     }
 
     pub fn into_inner(self) -> G {
@@ -55,7 +24,7 @@ where
     }
 }
 
-impl<Ty: EdgeType, G> Neighbors for Undirect<Ty, G>
+impl<G> Neighbors for Undirect<G>
 where
     G: Neighbors,
 {
@@ -86,7 +55,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{core::marker::Directed, storage::AdjList};
+    use crate::{
+        core::{marker::Directed, GraphAdd},
+        storage::AdjList,
+    };
 
     use super::*;
 

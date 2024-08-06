@@ -3,22 +3,21 @@ use crate::{
     common::CompactIdMap,
     core::{
         id::{IdType, IntegerIdType, Virtual},
-        marker::EdgeType,
         weights::GetWeight,
-        EdgeRef, Edges, VerticesBase, Weight,
+        EdgeRef, GraphRef, Weight,
     },
 };
 
 use super::{Error, ShortestPaths};
 
-pub fn bellman_ford<E, Ty: EdgeType, G, W, F>(
+pub fn bellman_ford<V, E, G, W, F>(
     graph: &G,
     start: G::VertexId,
     goal: Option<G::VertexId>,
     edge_weight: F,
 ) -> Result<ShortestPaths<W, G>, Error>
 where
-    G: VerticesBase + Edges<E, Ty>,
+    G: GraphRef<V, E>,
     G::VertexId: IntegerIdType,
     W: Weight,
     F: GetWeight<E, W>,
@@ -44,7 +43,7 @@ where
                 relaxed = true;
             }
 
-            if !Ty::is_directed() {
+            if !graph.is_directed() {
                 // For undirected graph, we need to consider also the other
                 // "direction" of the edge.
                 if let Some((next_dist, u, v)) =
@@ -74,7 +73,7 @@ where
                 return Err(Error::NegativeCycle);
             }
 
-            if !Ty::is_directed()
+            if !graph.is_directed()
                 && process_edge(&TransposeRef::new(edge), &edge_weight, &vertex_map, &dist)
                     .is_some()
             {

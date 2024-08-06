@@ -6,7 +6,7 @@ use crate::{
     adapt::Transpose,
     algo::Cycle,
     common::VisitSet,
-    core::{id::UseVertexId, marker::Directed, EdgesBase, Neighbors, VerticesBase},
+    core::{id::UseVertexId, marker::Directed, Neighbors, VertexSet},
     visit::{
         raw::{RawDfsExtra, RawDfsExtraEvent, RawEvent, RawVisit, RawVisitMulti},
         VisitAll, Visitor,
@@ -17,7 +17,7 @@ use super::Error;
 
 pub fn dfs_visit<'a, G>(graph: &'a G) -> DfsVisit<'a, G>
 where
-    G: VerticesBase + 'a,
+    G: VertexSet + 'a,
 {
     DfsVisit {
         raw: RawVisit::new(Some(graph.vertex_count())),
@@ -32,7 +32,7 @@ where
 
 pub struct DfsVisit<'a, G>
 where
-    G: VerticesBase + 'a,
+    G: VertexSet + 'a,
 {
     raw: RawVisit<G, UseVertexId, RawDfsExtra>,
     multi: RawVisitMulti<G, UseVertexId, RawDfsExtra, VisitAll<'a, G>>,
@@ -42,7 +42,7 @@ where
 
 impl<'a, G> Visitor<G> for DfsVisit<'a, G>
 where
-    G: Neighbors + VerticesBase + EdgesBase<Directed>,
+    G: Neighbors<EdgeType = Directed> + VertexSet,
 {
     type Item = Result<G::VertexId, Error<G>>;
 

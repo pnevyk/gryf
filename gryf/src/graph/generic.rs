@@ -10,41 +10,35 @@ use crate::{
             AddEdgeConnectingError, AddEdgeError, AddVertexError, ReplaceEdgeError,
             ReplaceVertexError,
         },
-        id::DefaultId,
+        id::{DefaultId, IntegerIdType},
         marker::{Directed, Direction, EdgeType, Undirected},
-        ConnectVertices, Create, Edges, EdgesBase, EdgesMut, ExtendWithEdges, ExtendWithVertices,
-        GraphBase, IntoEdge, MultiEdges, Neighbors, Vertices, VerticesBase, VerticesMut,
+        ConnectVertices, Create, EdgeSet, ExtendWithEdges, ExtendWithVertices, GraphAdd, GraphBase,
+        GraphFull, GraphMut, GraphRef, IntoEdge, MultiEdge, Neighbors, VertexSet,
     },
     storage::{AdjList, Frozen, Stable},
 };
 
 use gryf_derive::{
-    Edges, EdgesBase, EdgesBaseWeak, EdgesMut, EdgesWeak, GraphBase, Guarantee, MultiEdges,
-    Neighbors, Vertices, VerticesBase, VerticesBaseWeak, VerticesMut, VerticesWeak,
+    EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Guarantee, MultiEdge, Neighbors,
+    VertexSet,
 };
 
 // TODO: Remove these imports once hygiene of procedural macros is fixed.
 use crate::common::CompactIdMap;
-use crate::core::{
-    id::IntegerIdType, EdgesBaseWeak, EdgesWeak, Guarantee, VerticesBaseWeak, VerticesWeak, WeakRef,
-};
+use crate::core::Guarantee;
 
 #[derive(
     Debug,
     Clone,
     GraphBase,
-    VerticesBase,
-    Vertices,
-    VerticesMut,
-    EdgesBase,
-    Edges,
-    EdgesMut,
-    MultiEdges,
     Neighbors,
-    VerticesBaseWeak,
-    VerticesWeak,
-    EdgesBaseWeak,
-    EdgesWeak,
+    VertexSet,
+    EdgeSet,
+    GraphRef,
+    GraphMut,
+    GraphAdd,
+    GraphFull,
+    MultiEdge,
     Guarantee,
 )]
 pub struct Graph<V, E, Ty: EdgeType, G = AdjList<V, E, Ty, DefaultId>> {
@@ -69,7 +63,10 @@ impl<V, E> Graph<V, E, Undirected> {
     }
 }
 
-impl<V, E, G> Graph<V, E, Undirected, G> {
+impl<V, E, G> Graph<V, E, Undirected, G>
+where
+    G: GraphBase<EdgeType = Undirected>,
+{
     pub fn new_undirected_in(storage: G) -> Self {
         Self::new_in(storage)
     }
@@ -81,7 +78,10 @@ impl<V, E> Graph<V, E, Directed> {
     }
 }
 
-impl<V, E, G> Graph<V, E, Directed, G> {
+impl<V, E, G> Graph<V, E, Directed, G>
+where
+    G: GraphBase<EdgeType = Directed>,
+{
     pub fn new_directed_in(storage: G) -> Self {
         Self::new_in(storage)
     }
@@ -112,20 +112,20 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
 
     pub fn extend_with_edges<T, I>(&mut self, iter: I)
     where
-        T: IntoEdge<G, E, Ty>,
+        T: IntoEdge<G, E>,
         I: IntoIterator<Item = T>,
         V: Default,
-        G: ExtendWithEdges<T, V, E, Ty>,
+        G: ExtendWithEdges<T, V, E>,
     {
         self.storage.extend_with_edges(iter)
     }
 
     pub fn from_edges<T, I>(iter: I) -> Self
     where
-        T: IntoEdge<G, E, Ty>,
+        T: IntoEdge<G, E>,
         I: IntoIterator<Item = T>,
         V: Default,
-        G: ExtendWithEdges<T, V, E, Ty>,
+        G: ExtendWithEdges<T, V, E>,
     {
         Self::new_in(G::from_edges(iter))
     }
@@ -133,7 +133,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
     pub fn extend_with_vertices<I>(&mut self, iter: I)
     where
         I: IntoIterator<Item = V>,
-        G: ExtendWithVertices<V, E, Ty>,
+        G: ExtendWithVertices<V, E>,
     {
         self.storage.extend_with_vertices(iter)
     }
@@ -141,35 +141,36 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
     pub fn from_vertices<I>(iter: I) -> Self
     where
         I: IntoIterator<Item = V>,
-        G: ExtendWithVertices<V, E, Ty>,
+        G: ExtendWithVertices<V, E>,
     {
         Self::new_in(G::from_vertices(iter))
     }
 
     pub fn vertex_count(&self) -> usize
     where
-        G: VerticesBase,
+        G: VertexSet,
     {
         self.storage.vertex_count()
     }
 
     pub fn vertex_bound(&self) -> usize
     where
-        G: VerticesBase,
+        G: VertexSet,
+        G::VertexId: IntegerIdType,
     {
         self.storage.vertex_bound()
     }
 
     pub fn vertex_ids(&self) -> G::VertexIdsIter<'_>
     where
-        G: VerticesBase,
+        G: VertexSet,
     {
         self.storage.vertex_ids()
     }
 
     pub fn vertex<VId>(&self, id: VId) -> Option<&V>
     where
-        G: Vertices<V>,
+        G: GraphRef<V, E>,
         VId: Borrow<G::VertexId>,
     {
         self.storage.vertex(id.borrow())
@@ -177,14 +178,14 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
 
     pub fn vertices(&self) -> G::VerticesIter<'_>
     where
-        G: Vertices<V>,
+        G: GraphRef<V, E>,
     {
         self.storage.vertices()
     }
 
     pub fn find_vertex(&self, vertex: &V) -> Option<G::VertexId>
     where
-        G: Vertices<V>,
+        G: GraphRef<V, E>,
         V: Eq,
     {
         self.storage.find_vertex(vertex)
@@ -192,7 +193,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
 
     pub fn vertex_mut<VId>(&mut self, id: VId) -> Option<&mut V>
     where
-        G: VerticesMut<V>,
+        G: GraphMut<V, E>,
         VId: Borrow<G::VertexId>,
     {
         self.storage.vertex_mut(id.borrow())
@@ -200,21 +201,21 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
 
     pub fn add_vertex(&mut self, vertex: V) -> G::VertexId
     where
-        G: VerticesMut<V>,
+        G: GraphAdd<V, E>,
     {
         self.storage.add_vertex(vertex)
     }
 
     pub fn try_add_vertex(&mut self, vertex: V) -> Result<G::VertexId, AddVertexError<V>>
     where
-        G: VerticesMut<V>,
+        G: GraphAdd<V, E>,
     {
         self.storage.try_add_vertex(vertex)
     }
 
     pub fn remove_vertex<VId>(&mut self, id: VId) -> Option<V>
     where
-        G: VerticesMut<V>,
+        G: GraphFull<V, E>,
         VId: Borrow<G::VertexId>,
     {
         self.storage.remove_vertex(id.borrow())
@@ -222,7 +223,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
 
     pub fn replace_vertex<VId>(&mut self, id: VId, vertex: V) -> V
     where
-        G: VerticesMut<V>,
+        G: GraphMut<V, E>,
         VId: Borrow<G::VertexId>,
     {
         self.storage.replace_vertex(id.borrow(), vertex)
@@ -234,7 +235,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         vertex: V,
     ) -> Result<V, ReplaceVertexError<V>>
     where
-        G: VerticesMut<V>,
+        G: GraphMut<V, E>,
         VId: Borrow<G::VertexId>,
     {
         self.storage.try_replace_vertex(id.borrow(), vertex)
@@ -242,14 +243,14 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
 
     pub fn clear(&mut self)
     where
-        G: VerticesMut<V>,
+        G: GraphFull<V, E>,
     {
         self.storage.clear()
     }
 
     pub fn try_get_or_add_vertex(&mut self, vertex: V) -> Result<G::VertexId, AddVertexError<V>>
     where
-        G: VerticesMut<V>,
+        G: GraphAdd<V, E>,
         V: Eq,
     {
         self.storage.try_get_or_add_vertex(vertex)
@@ -257,7 +258,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
 
     pub fn get_or_add_vertex(&mut self, vertex: V) -> G::VertexId
     where
-        G: VerticesMut<V>,
+        G: GraphAdd<V, E>,
         V: Eq,
     {
         self.storage.get_or_add_vertex(vertex)
@@ -265,21 +266,22 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
 
     pub fn edge_count(&self) -> usize
     where
-        G: EdgesBase<Ty>,
+        G: EdgeSet,
     {
         self.storage.edge_count()
     }
 
     pub fn edge_bound(&self) -> usize
     where
-        G: EdgesBase<Ty>,
+        G: EdgeSet,
+        G::EdgeId: IntegerIdType,
     {
         self.storage.edge_bound()
     }
 
     pub fn endpoints<EId>(&self, id: EId) -> Option<(G::VertexId, G::VertexId)>
     where
-        G: EdgesBase<Ty>,
+        G: EdgeSet,
         EId: Borrow<G::EdgeId>,
     {
         self.storage.endpoints(id.borrow())
@@ -287,7 +289,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
 
     pub fn edge_id<VId>(&self, src: VId, dst: VId) -> G::EdgeIdIter<'_>
     where
-        G: EdgesBase<Ty>,
+        G: EdgeSet,
         VId: Borrow<G::VertexId>,
     {
         self.storage.edge_id(src.borrow(), dst.borrow())
@@ -295,7 +297,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
 
     pub fn edge_id_any<VId>(&self, src: VId, dst: VId) -> Option<G::EdgeId>
     where
-        G: EdgesBase<Ty>,
+        G: EdgeSet,
         VId: Borrow<G::VertexId>,
     {
         self.storage.edge_id_any(src.borrow(), dst.borrow())
@@ -303,14 +305,14 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
 
     pub fn edge_ids(&self) -> G::EdgeIdsIter<'_>
     where
-        G: EdgesBase<Ty>,
+        G: EdgeSet,
     {
         self.storage.edge_ids()
     }
 
     pub fn contains_edge<EId>(&self, id: EId) -> bool
     where
-        G: EdgesBase<Ty>,
+        G: EdgeSet,
         EId: Borrow<G::EdgeId>,
     {
         self.storage.contains_edge(id.borrow())
@@ -318,14 +320,14 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
 
     pub fn is_directed(&self) -> bool
     where
-        G: EdgesBase<Ty>,
+        G: GraphBase,
     {
         self.storage.is_directed()
     }
 
     pub fn edge<EId>(&self, id: EId) -> Option<&E>
     where
-        G: Edges<E, Ty>,
+        G: GraphRef<V, E>,
         EId: Borrow<G::EdgeId>,
     {
         self.storage.edge(id.borrow())
@@ -333,14 +335,14 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
 
     pub fn edges(&self) -> G::EdgesIter<'_>
     where
-        G: Edges<E, Ty>,
+        G: GraphRef<V, E>,
     {
         self.storage.edges()
     }
 
     pub fn edge_mut<EId>(&mut self, id: EId) -> Option<&mut E>
     where
-        G: EdgesMut<E, Ty>,
+        G: GraphMut<V, E>,
         EId: Borrow<G::EdgeId>,
     {
         self.storage.edge_mut(id.borrow())
@@ -348,7 +350,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
 
     pub fn add_edge<VId>(&mut self, src: VId, dst: VId, edge: E) -> G::EdgeId
     where
-        G: EdgesMut<E, Ty>,
+        G: GraphAdd<V, E>,
         VId: Borrow<G::VertexId>,
     {
         self.storage.add_edge(src.borrow(), dst.borrow(), edge)
@@ -361,7 +363,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         edge: E,
     ) -> Result<G::EdgeId, AddEdgeError<E>>
     where
-        G: EdgesMut<E, Ty>,
+        G: GraphAdd<V, E>,
         VId: Borrow<G::VertexId>,
     {
         self.storage.try_add_edge(src.borrow(), dst.borrow(), edge)
@@ -374,7 +376,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         edge: E,
     ) -> Result<G::EdgeId, AddEdgeConnectingError<V, E>>
     where
-        G: VerticesMut<V> + EdgesMut<E, Ty>,
+        G: GraphAdd<V, E>,
         V: Eq,
     {
         let src = self.storage.try_get_or_add_vertex(src)?;
@@ -385,7 +387,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
 
     pub fn add_edge_connecting(&mut self, src: V, dst: V, edge: E) -> G::EdgeId
     where
-        G: VerticesMut<V> + EdgesMut<E, Ty>,
+        G: GraphAdd<V, E>,
         V: Eq,
     {
         match self.try_add_edge_connecting(src, dst, edge) {
@@ -396,7 +398,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
 
     pub fn remove_edge<EId>(&mut self, id: EId) -> Option<E>
     where
-        G: EdgesMut<E, Ty>,
+        G: GraphFull<V, E>,
         EId: Borrow<G::EdgeId>,
     {
         self.storage.remove_edge(id.borrow())
@@ -404,7 +406,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
 
     pub fn remove_edge_between<VId>(&mut self, src: VId, dst: VId) -> Option<E>
     where
-        G: EdgesMut<E, Ty>,
+        G: GraphFull<V, E>,
         VId: Borrow<G::VertexId>,
     {
         self.storage.remove_edge_between(src.borrow(), dst.borrow())
@@ -412,7 +414,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
 
     pub fn replace_edge<EId>(&mut self, id: EId, edge: E) -> E
     where
-        G: EdgesMut<E, Ty>,
+        G: GraphMut<V, E>,
         EId: Borrow<G::EdgeId>,
     {
         self.storage.replace_edge(id.borrow(), edge)
@@ -420,7 +422,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
 
     pub fn try_replace_edge<EId>(&mut self, id: EId, edge: E) -> Result<E, ReplaceEdgeError<E>>
     where
-        G: EdgesMut<E, Ty>,
+        G: GraphMut<V, E>,
         EId: Borrow<G::EdgeId>,
     {
         self.storage.try_replace_edge(id.borrow(), edge)
@@ -428,7 +430,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
 
     pub fn clear_edges(&mut self)
     where
-        G: EdgesMut<E, Ty>,
+        G: GraphFull<V, E>,
     {
         self.storage.clear_edges()
     }
@@ -478,7 +480,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
 
     pub fn connect_vertices<F>(&mut self, connect: F)
     where
-        G: ConnectVertices<V, E, Ty>,
+        G: ConnectVertices<V, E>,
         F: FnMut(&V, &V) -> Option<E>,
     {
         self.storage.connect_vertices(connect);
@@ -499,9 +501,9 @@ impl<V, E, Ty: EdgeType, G> DerefMut for Graph<V, E, Ty, G> {
     }
 }
 
-impl<V, E, Ty: EdgeType, G> Create<V, E, Ty> for Graph<V, E, Ty, G>
+impl<V, E, Ty: EdgeType, G> Create<V, E> for Graph<V, E, Ty, G>
 where
-    G: Create<V, E, Ty>,
+    G: Create<V, E>,
 {
     fn with_capacity(vertex_count: usize, edge_count: usize) -> Self {
         Self::new_in(G::with_capacity(vertex_count, edge_count))
@@ -510,7 +512,7 @@ where
 
 impl<V, E, Ty: EdgeType, G, VId> Index<VId> for Graph<V, E, Ty, G>
 where
-    G: Vertices<V>,
+    G: GraphRef<V, E>,
     VId: Borrow<G::VertexId>,
 {
     type Output = V;
@@ -522,7 +524,7 @@ where
 
 impl<V, E, Ty: EdgeType, G, VId> IndexMut<VId> for Graph<V, E, Ty, G>
 where
-    G: VerticesMut<V>,
+    G: GraphMut<V, E>,
     VId: Borrow<G::VertexId>,
 {
     fn index_mut(&mut self, id: VId) -> &mut Self::Output {

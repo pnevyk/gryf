@@ -1,7 +1,4 @@
-use crate::core::{
-    marker::EdgeType, EdgesBase, EdgesBaseWeak, GraphBase, Neighbors, VerticesBase,
-    VerticesBaseWeak,
-};
+use crate::core::{GraphBase, Neighbors, VertexSet};
 
 use super::{dfs::dfs_find, Cycle};
 
@@ -42,9 +39,9 @@ impl<'a, G> CycleBuilder<'a, G>
 where
     G: GraphBase,
 {
-    pub fn run<Ty: EdgeType>(self) -> Option<Cycle<G>>
+    pub fn run(self) -> Option<Cycle<G>>
     where
-        G: Neighbors + VerticesBase + VerticesBaseWeak + EdgesBase<Ty> + EdgesBaseWeak<Ty>,
+        G: Neighbors + VertexSet,
     {
         dfs_find(self.graph, self.as_undirected)
     }

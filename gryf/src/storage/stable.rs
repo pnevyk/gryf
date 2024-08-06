@@ -5,18 +5,18 @@ use crate::{
     core::{
         error::{AddEdgeError, AddEdgeErrorKind, AddVertexError},
         id::{EdgeId, IntegerIdType, VertexId},
-        marker::{Direction, EdgeType},
-        ConnectVertices, Create, EdgeRef, Edges, EdgesBase, EdgesMut, GraphBase, NeighborRef,
-        Neighbors, NoReplace, StableId, VertexRef, Vertices, VerticesBase, VerticesMut,
+        marker::Direction,
+        ConnectVertices, Create, EdgeRef, EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut,
+        GraphRef, NeighborRef, Neighbors, NoReplace, StableId, VertexRef, VertexSet,
     },
 };
 
-use gryf_derive::{EdgesBaseWeak, EdgesWeak, GraphBase, Guarantee, VerticesBaseWeak, VerticesWeak};
+use gryf_derive::{GraphBase, Guarantee};
 
 // TODO: Remove these imports once hygiene of procedural macros is fixed.
-use crate::core::{EdgesBaseWeak, EdgesWeak, Guarantee, VerticesBaseWeak, VerticesWeak, WeakRef};
+use crate::core::Guarantee;
 
-#[derive(Debug, GraphBase, VerticesBaseWeak, VerticesWeak, EdgesBaseWeak, EdgesWeak, Guarantee)]
+#[derive(Debug, GraphBase, Guarantee)]
 pub struct Stable<G: GraphBase> {
     #[graph]
     inner: G,
@@ -36,9 +36,9 @@ where
         }
     }
 
-    pub fn apply<V, E, Ty: EdgeType>(self) -> G
+    pub fn apply<V, E>(self) -> G
     where
-        G: VerticesMut<V> + EdgesMut<E, Ty>,
+        G: GraphFull<V, E>,
     {
         let mut inner = self.inner;
 
@@ -75,274 +75,6 @@ where
 {
     fn from(inner: G) -> Self {
         Self::new(inner)
-    }
-}
-
-impl<G> VerticesBase for Stable<G>
-where
-    G: VerticesBase,
-{
-    type VertexIdsIter<'a> = VertexIds<'a, G>
-    where
-        Self: 'a;
-
-    fn vertex_count(&self) -> usize {
-        self.inner.vertex_count() - self.removed_vertices.len()
-    }
-
-    fn vertex_bound(&self) -> usize {
-        self.inner.vertex_bound()
-    }
-
-    fn vertex_ids(&self) -> Self::VertexIdsIter<'_> {
-        VertexIds {
-            inner: self.inner.vertex_ids(),
-            removed_vertices: &self.removed_vertices,
-        }
-    }
-
-    fn contains_vertex(&self, id: &G::VertexId) -> bool {
-        if self.removed_vertices.contains(id) {
-            false
-        } else {
-            self.inner.contains_vertex(id)
-        }
-    }
-
-    fn vertex_id_map(&self) -> CompactIdMap<G::VertexId>
-    where
-        Self::VertexId: IntegerIdType,
-    {
-        if self.removed_vertices.is_empty() {
-            self.inner.vertex_id_map()
-        } else {
-            CompactIdMap::new(self.vertex_ids())
-        }
-    }
-}
-
-impl<V, G> Vertices<V> for Stable<G>
-where
-    G: Vertices<V>,
-{
-    type VertexRef<'a> = G::VertexRef<'a>
-    where
-        Self: 'a,
-        V: 'a;
-
-    type VerticesIter<'a> = VerticesIter<'a, V, G>
-    where
-        Self: 'a,
-        V: 'a;
-
-    fn vertex(&self, id: &G::VertexId) -> Option<&V> {
-        if self.removed_vertices.contains(id) {
-            None
-        } else {
-            self.inner.vertex(id)
-        }
-    }
-
-    fn vertices(&self) -> Self::VerticesIter<'_> {
-        VerticesIter {
-            inner: self.inner.vertices(),
-            removed_vertices: &self.removed_vertices,
-        }
-    }
-}
-
-impl<V, G> VerticesMut<V> for Stable<G>
-where
-    G: VerticesMut<V> + Neighbors,
-    V: Clone,
-{
-    fn vertex_mut(&mut self, id: &G::VertexId) -> Option<&mut V> {
-        if self.removed_vertices.contains(id) {
-            None
-        } else {
-            self.inner.vertex_mut(id)
-        }
-    }
-
-    fn try_add_vertex(&mut self, vertex: V) -> Result<G::VertexId, AddVertexError<V>> {
-        self.inner.try_add_vertex(vertex)
-    }
-
-    fn remove_vertex(&mut self, id: &G::VertexId) -> Option<V> {
-        if let Some(attr) = self.vertex(id) {
-            let attr = attr.clone();
-
-            // Iterate over remaining neighbors only to get edges to be marked
-            // as removed. An alternative could be to iterate over all neighbors
-            // in the inner graph and let HashMap to handle duplicates, but that
-            // may cause unnecessary overhead if a lot of edges incident to the
-            // vertex has been removed.
-            let mut removed_edges = BTreeSet::default();
-            for neighbor in self.neighbors(id) {
-                removed_edges.insert(neighbor.edge().into_owned());
-            }
-
-            self.removed_vertices.insert(id.clone());
-
-            for edge in removed_edges {
-                self.removed_edges.insert(edge);
-            }
-
-            Some(attr)
-        } else {
-            None
-        }
-    }
-
-    fn clear(&mut self) {
-        for vertex in self.inner.vertex_ids() {
-            for neighbor in self.inner.neighbors(&vertex) {
-                self.removed_edges.insert(neighbor.edge().into_owned());
-            }
-
-            self.removed_vertices.insert(vertex);
-        }
-    }
-}
-
-impl<Ty: EdgeType, G> EdgesBase<Ty> for Stable<G>
-where
-    G: EdgesBase<Ty>,
-{
-    type EdgeIdsIter<'a> = EdgeIdsIter<'a, Ty, G>
-    where
-        Self: 'a;
-    type EdgeIdIter<'a> = EdgeIdIter<'a, Ty, G>
-    where
-        Self: 'a;
-
-    fn edge_count(&self) -> usize {
-        self.inner.edge_count() - self.removed_edges.len()
-    }
-
-    fn edge_bound(&self) -> usize {
-        self.inner.edge_bound()
-    }
-
-    fn endpoints(&self, id: &G::EdgeId) -> Option<(G::VertexId, G::VertexId)> {
-        if self.removed_edges.contains(id) {
-            None
-        } else {
-            self.inner.endpoints(id)
-        }
-    }
-
-    fn edge_id(&self, src: &G::VertexId, dst: &G::VertexId) -> Self::EdgeIdIter<'_> {
-        let endpoints_exist =
-            !self.removed_vertices.contains(src) && !self.removed_vertices.contains(dst);
-        EdgeIdIter {
-            inner: self.inner.edge_id(src, dst),
-            removed_edges: &self.removed_edges,
-            endpoints_exist,
-        }
-    }
-
-    fn edge_ids(&self) -> Self::EdgeIdsIter<'_> {
-        EdgeIdsIter {
-            inner: self.inner.edge_ids(),
-            removed_edges: &self.removed_edges,
-        }
-    }
-
-    fn contains_edge(&self, id: &G::EdgeId) -> bool {
-        if self.removed_edges.contains(id) {
-            false
-        } else {
-            self.inner.contains_edge(id)
-        }
-    }
-
-    fn edge_id_map(&self) -> CompactIdMap<G::EdgeId>
-    where
-        Self::EdgeId: IntegerIdType,
-    {
-        if self.removed_edges.is_empty() {
-            self.inner.edge_id_map()
-        } else {
-            CompactIdMap::new(self.edge_ids())
-        }
-    }
-}
-
-impl<E, Ty: EdgeType, G> Edges<E, Ty> for Stable<G>
-where
-    G: Edges<E, Ty>,
-{
-    type EdgeRef<'a> = G::EdgeRef<'a>
-    where
-        Self: 'a,
-        E: 'a;
-
-    type EdgesIter<'a> = EdgesIter<'a, E, Ty, G>
-    where
-        Self: 'a,
-        E: 'a;
-
-    fn edge(&self, id: &G::EdgeId) -> Option<&E> {
-        if self.removed_edges.contains(id) {
-            None
-        } else {
-            self.inner.edge(id)
-        }
-    }
-
-    fn edges(&self) -> Self::EdgesIter<'_> {
-        EdgesIter {
-            inner: self.inner.edges(),
-            removed_edges: &self.removed_edges,
-        }
-    }
-}
-
-impl<E, Ty: EdgeType, G> EdgesMut<E, Ty> for Stable<G>
-where
-    G: EdgesMut<E, Ty>,
-    E: Clone,
-{
-    fn edge_mut(&mut self, id: &G::EdgeId) -> Option<&mut E> {
-        if self.removed_edges.contains(id) {
-            None
-        } else {
-            self.inner.edge_mut(id)
-        }
-    }
-
-    fn try_add_edge(
-        &mut self,
-        src: &G::VertexId,
-        dst: &G::VertexId,
-        edge: E,
-    ) -> Result<G::EdgeId, AddEdgeError<E>> {
-        if self.removed_vertices.contains(src) {
-            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::SourceAbsent));
-        }
-
-        if self.removed_vertices.contains(dst) {
-            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::DestinationAbsent));
-        }
-
-        self.inner.try_add_edge(src, dst, edge)
-    }
-
-    fn remove_edge(&mut self, id: &G::EdgeId) -> Option<E> {
-        if let Some(attr) = self.edge(id) {
-            let attr = attr.clone();
-            self.removed_edges.insert(id.clone());
-            Some(attr)
-        } else {
-            None
-        }
-    }
-
-    fn clear_edges(&mut self) {
-        for edge in self.inner.edge_ids() {
-            self.removed_edges.insert(edge);
-        }
     }
 }
 
@@ -383,18 +115,285 @@ where
     }
 }
 
-impl<V: Clone, E: Clone, Ty: EdgeType, G> Create<V, E, Ty> for Stable<G>
+impl<G> VertexSet for Stable<G>
 where
-    G: Create<V, E, Ty> + Neighbors,
+    G: VertexSet,
+{
+    type VertexIdsIter<'a>= VertexIds<'a, G>
+    where
+        Self: 'a;
+
+    fn vertex_ids(&self) -> Self::VertexIdsIter<'_> {
+        VertexIds {
+            inner: self.inner.vertex_ids(),
+            removed_vertices: &self.removed_vertices,
+        }
+    }
+
+    fn vertex_count(&self) -> usize {
+        self.inner.vertex_count() - self.removed_vertices.len()
+    }
+
+    fn vertex_bound(&self) -> usize
+    where
+        Self::VertexId: IntegerIdType,
+    {
+        self.inner.vertex_bound()
+    }
+
+    fn contains_vertex(&self, id: &Self::VertexId) -> bool {
+        !self.removed_vertices.contains(id) && self.inner.contains_vertex(id)
+    }
+
+    fn vertex_id_map(&self) -> CompactIdMap<Self::VertexId>
+    where
+        Self::VertexId: IntegerIdType,
+    {
+        if self.removed_vertices.is_empty() {
+            self.inner.vertex_id_map()
+        } else {
+            CompactIdMap::new(self.vertex_ids())
+        }
+    }
+}
+
+impl<G> EdgeSet for Stable<G>
+where
+    G: EdgeSet,
+{
+    type EdgeIdsIter<'a> = EdgeIdsIter<'a, G>
+    where
+        Self: 'a;
+
+    type EdgeIdIter<'a> = EdgeIdIter<'a, G>
+    where
+        Self: 'a;
+
+    fn edge_ids(&self) -> Self::EdgeIdsIter<'_> {
+        EdgeIdsIter {
+            inner: self.inner.edge_ids(),
+            removed_edges: &self.removed_edges,
+        }
+    }
+
+    fn edge_id(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Self::EdgeIdIter<'_> {
+        let endpoints_exist =
+            !self.removed_vertices.contains(src) && !self.removed_vertices.contains(dst);
+        EdgeIdIter {
+            inner: self.inner.edge_id(src, dst),
+            removed_edges: &self.removed_edges,
+            endpoints_exist,
+        }
+    }
+
+    fn endpoints(&self, id: &Self::EdgeId) -> Option<(Self::VertexId, Self::VertexId)> {
+        if self.removed_edges.contains(id) {
+            None
+        } else {
+            self.inner.endpoints(id)
+        }
+    }
+
+    fn edge_count(&self) -> usize {
+        self.inner.edge_count() - self.removed_edges.len()
+    }
+
+    fn edge_bound(&self) -> usize
+    where
+        Self::EdgeId: IntegerIdType,
+    {
+        self.inner.edge_bound()
+    }
+
+    fn contains_edge(&self, id: &Self::EdgeId) -> bool {
+        !self.removed_edges.contains(id) && self.inner.contains_edge(id)
+    }
+
+    fn edge_id_map(&self) -> CompactIdMap<Self::EdgeId>
+    where
+        Self::EdgeId: IntegerIdType,
+    {
+        if self.removed_edges.is_empty() {
+            self.inner.edge_id_map()
+        } else {
+            CompactIdMap::new(self.edge_ids())
+        }
+    }
+}
+
+impl<V, E, G> GraphRef<V, E> for Stable<G>
+where
+    G: GraphRef<V, E>,
+{
+    type VertexRef<'a> = G::VertexRef<'a>
+    where
+        Self: 'a,
+        V: 'a;
+
+    type VerticesIter<'a> = VerticesIter<'a, V, E, G>
+    where
+        Self: 'a,
+        V: 'a;
+
+    type EdgeRef<'a> = G::EdgeRef<'a>
+    where
+        Self: 'a,
+        E: 'a;
+
+    type EdgesIter<'a> = EdgesIter<'a, V, E, G>
+    where
+        Self: 'a,
+        E: 'a;
+
+    fn vertices(&self) -> Self::VerticesIter<'_> {
+        VerticesIter {
+            inner: self.inner.vertices(),
+            removed_vertices: &self.removed_vertices,
+        }
+    }
+
+    fn edges(&self) -> Self::EdgesIter<'_> {
+        EdgesIter {
+            inner: self.inner.edges(),
+            removed_edges: &self.removed_edges,
+        }
+    }
+
+    fn vertex(&self, id: &Self::VertexId) -> Option<&V> {
+        if self.removed_vertices.contains(id) {
+            None
+        } else {
+            self.inner.vertex(id)
+        }
+    }
+
+    fn edge(&self, id: &Self::EdgeId) -> Option<&E> {
+        if self.removed_edges.contains(id) {
+            None
+        } else {
+            self.inner.edge(id)
+        }
+    }
+}
+
+impl<V, E, G> GraphMut<V, E> for Stable<G>
+where
+    G: GraphMut<V, E>,
+{
+    fn vertex_mut(&mut self, id: &Self::VertexId) -> Option<&mut V> {
+        if self.removed_vertices.contains(id) {
+            None
+        } else {
+            self.inner.vertex_mut(id)
+        }
+    }
+
+    fn edge_mut(&mut self, id: &Self::EdgeId) -> Option<&mut E> {
+        if self.removed_edges.contains(id) {
+            None
+        } else {
+            self.inner.edge_mut(id)
+        }
+    }
+}
+
+impl<V, E, G> GraphAdd<V, E> for Stable<G>
+where
+    G: GraphAdd<V, E>,
+{
+    fn try_add_vertex(&mut self, vertex: V) -> Result<Self::VertexId, AddVertexError<V>> {
+        self.inner.try_add_vertex(vertex)
+    }
+
+    fn try_add_edge(
+        &mut self,
+        src: &Self::VertexId,
+        dst: &Self::VertexId,
+        edge: E,
+    ) -> Result<Self::EdgeId, AddEdgeError<E>> {
+        if self.removed_vertices.contains(src) {
+            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::SourceAbsent));
+        }
+
+        if self.removed_vertices.contains(dst) {
+            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::DestinationAbsent));
+        }
+
+        self.inner.try_add_edge(src, dst, edge)
+    }
+}
+
+impl<V, E, G> GraphFull<V, E> for Stable<G>
+where
+    G: GraphFull<V, E> + Neighbors,
+    V: Clone,
+    E: Clone,
+{
+    fn remove_vertex(&mut self, id: &Self::VertexId) -> Option<V> {
+        if let Some(attr) = self.vertex(id) {
+            let attr = attr.clone();
+
+            // Iterate over remaining neighbors only to get edges to be marked
+            // as removed. An alternative could be to iterate over all neighbors
+            // in the inner graph and let HashMap to handle duplicates, but that
+            // may cause unnecessary overhead if a lot of edges incident to the
+            // vertex has been removed.
+            let mut removed_edges = BTreeSet::default();
+            for neighbor in self.neighbors(id) {
+                removed_edges.insert(neighbor.edge().into_owned());
+            }
+
+            self.removed_vertices.insert(id.clone());
+
+            for edge in removed_edges {
+                self.removed_edges.insert(edge);
+            }
+
+            Some(attr)
+        } else {
+            None
+        }
+    }
+
+    fn remove_edge(&mut self, id: &Self::EdgeId) -> Option<E> {
+        if let Some(attr) = self.edge(id) {
+            let attr = attr.clone();
+            self.removed_edges.insert(id.clone());
+            Some(attr)
+        } else {
+            None
+        }
+    }
+
+    fn clear(&mut self) {
+        for vertex in self.inner.vertex_ids() {
+            for neighbor in self.inner.neighbors(&vertex) {
+                self.removed_edges.insert(neighbor.edge().into_owned());
+            }
+
+            self.removed_vertices.insert(vertex);
+        }
+    }
+
+    fn clear_edges(&mut self) {
+        for edge in self.inner.edge_ids() {
+            self.removed_edges.insert(edge);
+        }
+    }
+}
+
+impl<V: Clone, E: Clone, G> Create<V, E> for Stable<G>
+where
+    G: Create<V, E> + Neighbors,
 {
     fn with_capacity(vertex_count: usize, edge_count: usize) -> Self {
         Self::new(G::with_capacity(vertex_count, edge_count))
     }
 }
 
-impl<V, E, Ty: EdgeType, G> ConnectVertices<V, E, Ty> for Stable<G>
+impl<V, E, G> ConnectVertices<V, E> for Stable<G>
 where
-    G: ConnectVertices<V, E, Ty> + Neighbors,
+    G: ConnectVertices<V, E> + Neighbors,
     V: Clone,
     E: Clone,
 {
@@ -415,12 +414,12 @@ pub trait Stabilize {
         Self: Sized + GraphBase;
 }
 
-pub struct VertexIds<'a, G: VerticesBase + 'a> {
+pub struct VertexIds<'a, G: VertexSet + 'a> {
     inner: G::VertexIdsIter<'a>,
     removed_vertices: &'a BTreeSet<G::VertexId>,
 }
 
-impl<'a, G: VerticesBase> Iterator for VertexIds<'a, G> {
+impl<'a, G: VertexSet> Iterator for VertexIds<'a, G> {
     type Item = G::VertexId;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -430,12 +429,12 @@ impl<'a, G: VerticesBase> Iterator for VertexIds<'a, G> {
     }
 }
 
-pub struct VerticesIter<'a, V: 'a, G: Vertices<V> + 'a> {
+pub struct VerticesIter<'a, V: 'a, E, G: GraphRef<V, E> + 'a> {
     inner: G::VerticesIter<'a>,
     removed_vertices: &'a BTreeSet<G::VertexId>,
 }
 
-impl<'a, V, G: Vertices<V>> Iterator for VerticesIter<'a, V, G> {
+impl<'a, V, E, G: GraphRef<V, E>> Iterator for VerticesIter<'a, V, E, G> {
     type Item = G::VertexRef<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -445,12 +444,12 @@ impl<'a, V, G: Vertices<V>> Iterator for VerticesIter<'a, V, G> {
     }
 }
 
-pub struct EdgeIdsIter<'a, Ty: EdgeType, G: EdgesBase<Ty> + 'a> {
+pub struct EdgeIdsIter<'a, G: EdgeSet + 'a> {
     inner: G::EdgeIdsIter<'a>,
     removed_edges: &'a BTreeSet<G::EdgeId>,
 }
 
-impl<'a, Ty: EdgeType, G: EdgesBase<Ty>> Iterator for EdgeIdsIter<'a, Ty, G> {
+impl<'a, G: EdgeSet> Iterator for EdgeIdsIter<'a, G> {
     type Item = G::EdgeId;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -460,12 +459,12 @@ impl<'a, Ty: EdgeType, G: EdgesBase<Ty>> Iterator for EdgeIdsIter<'a, Ty, G> {
     }
 }
 
-pub struct EdgesIter<'a, E: 'a, Ty: EdgeType, G: Edges<E, Ty> + 'a> {
+pub struct EdgesIter<'a, V, E: 'a, G: GraphRef<V, E> + 'a> {
     inner: G::EdgesIter<'a>,
     removed_edges: &'a BTreeSet<G::EdgeId>,
 }
 
-impl<'a, E, Ty: EdgeType, G: Edges<E, Ty>> Iterator for EdgesIter<'a, E, Ty, G> {
+impl<'a, V, E, G: GraphRef<V, E>> Iterator for EdgesIter<'a, V, E, G> {
     type Item = G::EdgeRef<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -475,13 +474,13 @@ impl<'a, E, Ty: EdgeType, G: Edges<E, Ty>> Iterator for EdgesIter<'a, E, Ty, G> 
     }
 }
 
-pub struct EdgeIdIter<'a, Ty: EdgeType, G: EdgesBase<Ty> + 'a> {
+pub struct EdgeIdIter<'a, G: EdgeSet + 'a> {
     inner: G::EdgeIdIter<'a>,
     removed_edges: &'a BTreeSet<G::EdgeId>,
     endpoints_exist: bool,
 }
 
-impl<'a, Ty: EdgeType, G: EdgesBase<Ty>> Iterator for EdgeIdIter<'a, Ty, G> {
+impl<'a, G: EdgeSet> Iterator for EdgeIdIter<'a, G> {
     type Item = G::EdgeId;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -530,12 +529,12 @@ mod tests {
 
     #[test]
     fn basic_undirected() {
-        test_basic::<Undirected, Stable<AdjList<_, _, _, DefaultId>>>();
+        test_basic::<Stable<AdjList<_, _, Undirected, DefaultId>>>();
     }
 
     #[test]
     fn basic_directed() {
-        test_basic::<Directed, Stable<AdjList<_, _, _, DefaultId>>>();
+        test_basic::<Stable<AdjList<_, _, Directed, DefaultId>>>();
     }
 
     #[test]

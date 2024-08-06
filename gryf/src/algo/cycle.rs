@@ -1,9 +1,6 @@
 use std::fmt;
 
-use crate::core::{
-    marker::EdgeType, EdgesBase, EdgesBaseWeak, GraphBase, Neighbors, VerticesBase,
-    VerticesBaseWeak,
-};
+use crate::core::{marker::EdgeType, EdgeSet, GraphBase, Neighbors, VertexSet};
 
 use self::bfs::bfs_collect;
 
@@ -59,9 +56,9 @@ impl<G: GraphBase> Cycle<G> {
         }
     }
 
-    pub fn collect<Ty: EdgeType>(self, graph: &G) -> Vec<G::EdgeId>
+    pub fn collect(self, graph: &G) -> Vec<G::EdgeId>
     where
-        G: Neighbors + VerticesBase + VerticesBaseWeak + EdgesBase<Ty> + EdgesBaseWeak<Ty>,
+        G: Neighbors + VertexSet + EdgeSet,
     {
         let as_undirected = self.as_undirected;
         bfs_collect(graph, self, as_undirected)
@@ -70,14 +67,14 @@ impl<G: GraphBase> Cycle<G> {
 
 pub fn is_cyclic<Ty: EdgeType, G>(graph: &G) -> bool
 where
-    G: Neighbors + VerticesBase + VerticesBaseWeak + EdgesBase<Ty> + EdgesBaseWeak<Ty>,
+    G: Neighbors + VertexSet + EdgeSet,
 {
     Cycle::on(graph).run().is_some()
 }
 
 pub fn is_cyclic_undirected<Ty: EdgeType, G>(graph: &G) -> bool
 where
-    G: Neighbors + VerticesBase + VerticesBaseWeak + EdgesBase<Ty> + EdgesBaseWeak<Ty>,
+    G: Neighbors + VertexSet + EdgeSet,
 {
     Cycle::on(graph).as_undirected().run().is_some()
 }
@@ -89,16 +86,16 @@ mod tests {
     use crate::{
         core::{
             marker::{Directed, Undirected},
-            EdgesMut, VerticesMut,
+            GraphAdd,
         },
         storage::AdjList,
     };
 
     use super::*;
 
-    fn assert_collected<Ty: EdgeType, G>(cycle: Cycle<G>, graph: &G, expected: Vec<G::EdgeId>)
+    fn assert_collected<G>(cycle: Cycle<G>, graph: &G, expected: Vec<G::EdgeId>)
     where
-        G: Neighbors + VerticesBase + VerticesBaseWeak + EdgesBase<Ty> + EdgesBaseWeak<Ty>,
+        G: Neighbors + VertexSet + EdgeSet,
     {
         let collected = cycle.collect(graph);
         assert_eq!(

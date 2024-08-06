@@ -1,36 +1,22 @@
+use crate::core::{
+    id::IdType,
+    marker::{Directed, Direction},
+    EdgeRef, EdgeSet, GraphFull, GraphRef, NeighborRef, Neighbors, Stability, StableId, WeakRef,
+};
+
+use gryf_derive::{GraphBase, GraphMut, Guarantee, VertexSet};
+
+// TODO: Remove these imports once hygiene of procedural macros is fixed.
 use crate::{
     common::CompactIdMap,
     core::{
-        id::{IdType, IntegerIdType},
-        marker::{Directed, Direction},
-        EdgeRef, Edges, EdgesBase, EdgesMut, NeighborRef, Neighbors, Stability, StableId,
-        VerticesBase, WeakRef,
+        error::{ReplaceEdgeError, ReplaceVertexError},
+        id::IntegerIdType,
+        GraphBase, GraphMut, Guarantee, VertexSet,
     },
 };
 
-use gryf_derive::{
-    EdgesBaseWeak, EdgesWeak, GraphBase, Guarantee, Vertices, VerticesBase, VerticesBaseWeak,
-    VerticesMut, VerticesWeak,
-};
-
-// TODO: Remove these imports once hygiene of procedural macros is fixed.
-use crate::core::{
-    error::AddVertexError, marker::EdgeType, EdgesBaseWeak, EdgesWeak, GraphBase, Guarantee,
-    Vertices, VerticesBaseWeak, VerticesMut, VerticesWeak,
-};
-
-#[derive(
-    Debug,
-    GraphBase,
-    VerticesBase,
-    Vertices,
-    VerticesMut,
-    VerticesBaseWeak,
-    VerticesWeak,
-    EdgesBaseWeak,
-    EdgesWeak,
-    Guarantee,
-)]
+#[derive(Debug, GraphBase, VertexSet, GraphMut, Guarantee)]
 pub struct Transpose<G> {
     #[graph]
     graph: G,
@@ -38,7 +24,7 @@ pub struct Transpose<G> {
 
 impl<G> Transpose<G>
 where
-    G: EdgesBase<Directed>,
+    G: GraphBase<EdgeType = Directed>,
 {
     pub fn new(graph: G) -> Self {
         Self { graph }
@@ -48,9 +34,9 @@ where
         self.graph
     }
 
-    pub fn apply<E, S: Stability>(self) -> G
+    pub fn apply<V, E, S: Stability>(self) -> G
     where
-        G: EdgesMut<E, Directed> + StableId<G::EdgeId, S>,
+        G: GraphFull<V, E> + StableId<G::EdgeId, S>,
     {
         let mut graph = self.graph;
 
@@ -65,76 +51,6 @@ where
         }
 
         graph
-    }
-}
-
-impl<G> EdgesBase<Directed> for Transpose<G>
-where
-    G: EdgesBase<Directed>,
-{
-    type EdgeIdsIter<'a> = G::EdgeIdsIter<'a>
-    where
-        Self: 'a;
-    type EdgeIdIter<'a> = G::EdgeIdIter<'a>
-    where
-        Self: 'a;
-
-    fn edge_count(&self) -> usize {
-        self.graph.edge_count()
-    }
-
-    fn edge_bound(&self) -> usize {
-        self.graph.edge_bound()
-    }
-
-    fn endpoints(&self, id: &Self::EdgeId) -> Option<(Self::VertexId, Self::VertexId)> {
-        self.graph.endpoints(id).map(|(src, dst)| (dst, src))
-    }
-
-    fn edge_id(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Self::EdgeIdIter<'_> {
-        self.graph.edge_id(dst, src)
-    }
-
-    fn edge_id_any(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Option<Self::EdgeId> {
-        self.graph.edge_id_any(dst, src)
-    }
-
-    fn edge_ids(&self) -> Self::EdgeIdsIter<'_> {
-        self.graph.edge_ids()
-    }
-
-    fn contains_edge(&self, id: &Self::EdgeId) -> bool {
-        self.graph.contains_edge(id)
-    }
-
-    fn edge_id_map(&self) -> CompactIdMap<G::EdgeId>
-    where
-        Self::EdgeId: IntegerIdType,
-    {
-        self.graph.edge_id_map()
-    }
-}
-
-impl<E, G> Edges<E, Directed> for Transpose<G>
-where
-    G: Edges<E, Directed>,
-{
-    type EdgeRef<'a> = TransposeRef<G::EdgeRef<'a>>
-    where
-        Self: 'a,
-        E: 'a;
-
-    type EdgesIter<'a> = Iter<G::EdgesIter<'a>>
-    where
-        Self: 'a,
-        E: 'a;
-
-    fn edge(&self, id: &Self::EdgeId) -> Option<&E> {
-        self.graph.edge(id)
-    }
-
-    fn edges(&self) -> Self::EdgesIter<'_> {
-        Iter(self.graph.edges())
     }
 }
 
@@ -164,6 +80,76 @@ where
 
     fn degree_directed(&self, id: &Self::VertexId, dir: Direction) -> usize {
         self.graph.degree_directed(id, dir.opposite())
+    }
+}
+
+impl<G> EdgeSet for Transpose<G>
+where
+    G: EdgeSet,
+{
+    type EdgeIdsIter<'a> = G::EdgeIdsIter<'a>
+    where
+        Self: 'a;
+
+    type EdgeIdIter<'a> = G::EdgeIdIter<'a>
+    where
+        Self: 'a;
+
+    fn edge_ids(&self) -> Self::EdgeIdsIter<'_> {
+        self.graph.edge_ids()
+    }
+
+    fn edge_id(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Self::EdgeIdIter<'_> {
+        self.graph.edge_id(dst, src)
+    }
+
+    fn endpoints(&self, id: &Self::EdgeId) -> Option<(Self::VertexId, Self::VertexId)> {
+        self.graph.endpoints(id).map(|(src, dst)| (dst, src))
+    }
+
+    fn edge_id_any(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Option<Self::EdgeId> {
+        self.graph.edge_id_any(dst, src)
+    }
+}
+
+impl<V, E, G> GraphRef<V, E> for Transpose<G>
+where
+    G: GraphRef<V, E>,
+{
+    type VertexRef<'a> = G::VertexRef<'a>
+    where
+        Self: 'a,
+        V: 'a;
+
+    type VerticesIter<'a> = G::VerticesIter<'a>
+    where
+        Self: 'a,
+        V: 'a;
+
+    type EdgeRef<'a> = TransposeRef<G::EdgeRef<'a>>
+    where
+        Self: 'a,
+        E: 'a;
+
+    type EdgesIter<'a> = Iter<G::EdgesIter<'a>>
+    where
+        Self: 'a,
+        E: 'a;
+
+    fn vertices(&self) -> Self::VerticesIter<'_> {
+        self.graph.vertices()
+    }
+
+    fn edges(&self) -> Self::EdgesIter<'_> {
+        Iter(self.graph.edges())
+    }
+
+    fn vertex(&self, id: &Self::VertexId) -> Option<&V> {
+        self.graph.vertex(id)
+    }
+
+    fn edge(&self, id: &Self::EdgeId) -> Option<&E> {
+        self.graph.edge(id)
     }
 }
 
@@ -238,7 +224,10 @@ where
 mod tests {
     use super::*;
 
-    use crate::{core::id::DefaultId, storage::AdjList};
+    use crate::{
+        core::{id::DefaultId, GraphAdd},
+        storage::AdjList,
+    };
 
     fn create_graph() -> AdjList<(), i32, Directed, DefaultId> {
         let mut graph = AdjList::new();

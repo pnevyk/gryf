@@ -1,18 +1,14 @@
 use crate::{
     adapt::Undirect,
-    core::{
-        marker::EdgeType, EdgesBase, EdgesBaseWeak, GraphBase, Neighbors, VerticesBase,
-        VerticesBaseWeak,
-    },
-    visit::Visitor,
-    visit::{DfsEvent, DfsEvents},
+    core::{Neighbors, VertexSet},
+    visit::{DfsEvent, DfsEvents, Visitor},
 };
 
 use super::Cycle;
 
-pub fn dfs_find<Ty: EdgeType, G>(graph: &G, as_undirected: bool) -> Option<Cycle<G>>
+pub fn dfs_find<G>(graph: &G, as_undirected: bool) -> Option<Cycle<G>>
 where
-    G: Neighbors + VerticesBase + VerticesBaseWeak + EdgesBase<Ty> + EdgesBaseWeak<Ty>,
+    G: Neighbors + VertexSet,
 {
     let edge = if as_undirected {
         find(&Undirect::new(graph))
@@ -26,9 +22,9 @@ where
     })
 }
 
-fn find<EId, Ty: EdgeType, G>(graph: &G) -> Option<EId>
+fn find<G>(graph: &G) -> Option<G::EdgeId>
 where
-    G: Neighbors + VerticesBase + VerticesBaseWeak + EdgesBaseWeak<Ty> + GraphBase<EdgeId = EId>,
+    G: Neighbors + VertexSet,
 {
     DfsEvents::new(graph)
         .start_all(graph)

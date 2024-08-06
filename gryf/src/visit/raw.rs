@@ -223,6 +223,7 @@ impl<Id: GraphIdTypes, U: UseId<Id>, A: RawAlgo<Id, U>, S: VisitStarts<U::Id>>
 #[derive(Debug, Clone)]
 pub enum RawEvent<Id: GraphIdTypes> {
     Popped {
+        #[allow(dead_code)]
         vertex: Id::VertexId,
     },
     Push {

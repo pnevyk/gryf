@@ -13,7 +13,7 @@ use crate::{
         id::{DefaultId, IntegerIdType},
         marker::{Directed, Direction, EdgeType, Undirected},
         ConnectVertices, Create, EdgeSet, ExtendWithEdges, ExtendWithVertices, GraphAdd, GraphBase,
-        GraphFull, GraphMut, GraphRef, IntoEdge, MultiEdge, Neighbors, VertexSet,
+        GraphFull, GraphMut, GraphRef, IntoEdge, Neighbors, VertexSet,
     },
     storage::{AdjList, Frozen, Stable},
 };
@@ -22,10 +22,6 @@ use gryf_derive::{
     EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Guarantee, MultiEdge, Neighbors,
     VertexSet,
 };
-
-// TODO: Remove these imports once hygiene of procedural macros is fixed.
-use crate::common::CompactIdMap;
-use crate::core::Guarantee;
 
 #[derive(
     Debug,
@@ -41,6 +37,7 @@ use crate::core::Guarantee;
     MultiEdge,
     Guarantee,
 )]
+#[gryf_crate]
 pub struct Graph<V, E, Ty: EdgeType, G = AdjList<V, E, Ty, DefaultId>> {
     #[graph]
     storage: G,

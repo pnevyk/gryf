@@ -4,9 +4,11 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, DeriveInput};
 
-#[proc_macro_derive(GraphBase, attributes(graph))]
+#[proc_macro_derive(GraphBase, attributes(graph, gryf_crate))]
 pub fn graph_base(tokens: TokenStream) -> TokenStream {
     let input = parse_macro_input!(tokens as DeriveInput);
+
+    let gryf = util::get_gryf_path(&input);
 
     let name = &input.ident;
     let field = util::get_graph_field(&input);
@@ -17,21 +19,21 @@ pub fn graph_base(tokens: TokenStream) -> TokenStream {
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     let where_clause = util::augment_where_clause(
         where_clause,
-        vec![(field_type.clone(), quote! { GraphBase })],
+        vec![(field_type.clone(), quote! { #gryf::core::GraphBase })],
     );
 
     let implemented = quote! {
-        impl #impl_generics GraphBase for #name #ty_generics #where_clause {
-            type VertexId = <#field_type as GraphBase>::VertexId;
-            type EdgeId = <#field_type as GraphBase>::EdgeId;
-            type EdgeType = <#field_type as GraphBase>::EdgeType;
+        impl #impl_generics #gryf::core::GraphBase for #name #ty_generics #where_clause {
+            type VertexId = <#field_type as #gryf::core::GraphBase>::VertexId;
+            type EdgeId = <#field_type as #gryf::core::GraphBase>::EdgeId;
+            type EdgeType = <#field_type as #gryf::core::GraphBase>::EdgeType;
 
             fn vertex_count_hint(&self) -> Option<usize> {
-                <#field_type as GraphBase>::vertex_count_hint(&self.#field_name)
+                <#field_type as #gryf::core::GraphBase>::vertex_count_hint(&self.#field_name)
             }
 
             fn edge_count_hint(&self) -> Option<usize> {
-                <#field_type as GraphBase>::edge_count_hint(&self.#field_name)
+                <#field_type as #gryf::core::GraphBase>::edge_count_hint(&self.#field_name)
             }
         }
     };
@@ -39,9 +41,11 @@ pub fn graph_base(tokens: TokenStream) -> TokenStream {
     TokenStream::from(implemented)
 }
 
-#[proc_macro_derive(Neighbors, attributes(graph))]
+#[proc_macro_derive(Neighbors, attributes(graph, gryf_crate))]
 pub fn neighbors(tokens: TokenStream) -> TokenStream {
     let input = parse_macro_input!(tokens as DeriveInput);
+
+    let gryf = util::get_gryf_path(&input);
 
     let name = &input.ident;
     let field = util::get_graph_field(&input);
@@ -52,33 +56,33 @@ pub fn neighbors(tokens: TokenStream) -> TokenStream {
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     let where_clause = util::augment_where_clause(
         where_clause,
-        vec![(field_type.clone(), quote! { Neighbors })],
+        vec![(field_type.clone(), quote! { #gryf::core::Neighbors })],
     );
 
     let implemented = quote! {
-        impl #impl_generics Neighbors for #name #ty_generics #where_clause {
-            type NeighborRef<'a> = <#field_type as Neighbors>::NeighborRef<'a>
+        impl #impl_generics #gryf::core::Neighbors for #name #ty_generics #where_clause {
+            type NeighborRef<'a> = <#field_type as #gryf::core::Neighbors>::NeighborRef<'a>
             where
                 Self: 'a;
 
-            type NeighborsIter<'a> = <#field_type as Neighbors>::NeighborsIter<'a>
+            type NeighborsIter<'a> = <#field_type as #gryf::core::Neighbors>::NeighborsIter<'a>
             where
                 Self: 'a;
 
             fn neighbors(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_> {
-                <#field_type as Neighbors>::neighbors(&self.#field_name, src)
+                <#field_type as #gryf::core::Neighbors>::neighbors(&self.#field_name, src)
             }
 
-            fn neighbors_directed(&self, src: &Self::VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
-                <#field_type as Neighbors>::neighbors_directed(&self.#field_name, src, dir)
+            fn neighbors_directed(&self, src: &Self::VertexId, dir: #gryf::core::marker::Direction) -> Self::NeighborsIter<'_> {
+                <#field_type as #gryf::core::Neighbors>::neighbors_directed(&self.#field_name, src, dir)
             }
 
             fn degree(&self, id: &Self::VertexId) -> usize {
-                <#field_type as Neighbors>::degree(&self.#field_name, id)
+                <#field_type as #gryf::core::Neighbors>::degree(&self.#field_name, id)
             }
 
-            fn degree_directed(&self, id: &Self::VertexId, dir: Direction) -> usize {
-                <#field_type as Neighbors>::degree_directed(&self.#field_name, id, dir)
+            fn degree_directed(&self, id: &Self::VertexId, dir: #gryf::core::marker::Direction) -> usize {
+                <#field_type as #gryf::core::Neighbors>::degree_directed(&self.#field_name, id, dir)
             }
         }
     };
@@ -86,9 +90,11 @@ pub fn neighbors(tokens: TokenStream) -> TokenStream {
     TokenStream::from(implemented)
 }
 
-#[proc_macro_derive(VertexSet, attributes(graph))]
+#[proc_macro_derive(VertexSet, attributes(graph, gryf_crate))]
 pub fn vertex_set(tokens: TokenStream) -> TokenStream {
     let input = parse_macro_input!(tokens as DeriveInput);
+
+    let gryf = util::get_gryf_path(&input);
 
     let name = &input.ident;
     let field = util::get_graph_field(&input);
@@ -99,39 +105,39 @@ pub fn vertex_set(tokens: TokenStream) -> TokenStream {
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     let where_clause = util::augment_where_clause(
         where_clause,
-        vec![(field_type.clone(), quote! { VertexSet })],
+        vec![(field_type.clone(), quote! { #gryf::core::VertexSet })],
     );
 
     let implemented = quote! {
-        impl #impl_generics VertexSet for #name #ty_generics #where_clause {
-            type VertexIdsIter<'a> = <#field_type as VertexSet>::VertexIdsIter<'a>
+        impl #impl_generics #gryf::core::VertexSet for #name #ty_generics #where_clause {
+            type VertexIdsIter<'a> = <#field_type as #gryf::core::VertexSet>::VertexIdsIter<'a>
             where
                 Self: 'a;
 
             fn vertex_ids(&self) -> Self::VertexIdsIter<'_> {
-                <#field_type as VertexSet>::vertex_ids(&self.#field_name)
+                <#field_type as #gryf::core::VertexSet>::vertex_ids(&self.#field_name)
             }
 
             fn vertex_count(&self) -> usize {
-                <#field_type as VertexSet>::vertex_count(&self.#field_name)
+                <#field_type as #gryf::core::VertexSet>::vertex_count(&self.#field_name)
             }
 
             fn vertex_bound(&self) -> usize
             where
-                Self::VertexId: IntegerIdType,
+                Self::VertexId: #gryf::core::id::IntegerIdType,
             {
-                <#field_type as VertexSet>::vertex_bound(&self.#field_name)
+                <#field_type as #gryf::core::VertexSet>::vertex_bound(&self.#field_name)
             }
 
             fn contains_vertex(&self, id: &Self::VertexId) -> bool {
-                <#field_type as VertexSet>::contains_vertex(&self.#field_name, id)
+                <#field_type as #gryf::core::VertexSet>::contains_vertex(&self.#field_name, id)
             }
 
-            fn vertex_id_map(&self) -> CompactIdMap<Self::VertexId>
+            fn vertex_id_map(&self) -> #gryf::common::CompactIdMap<Self::VertexId>
             where
-                Self::VertexId: IntegerIdType
+                Self::VertexId: #gryf::core::id::IntegerIdType
             {
-                <#field_type as VertexSet>::vertex_id_map(&self.#field_name)
+                <#field_type as #gryf::core::VertexSet>::vertex_id_map(&self.#field_name)
             }
         }
     };
@@ -139,9 +145,11 @@ pub fn vertex_set(tokens: TokenStream) -> TokenStream {
     TokenStream::from(implemented)
 }
 
-#[proc_macro_derive(EdgeSet, attributes(graph))]
+#[proc_macro_derive(EdgeSet, attributes(graph, gryf_crate))]
 pub fn edge_set(tokens: TokenStream) -> TokenStream {
     let input = parse_macro_input!(tokens as DeriveInput);
+
+    let gryf = util::get_gryf_path(&input);
 
     let name = &input.ident;
     let field = util::get_graph_field(&input);
@@ -150,55 +158,57 @@ pub fn edge_set(tokens: TokenStream) -> TokenStream {
     let field_type = &field.ty;
 
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
-    let where_clause =
-        util::augment_where_clause(where_clause, vec![(field_type.clone(), quote! { EdgeSet })]);
+    let where_clause = util::augment_where_clause(
+        where_clause,
+        vec![(field_type.clone(), quote! { #gryf::core::EdgeSet })],
+    );
 
     let implemented = quote! {
-        impl #impl_generics EdgeSet for #name #ty_generics #where_clause {
-            type EdgeIdsIter<'a> = <#field_type as EdgeSet>::EdgeIdsIter<'a>
+        impl #impl_generics #gryf::core::EdgeSet for #name #ty_generics #where_clause {
+            type EdgeIdsIter<'a> = <#field_type as #gryf::core::EdgeSet>::EdgeIdsIter<'a>
             where
                 Self: 'a;
 
-            type EdgeIdIter<'a> = <#field_type as EdgeSet>::EdgeIdIter<'a>
+            type EdgeIdIter<'a> = <#field_type as #gryf::core::EdgeSet>::EdgeIdIter<'a>
             where
                 Self: 'a;
 
             fn edge_ids(&self) -> Self::EdgeIdsIter<'_> {
-                <#field_type as EdgeSet>::edge_ids(&self.#field_name)
+                <#field_type as #gryf::core::EdgeSet>::edge_ids(&self.#field_name)
             }
 
             fn edge_id(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Self::EdgeIdIter<'_> {
-                <#field_type as EdgeSet>::edge_id(&self.#field_name, src, dst)
+                <#field_type as #gryf::core::EdgeSet>::edge_id(&self.#field_name, src, dst)
             }
 
             fn endpoints(&self, id: &Self::EdgeId) -> Option<(Self::VertexId, Self::VertexId)> {
-                <#field_type as EdgeSet>::endpoints(&self.#field_name, id)
+                <#field_type as #gryf::core::EdgeSet>::endpoints(&self.#field_name, id)
             }
 
             fn edge_count(&self) -> usize {
-                <#field_type as EdgeSet>::edge_count(&self.#field_name)
+                <#field_type as #gryf::core::EdgeSet>::edge_count(&self.#field_name)
             }
 
             fn edge_bound(&self) -> usize
             where
-                Self::EdgeId: IntegerIdType,
+                Self::EdgeId: #gryf::core::id::IntegerIdType,
             {
-                <#field_type as EdgeSet>::edge_bound(&self.#field_name)
+                <#field_type as #gryf::core::EdgeSet>::edge_bound(&self.#field_name)
             }
 
             fn contains_edge(&self, id: &Self::EdgeId) -> bool {
-                <#field_type as EdgeSet>::contains_edge(&self.#field_name, id)
+                <#field_type as #gryf::core::EdgeSet>::contains_edge(&self.#field_name, id)
             }
 
             fn edge_id_any(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Option<Self::EdgeId> {
-                <#field_type as EdgeSet>::edge_id_any(&self.#field_name, src, dst)
+                <#field_type as #gryf::core::EdgeSet>::edge_id_any(&self.#field_name, src, dst)
             }
 
-            fn edge_id_map(&self) -> CompactIdMap<Self::EdgeId>
+            fn edge_id_map(&self) -> #gryf::common::CompactIdMap<Self::EdgeId>
             where
-                Self::EdgeId: IntegerIdType
+                Self::EdgeId: #gryf::core::id::IntegerIdType
             {
-                <#field_type as EdgeSet>::edge_id_map(&self.#field_name)
+                <#field_type as #gryf::core::EdgeSet>::edge_id_map(&self.#field_name)
             }
         }
     };
@@ -206,9 +216,11 @@ pub fn edge_set(tokens: TokenStream) -> TokenStream {
     TokenStream::from(implemented)
 }
 
-#[proc_macro_derive(GraphRef, attributes(graph))]
+#[proc_macro_derive(GraphRef, attributes(graph, gryf_crate))]
 pub fn graph_ref(tokens: TokenStream) -> TokenStream {
     let input = parse_macro_input!(tokens as DeriveInput);
+
+    let gryf = util::get_gryf_path(&input);
 
     let name = &input.ident;
     let field = util::get_graph_field(&input);
@@ -220,52 +232,52 @@ pub fn graph_ref(tokens: TokenStream) -> TokenStream {
     let impl_generics = util::augment_impl_generics_if_necessary(impl_generics, vec!["V", "E"]);
     let where_clause = util::augment_where_clause(
         where_clause,
-        vec![(field_type.clone(), quote! { GraphRef<V, E> })],
+        vec![(field_type.clone(), quote! { #gryf::core::GraphRef<V, E> })],
     );
 
     let implemented = quote! {
-        impl #impl_generics GraphRef<V, E> for #name #ty_generics #where_clause {
-            type VertexRef<'a> = <#field_type as GraphRef<V, E>>::VertexRef<'a>
+        impl #impl_generics #gryf::core::GraphRef<V, E> for #name #ty_generics #where_clause {
+            type VertexRef<'a> = <#field_type as #gryf::core::GraphRef<V, E>>::VertexRef<'a>
             where
                 Self: 'a,
                 V: 'a;
 
-            type VerticesIter<'a> = <#field_type as GraphRef<V, E>>::VerticesIter<'a>
+            type VerticesIter<'a> = <#field_type as #gryf::core::GraphRef<V, E>>::VerticesIter<'a>
             where
                 Self: 'a,
                 V: 'a;
 
-            type EdgeRef<'a> = <#field_type as GraphRef<V, E>>::EdgeRef<'a>
+            type EdgeRef<'a> = <#field_type as #gryf::core::GraphRef<V, E>>::EdgeRef<'a>
             where
                 Self: 'a,
                 E: 'a;
 
-            type EdgesIter<'a> = <#field_type as GraphRef<V, E>>::EdgesIter<'a>
+            type EdgesIter<'a> = <#field_type as #gryf::core::GraphRef<V, E>>::EdgesIter<'a>
             where
                 Self: 'a,
                 E: 'a;
 
             fn vertices(&self) -> Self::VerticesIter<'_> {
-                <#field_type as GraphRef<V, E>>::vertices(&self.#field_name)
+                <#field_type as #gryf::core::GraphRef<V, E>>::vertices(&self.#field_name)
             }
 
             fn edges(&self) -> Self::EdgesIter<'_> {
-                <#field_type as GraphRef<V, E>>::edges(&self.#field_name)
+                <#field_type as #gryf::core::GraphRef<V, E>>::edges(&self.#field_name)
             }
 
             fn vertex(&self, id: &Self::VertexId) -> Option<&V> {
-                <#field_type as GraphRef<V, E>>::vertex(&self.#field_name, id)
+                <#field_type as #gryf::core::GraphRef<V, E>>::vertex(&self.#field_name, id)
             }
 
             fn edge(&self, id: &Self::EdgeId) -> Option<&E> {
-                <#field_type as GraphRef<V, E>>::edge(&self.#field_name, id)
+                <#field_type as #gryf::core::GraphRef<V, E>>::edge(&self.#field_name, id)
             }
 
             fn find_vertex(&self, vertex: &V) -> Option<Self::VertexId>
             where
                 V: Eq,
             {
-                <#field_type as GraphRef<V, E>>::find_vertex(&self.#field_name, vertex)
+                <#field_type as #gryf::core::GraphRef<V, E>>::find_vertex(&self.#field_name, vertex)
             }
         }
     };
@@ -273,10 +285,12 @@ pub fn graph_ref(tokens: TokenStream) -> TokenStream {
     TokenStream::from(implemented)
 }
 
-#[proc_macro_derive(GraphWeak, attributes(graph))]
+#[proc_macro_derive(GraphWeak, attributes(graph, gryf_crate))]
 pub fn graph_weak(tokens: TokenStream) -> TokenStream {
     let input = parse_macro_input!(tokens as DeriveInput);
 
+    let gryf = util::get_gryf_path(&input);
+
     let name = &input.ident;
     let field = util::get_graph_field(&input);
 
@@ -287,17 +301,17 @@ pub fn graph_weak(tokens: TokenStream) -> TokenStream {
     let impl_generics = util::augment_impl_generics_if_necessary(impl_generics, vec!["V", "E"]);
     let where_clause = util::augment_where_clause(
         where_clause,
-        vec![(field_type.clone(), quote! { GraphWeak<V, E> })],
+        vec![(field_type.clone(), quote! { #gryf::core::GraphWeak<V, E> })],
     );
 
     let implemented = quote! {
-        impl #impl_generics GraphWeak<V, E> for #name #ty_generics #where_clause {
-            fn vertex_weak(&self, id: &Self::VertexId) -> Option<WeakRef<'_, V>> {
-                <#field_type as GraphWeak<V, E>>::vertex_weak(&self.#field_name, id)
+        impl #impl_generics #gryf::core::GraphWeak<V, E> for #name #ty_generics #where_clause {
+            fn vertex_weak(&self, id: &Self::VertexId) -> Option<#gryf::core::WeakRef<'_, V>> {
+                <#field_type as #gryf::core::GraphWeak<V, E>>::vertex_weak(&self.#field_name, id)
             }
 
-            fn edge_weak(&self, id: &Self::EdgeId) -> Option<WeakRef<'_, E>> {
-                <#field_type as GraphWeak<V, E>>::edge_weak(&self.#field_name, id)
+            fn edge_weak(&self, id: &Self::EdgeId) -> Option<#gryf::core::WeakRef<'_, E>> {
+                <#field_type as #gryf::core::GraphWeak<V, E>>::edge_weak(&self.#field_name, id)
             }
         }
     };
@@ -305,9 +319,11 @@ pub fn graph_weak(tokens: TokenStream) -> TokenStream {
     TokenStream::from(implemented)
 }
 
-#[proc_macro_derive(GraphMut, attributes(graph))]
+#[proc_macro_derive(GraphMut, attributes(graph, gryf_crate))]
 pub fn graph_mut(tokens: TokenStream) -> TokenStream {
     let input = parse_macro_input!(tokens as DeriveInput);
+
+    let gryf = util::get_gryf_path(&input);
 
     let name = &input.ident;
     let field = util::get_graph_field(&input);
@@ -319,37 +335,37 @@ pub fn graph_mut(tokens: TokenStream) -> TokenStream {
     let impl_generics = util::augment_impl_generics_if_necessary(impl_generics, vec!["V", "E"]);
     let where_clause = util::augment_where_clause(
         where_clause,
-        vec![(field_type.clone(), quote! { GraphMut<V, E> })],
+        vec![(field_type.clone(), quote! { #gryf::core::GraphMut<V, E> })],
     );
 
     let implemented = quote! {
-        impl #impl_generics GraphMut<V, E> for #name #ty_generics #where_clause {
+        impl #impl_generics #gryf::core::GraphMut<V, E> for #name #ty_generics #where_clause {
             fn vertex_mut(&mut self, id: &Self::VertexId) -> Option<&mut V> {
-                <#field_type as GraphMut<V, E>>::vertex_mut(&mut self.#field_name, id)
+                <#field_type as #gryf::core::GraphMut<V, E>>::vertex_mut(&mut self.#field_name, id)
             }
 
             fn edge_mut(&mut self, id: &Self::EdgeId) -> Option<&mut E> {
-                <#field_type as GraphMut<V, E>>::edge_mut(&mut self.#field_name, id)
+                <#field_type as #gryf::core::GraphMut<V, E>>::edge_mut(&mut self.#field_name, id)
             }
 
             fn try_replace_vertex(
                 &mut self,
                 id: &Self::VertexId,
                 vertex: V,
-            ) -> Result<V, ReplaceVertexError<V>> {
-                <#field_type as GraphMut<V, E>>::try_replace_vertex(&mut self.#field_name, id, vertex)
+            ) -> Result<V, #gryf::core::error::ReplaceVertexError<V>> {
+                <#field_type as #gryf::core::GraphMut<V, E>>::try_replace_vertex(&mut self.#field_name, id, vertex)
             }
 
             fn replace_vertex(&mut self, id: &Self::VertexId, vertex: V) -> V {
-                <#field_type as GraphMut<V, E>>::replace_vertex(&mut self.#field_name, id, vertex)
+                <#field_type as #gryf::core::GraphMut<V, E>>::replace_vertex(&mut self.#field_name, id, vertex)
             }
 
-            fn try_replace_edge(&mut self, id: &Self::EdgeId, edge: E) -> Result<E, ReplaceEdgeError<E>> {
-                <#field_type as GraphMut<V, E>>::try_replace_edge(&mut self.#field_name, id, edge)
+            fn try_replace_edge(&mut self, id: &Self::EdgeId, edge: E) -> Result<E, #gryf::core::error::ReplaceEdgeError<E>> {
+                <#field_type as #gryf::core::GraphMut<V, E>>::try_replace_edge(&mut self.#field_name, id, edge)
             }
 
             fn replace_edge(&mut self, id: &Self::EdgeId, edge: E) -> E {
-                <#field_type as GraphMut<V, E>>::replace_edge(&mut self.#field_name, id, edge)
+                <#field_type as #gryf::core::GraphMut<V, E>>::replace_edge(&mut self.#field_name, id, edge)
             }
         }
     };
@@ -357,9 +373,11 @@ pub fn graph_mut(tokens: TokenStream) -> TokenStream {
     TokenStream::from(implemented)
 }
 
-#[proc_macro_derive(GraphAdd, attributes(graph))]
+#[proc_macro_derive(GraphAdd, attributes(graph, gryf_crate))]
 pub fn graph_add(tokens: TokenStream) -> TokenStream {
     let input = parse_macro_input!(tokens as DeriveInput);
+
+    let gryf = util::get_gryf_path(&input);
 
     let name = &input.ident;
     let field = util::get_graph_field(&input);
@@ -371,13 +389,13 @@ pub fn graph_add(tokens: TokenStream) -> TokenStream {
     let impl_generics = util::augment_impl_generics_if_necessary(impl_generics, vec!["V", "E"]);
     let where_clause = util::augment_where_clause(
         where_clause,
-        vec![(field_type.clone(), quote! { GraphAdd<V, E> })],
+        vec![(field_type.clone(), quote! { #gryf::core::GraphAdd<V, E> })],
     );
 
     let implemented = quote! {
-        impl #impl_generics GraphAdd<V, E> for #name #ty_generics #where_clause {
-            fn try_add_vertex(&mut self, vertex: V) -> Result<Self::VertexId, AddVertexError<V>> {
-                <#field_type as GraphAdd<V, E>>::try_add_vertex(&mut self.#field_name, vertex)
+        impl #impl_generics #gryf::core::GraphAdd<V, E> for #name #ty_generics #where_clause {
+            fn try_add_vertex(&mut self, vertex: V) -> Result<Self::VertexId, #gryf::core::error::AddVertexError<V>> {
+                <#field_type as #gryf::core::GraphAdd<V, E>>::try_add_vertex(&mut self.#field_name, vertex)
             }
 
             fn try_add_edge(
@@ -385,30 +403,30 @@ pub fn graph_add(tokens: TokenStream) -> TokenStream {
                 src: &Self::VertexId,
                 dst: &Self::VertexId,
                 edge: E,
-            ) -> Result<Self::EdgeId, AddEdgeError<E>> {
-                <#field_type as GraphAdd<V, E>>::try_add_edge(&mut self.#field_name, src, dst, edge)
+            ) -> Result<Self::EdgeId, #gryf::core::error::AddEdgeError<E>> {
+                <#field_type as #gryf::core::GraphAdd<V, E>>::try_add_edge(&mut self.#field_name, src, dst, edge)
             }
 
             fn add_vertex(&mut self, vertex: V) -> Self::VertexId {
-                <#field_type as GraphAdd<V, E>>::add_vertex(&mut self.#field_name, vertex)
+                <#field_type as #gryf::core::GraphAdd<V, E>>::add_vertex(&mut self.#field_name, vertex)
             }
 
-            fn try_get_or_add_vertex(&mut self, vertex: V) -> Result<Self::VertexId, AddVertexError<V>>
+            fn try_get_or_add_vertex(&mut self, vertex: V) -> Result<Self::VertexId, #gryf::core::error::AddVertexError<V>>
             where
                 V: Eq,
             {
-                <#field_type as GraphAdd<V, E>>::try_get_or_add_vertex(&mut self.#field_name, vertex)
+                <#field_type as #gryf::core::GraphAdd<V, E>>::try_get_or_add_vertex(&mut self.#field_name, vertex)
             }
 
             fn get_or_add_vertex(&mut self, vertex: V) -> Self::VertexId
             where
                 V: Eq,
             {
-                <#field_type as GraphAdd<V, E>>::get_or_add_vertex(&mut self.#field_name, vertex)
+                <#field_type as #gryf::core::GraphAdd<V, E>>::get_or_add_vertex(&mut self.#field_name, vertex)
             }
 
             fn add_edge(&mut self, src: &Self::VertexId, dst: &Self::VertexId, edge: E) -> Self::EdgeId {
-                <#field_type as GraphAdd<V, E>>::add_edge(&mut self.#field_name, src, dst, edge)
+                <#field_type as #gryf::core::GraphAdd<V, E>>::add_edge(&mut self.#field_name, src, dst, edge)
             }
         }
     };
@@ -416,9 +434,11 @@ pub fn graph_add(tokens: TokenStream) -> TokenStream {
     TokenStream::from(implemented)
 }
 
-#[proc_macro_derive(GraphFull, attributes(graph))]
+#[proc_macro_derive(GraphFull, attributes(graph, gryf_crate))]
 pub fn graph_full(tokens: TokenStream) -> TokenStream {
     let input = parse_macro_input!(tokens as DeriveInput);
+
+    let gryf = util::get_gryf_path(&input);
 
     let name = &input.ident;
     let field = util::get_graph_field(&input);
@@ -430,29 +450,29 @@ pub fn graph_full(tokens: TokenStream) -> TokenStream {
     let impl_generics = util::augment_impl_generics_if_necessary(impl_generics, vec!["V", "E"]);
     let where_clause = util::augment_where_clause(
         where_clause,
-        vec![(field_type.clone(), quote! { GraphFull<V, E> })],
+        vec![(field_type.clone(), quote! { #gryf::core::GraphFull<V, E> })],
     );
 
     let implemented = quote! {
-        impl #impl_generics GraphFull<V, E> for #name #ty_generics #where_clause {
+        impl #impl_generics #gryf::core::GraphFull<V, E> for #name #ty_generics #where_clause {
             fn remove_vertex(&mut self, id: &Self::VertexId) -> Option<V> {
-                <#field_type as GraphFull<V, E>>::remove_vertex(&mut self.#field_name, id)
+                <#field_type as #gryf::core::GraphFull<V, E>>::remove_vertex(&mut self.#field_name, id)
             }
 
             fn remove_edge(&mut self, id: &Self::EdgeId) -> Option<E> {
-                <#field_type as GraphFull<V, E>>::remove_edge(&mut self.#field_name, id)
+                <#field_type as #gryf::core::GraphFull<V, E>>::remove_edge(&mut self.#field_name, id)
             }
 
             fn clear(&mut self) {
-                <#field_type as GraphFull<V, E>>::clear(&mut self.#field_name)
+                <#field_type as #gryf::core::GraphFull<V, E>>::clear(&mut self.#field_name)
             }
 
             fn remove_edge_between(&mut self, src: &Self::VertexId, dst: &Self::VertexId) -> Option<E> {
-                <#field_type as GraphFull<V, E>>::remove_edge_between(&mut self.#field_name, src, dst)
+                <#field_type as #gryf::core::GraphFull<V, E>>::remove_edge_between(&mut self.#field_name, src, dst)
             }
 
             fn clear_edges(&mut self) {
-                <#field_type as GraphFull<V, E>>::clear_edges(&mut self.#field_name)
+                <#field_type as #gryf::core::GraphFull<V, E>>::clear_edges(&mut self.#field_name)
             }
         }
     };
@@ -460,9 +480,11 @@ pub fn graph_full(tokens: TokenStream) -> TokenStream {
     TokenStream::from(implemented)
 }
 
-#[proc_macro_derive(MultiEdge, attributes(graph))]
+#[proc_macro_derive(MultiEdge, attributes(graph, gryf_crate))]
 pub fn multi_edge(tokens: TokenStream) -> TokenStream {
     let input = parse_macro_input!(tokens as DeriveInput);
+
+    let gryf = util::get_gryf_path(&input);
 
     let name = &input.ident;
     let field = util::get_graph_field(&input);
@@ -472,19 +494,21 @@ pub fn multi_edge(tokens: TokenStream) -> TokenStream {
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     let where_clause = util::augment_where_clause(
         where_clause,
-        vec![(field_type.clone(), quote! { MultiEdge })],
+        vec![(field_type.clone(), quote! { #gryf::core::MultiEdge })],
     );
 
     let implemented = quote! {
-        impl #impl_generics MultiEdge for #name #ty_generics #where_clause {}
+        impl #impl_generics #gryf::core::MultiEdge for #name #ty_generics #where_clause {}
     };
 
     TokenStream::from(implemented)
 }
 
-#[proc_macro_derive(Guarantee, attributes(graph))]
+#[proc_macro_derive(Guarantee, attributes(graph, gryf_crate))]
 pub fn guarantee(tokens: TokenStream) -> TokenStream {
     let input = parse_macro_input!(tokens as DeriveInput);
+
+    let gryf = util::get_gryf_path(&input);
 
     let name = &input.ident;
     let field = util::get_graph_field(&input);
@@ -494,29 +518,29 @@ pub fn guarantee(tokens: TokenStream) -> TokenStream {
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     let where_clause = util::augment_where_clause(
         where_clause,
-        vec![(field_type.clone(), quote! { Guarantee })],
+        vec![(field_type.clone(), quote! { #gryf::core::Guarantee })],
     );
 
     let implemented = quote! {
-        impl #impl_generics Guarantee for #name #ty_generics #where_clause {
+        impl #impl_generics #gryf::core::Guarantee for #name #ty_generics #where_clause {
             fn is_loop_free() -> bool {
-                #field_type::is_loop_free()
+                <#field_type as #gryf::core::Guarantee>::is_loop_free()
             }
 
             fn has_paths_only() -> bool {
-                #field_type::has_paths_only()
+                <#field_type as #gryf::core::Guarantee>::has_paths_only()
             }
 
             fn has_trees_only() -> bool {
-                #field_type::has_trees_only()
+                <#field_type as #gryf::core::Guarantee>::has_trees_only()
             }
 
             fn has_bipartite_only() -> bool {
-                #field_type::has_bipartite_only()
+                <#field_type as #gryf::core::Guarantee>::has_bipartite_only()
             }
 
             fn is_connected() -> bool {
-                #field_type::is_connected()
+                <#field_type as #gryf::core::Guarantee>::is_connected()
             }
         }
     };

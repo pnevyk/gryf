@@ -2,7 +2,23 @@ use std::collections::VecDeque;
 
 use proc_macro2::{Punct, Spacing, Span, TokenStream as TokenStream2, TokenTree};
 use quote::{quote, ToTokens};
-use syn::{Data, DataStruct, DeriveInput, Field, Fields, Ident, ImplGenerics, Type, WhereClause};
+use syn::{
+    parse_quote, Data, DataStruct, DeriveInput, Field, Fields, Ident, ImplGenerics, Path, Type,
+    WhereClause,
+};
+
+pub fn get_gryf_path(input: &DeriveInput) -> Path {
+    let is_gryf_crate = input
+        .attrs
+        .iter()
+        .any(|attr| attr.path.is_ident("gryf_crate"));
+
+    if is_gryf_crate {
+        parse_quote! { crate }
+    } else {
+        parse_quote! { ::gryf }
+    }
+}
 
 pub fn get_graph_field(input: &DeriveInput) -> &Field {
     let field = match input.data {

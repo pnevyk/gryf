@@ -14,20 +14,18 @@ use crate::{
         error::{AddEdgeError, AddVertexError, ReplaceEdgeError, ReplaceVertexError},
         id::{DefaultId, IntegerIdType},
         marker::{Directed, Direction, EdgeType, Undirected},
-        Constrained, Create, GraphAdd, GraphBase, GraphFull, Guarantee, NeighborRef, Neighbors,
+        Constrained, Create, EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef,
+        Guarantee, NeighborRef, Neighbors, VertexSet,
     },
     storage::{AdjList, Frozen, Stable},
 };
 
 use gryf_derive::{EdgeSet, GraphBase, GraphMut, GraphRef, Neighbors, VertexSet};
 
-// TODO: Remove these imports once hygiene of procedural macros is fixed.
-use crate::common::CompactIdMap;
-use crate::core::{EdgeSet, GraphMut, GraphRef, VertexSet};
-
 use super::generic::Graph;
 
 #[derive(Debug, Clone, GraphBase, Neighbors, VertexSet, EdgeSet, GraphRef, GraphMut)]
+#[gryf_crate]
 pub struct Path<V, E, Ty: EdgeType, G = AdjList<V, E, Ty, DefaultId>>
 where
     G: GraphBase,

@@ -13,10 +13,8 @@ use crate::{
 
 use gryf_derive::{GraphBase, Guarantee};
 
-// TODO: Remove these imports once hygiene of procedural macros is fixed.
-use crate::core::Guarantee;
-
 #[derive(Debug, GraphBase, Guarantee)]
+#[gryf_crate]
 pub struct Stable<G: GraphBase> {
     #[graph]
     inner: G,

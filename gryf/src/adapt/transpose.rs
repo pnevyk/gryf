@@ -1,22 +1,14 @@
 use crate::core::{
     id::IdType,
     marker::{Directed, Direction},
-    EdgeRef, EdgeSet, GraphFull, GraphRef, NeighborRef, Neighbors, Stability, StableId, WeakRef,
+    EdgeRef, EdgeSet, GraphBase, GraphFull, GraphRef, NeighborRef, Neighbors, Stability, StableId,
+    WeakRef,
 };
 
 use gryf_derive::{GraphBase, GraphMut, Guarantee, VertexSet};
 
-// TODO: Remove these imports once hygiene of procedural macros is fixed.
-use crate::{
-    common::CompactIdMap,
-    core::{
-        error::{ReplaceEdgeError, ReplaceVertexError},
-        id::IntegerIdType,
-        GraphBase, GraphMut, Guarantee, VertexSet,
-    },
-};
-
 #[derive(Debug, GraphBase, VertexSet, GraphMut, Guarantee)]
+#[gryf_crate]
 pub struct Transpose<G> {
     #[graph]
     graph: G,

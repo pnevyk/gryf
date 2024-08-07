@@ -10,9 +10,41 @@ permissions:
   contents: read
 
 jobs:
+  should-run:
+    runs-on: ubuntu-latest
+    outputs:
+      no-changes: ${{ steps.check-commits.outputs.no-changes }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get latest workflow run
+        id: latest-run
+        run: |
+          curl -L \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            ${{ github.api_url }}/repos/${{ github.repository }}/actions/workflows \
+            -o workflows.json
+          WORKFLOW_ID=$(jq '.workflows[] | select( .name | contains("${{ github.workflow }}")) | .id' workflows.json)
+          curl -L \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            ${{ github.api_url }}/repos/${{ github.repository }}/actions/workflows/${WORKFLOW_ID}/runs \
+            -o runs.json
+          # workflow_runs[0] is the current run
+          echo "datetime=$(jq -r '.workflow_runs[1].created_at' runs.json)" >> "$GITHUB_OUTPUT"
+      - name: Detect commits since last workflow run
+        id: check-commits
+        run: |
+          COMMITS=$(git log --since="${{ steps.latest-run.outputs.datetime }}" --oneline)
+          if [ -z "$COMMITS" ]; then
+            echo "no-changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
   fuzz:
     name: Fuzz
     runs-on: ubuntu-latest
+    needs: should-run
+    if: needs.should-run.outputs.no-changes != 'true'
     strategy:
       fail-fast: false
       matrix:

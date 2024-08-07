@@ -14,7 +14,7 @@ _Offer simplicity as well as flexibility and strive for a good balance if in
 conflict. Do not close the door on potential extensions. Unleash the fantasies
 about all possible use cases and environments that we can support._
 
-### Correctness :heavy_check_mark:
+### Correctness :white_check_mark:
 
 _Use extensive fuzzing and property-based testing to increase confidence about
 correctness, because unit tests are not enough. Unsafe code is only the last
@@ -93,7 +93,7 @@ enforcing an algorithm might be needed are these:
 * The specific algorithm provides an output that has richer API than the common
   entrypoint (which provides as much as each and every available algorithm can).
 
-Regarding _correctness_ ( :heavy_check_mark: ), it is mainly about avoiding
+Regarding _correctness_ ( :white_check_mark: ), it is mainly about avoiding
 misuse by the user. Automatic selection makes sure to choose an algorithm that
 is supposed to work correctly on the graph given known properties (for example,
 negative weights aware algorithm when weights are not guaranteed to be positive
@@ -283,7 +283,7 @@ Graphs are complicated data structures, especially if the implementation strives
 to be efficient, and algorithms on them can be very complex with many corner
 cases. For that reason, a high level of confidence in _correctness_ cannot be
 achieved by using just unit tests. Instead, gryf heavily utilizes fuzzing and
-property-based testing ( :heavy_check_mark: ).
+property-based testing ( :white_check_mark: ).
 
 There are two main areas for these testing techniques: _graph storages_ and
 _algorithms_. These two require a little bit different approaches.

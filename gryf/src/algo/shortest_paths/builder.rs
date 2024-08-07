@@ -2,8 +2,8 @@ use std::{cmp::max, marker::PhantomData};
 
 use crate::core::{
     id::IntegerIdType,
-    weights::Weight,
-    weights::{self, GetWeight, IsConstWeight},
+    weight::Weight,
+    weight::{self, GetWeight, IsConstWeight},
     GraphBase, GraphRef, GraphWeak, Neighbors, VertexSet,
 };
 
@@ -31,11 +31,11 @@ impl<W, G> ShortestPaths<W, G>
 where
     G: GraphBase,
 {
-    pub fn on(graph: &G) -> ShortestPathsBuilder<'_, W, G, weights::Identity, algo::AnyAlgo> {
+    pub fn on(graph: &G) -> ShortestPathsBuilder<'_, W, G, weight::Identity, algo::AnyAlgo> {
         ShortestPathsBuilder {
             graph,
             goal: None,
-            edge_weight: weights::Identity,
+            edge_weight: weight::Identity,
             algo: algo::AnyAlgo,
             ty: PhantomData,
         }
@@ -80,9 +80,9 @@ where
         self.edge_weight(edge_weight)
     }
 
-    pub fn unit_weight(self) -> ShortestPathsBuilder<'a, W, G, weights::Unit, A> {
+    pub fn unit_weight(self) -> ShortestPathsBuilder<'a, W, G, weight::Unit, A> {
         ShortestPathsBuilder {
-            edge_weight: weights::Unit,
+            edge_weight: weight::Unit,
             graph: self.graph,
             goal: self.goal,
             algo: self.algo,

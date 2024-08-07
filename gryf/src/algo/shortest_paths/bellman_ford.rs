@@ -4,7 +4,7 @@ use crate::{
     core::{
         base::EdgeRef,
         id::{IdType, IntegerIdType, Virtual},
-        weights::{GetWeight, Weight},
+        weight::{GetWeight, Weight},
         GraphRef,
     },
 };

@@ -16,7 +16,7 @@ use crate::{
         error::{AddEdgeError, AddVertexError, ReplaceEdgeError, ReplaceVertexError},
         id::{DefaultId, IntegerIdType},
         marker::{Directed, Direction, EdgeType, Undirected},
-        properties::{Constrained, Guarantee},
+        props::{Constrained, Guarantee},
         EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Neighbors, VertexSet,
     },
     storage::{AdjList, Frozen, Stable},

@@ -3,7 +3,7 @@ use std::{iter::Enumerate, marker::PhantomData, slice};
 use crate::common::CompactIdMap;
 use crate::core::connect::ConnectVertices;
 use crate::core::create::Create;
-use crate::core::properties::{Guarantee, MultiEdge};
+use crate::core::props::{Guarantee, MultiEdge};
 use crate::core::{
     error::{AddEdgeError, AddEdgeErrorKind, AddVertexError},
     id::{DefaultId, GraphIdTypes, IdType, IntegerIdType},

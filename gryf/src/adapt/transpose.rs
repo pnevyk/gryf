@@ -2,7 +2,7 @@ use crate::core::{
     base::{EdgeRef, NeighborRef},
     id::IdType,
     marker::{Directed, Direction},
-    properties::{Stability, StableId},
+    props::{Stability, StableId},
     weak::WeakRef,
     EdgeSet, GraphBase, GraphFull, GraphRef, Neighbors,
 };

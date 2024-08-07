@@ -1,4 +1,4 @@
-use gryf::{storage::AdjMatrix, Graph};
+use gryf::{graph::Graph, storage::AdjMatrix};
 
 fn main() {
     let mut graph = Graph::new_undirected_in(AdjMatrix::default());

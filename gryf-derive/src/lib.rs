@@ -460,11 +460,14 @@ pub fn multi_edge(tokens: TokenStream) -> TokenStream {
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     let where_clause = util::augment_where_clause(
         where_clause,
-        vec![(field_type.clone(), quote! { #gryf::core::MultiEdge })],
+        vec![(
+            field_type.clone(),
+            quote! { #gryf::core::properties::MultiEdge },
+        )],
     );
 
     let implemented = quote! {
-        impl #impl_generics #gryf::core::MultiEdge for #name #ty_generics #where_clause {}
+        impl #impl_generics #gryf::core::properties::MultiEdge for #name #ty_generics #where_clause {}
     };
 
     TokenStream::from(implemented)
@@ -484,29 +487,32 @@ pub fn guarantee(tokens: TokenStream) -> TokenStream {
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     let where_clause = util::augment_where_clause(
         where_clause,
-        vec![(field_type.clone(), quote! { #gryf::core::Guarantee })],
+        vec![(
+            field_type.clone(),
+            quote! { #gryf::core::properties::Guarantee },
+        )],
     );
 
     let implemented = quote! {
-        impl #impl_generics #gryf::core::Guarantee for #name #ty_generics #where_clause {
+        impl #impl_generics #gryf::core::properties::Guarantee for #name #ty_generics #where_clause {
             fn is_loop_free() -> bool {
-                <#field_type as #gryf::core::Guarantee>::is_loop_free()
+                <#field_type as #gryf::core::properties::Guarantee>::is_loop_free()
             }
 
             fn has_paths_only() -> bool {
-                <#field_type as #gryf::core::Guarantee>::has_paths_only()
+                <#field_type as #gryf::core::properties::Guarantee>::has_paths_only()
             }
 
             fn has_trees_only() -> bool {
-                <#field_type as #gryf::core::Guarantee>::has_trees_only()
+                <#field_type as #gryf::core::properties::Guarantee>::has_trees_only()
             }
 
             fn has_bipartite_only() -> bool {
-                <#field_type as #gryf::core::Guarantee>::has_bipartite_only()
+                <#field_type as #gryf::core::properties::Guarantee>::has_bipartite_only()
             }
 
             fn is_connected() -> bool {
-                <#field_type as #gryf::core::Guarantee>::is_connected()
+                <#field_type as #gryf::core::properties::Guarantee>::is_connected()
             }
         }
     };

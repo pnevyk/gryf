@@ -2,7 +2,7 @@ use rustc_hash::FxHashSet;
 
 use crate::{
     common::VisitSet,
-    core::{marker::Direction, NeighborRef, Neighbors, VertexSet},
+    core::{base::NeighborRef, marker::Direction, Neighbors, VertexSet},
 };
 
 use super::Connected;

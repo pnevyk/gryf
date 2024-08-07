@@ -8,10 +8,11 @@ use rustc_hash::FxHashSet;
 
 use crate::{
     core::{
+        create::Create,
         marker::{Directed, EdgeType, Undirected},
-        Create, GraphAdd,
+        GraphAdd,
     },
-    Graph,
+    graph::Graph,
 };
 
 use super::testing::AsDot;
@@ -678,7 +679,10 @@ impl ShrinkAttrState {
 mod tests {
     use proptest::{strategy::check_strategy_sanity, test_runner::TestRunner};
 
-    use crate::core::{EdgeRef, EdgeSet, GraphRef, VertexRef, VertexSet};
+    use crate::core::{
+        base::{EdgeRef, VertexRef},
+        EdgeSet, GraphRef, VertexSet,
+    };
 
     use super::*;
 

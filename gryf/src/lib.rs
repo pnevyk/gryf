@@ -7,12 +7,10 @@ pub mod infra;
 pub mod storage;
 pub mod visit;
 
-pub use self::graph::Graph;
-
 pub mod prelude {
     #[doc(hidden)]
     pub use crate::{
-        core::{EdgeRef, NeighborRef, VertexRef},
+        core::base::{EdgeRef, NeighborRef, VertexRef},
         visit::Visitor,
     };
 }

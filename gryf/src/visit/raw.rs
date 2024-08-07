@@ -9,9 +9,10 @@ use rustc_hash::FxHashSet;
 use crate::{
     common::VisitSet,
     core::{
+        base::NeighborRef,
         id::{GraphIdTypes, IdType, UseId, UseVertexId},
         marker::Direction,
-        GraphBase, NeighborRef, Neighbors,
+        GraphBase, Neighbors,
     },
 };
 

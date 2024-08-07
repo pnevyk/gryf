@@ -2,8 +2,9 @@ use std::{cmp::max, marker::PhantomData};
 
 use crate::core::{
     id::IntegerIdType,
+    weights::Weight,
     weights::{self, GetWeight, IsConstWeight},
-    GraphBase, GraphRef, GraphWeak, Neighbors, VertexSet, Weight,
+    GraphBase, GraphRef, GraphWeak, Neighbors, VertexSet,
 };
 
 use super::{

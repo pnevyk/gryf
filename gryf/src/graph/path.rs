@@ -11,11 +11,13 @@ use thiserror::Error;
 use crate::{
     common::VisitSet,
     core::{
+        base::NeighborRef,
+        create::Create,
         error::{AddEdgeError, AddVertexError, ReplaceEdgeError, ReplaceVertexError},
         id::{DefaultId, IntegerIdType},
         marker::{Directed, Direction, EdgeType, Undirected},
-        Constrained, Create, EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef,
-        Guarantee, NeighborRef, Neighbors, VertexSet,
+        properties::{Constrained, Guarantee},
+        EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Neighbors, VertexSet,
     },
     storage::{AdjList, Frozen, Stable},
 };

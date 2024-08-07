@@ -2,9 +2,10 @@ use crate::{
     algo::Cycle,
     common::CompactIdMap,
     core::{
+        base::NeighborRef,
         id::{IdType, IntegerIdType, Virtual},
         marker::Direction,
-        GraphBase, NeighborRef, Neighbors, VertexSet,
+        GraphBase, Neighbors, VertexSet,
     },
 };
 

@@ -53,9 +53,10 @@ mod tests {
     use crate::{
         common::VisitSet,
         core::{
+            base::NeighborRef,
             id::VertexId,
             marker::{Directed, Direction, Undirected},
-            GraphAdd, NeighborRef,
+            GraphAdd,
         },
         infra::proptest::{graph_directed, graph_undirected},
         storage::AdjList,

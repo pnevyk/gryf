@@ -5,7 +5,8 @@ use gryf::{
     core::{
         id::{EdgeId, IdType, VertexId},
         marker::{Directed, Direction},
-        GraphBase, NeighborRef, Neighbors, WeakRef,
+        weak::WeakRef,
+        GraphBase, Neighbors,
     },
     visit::Dfs,
 };

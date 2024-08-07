@@ -53,3 +53,4 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo test
       - run: cargo test proptest_ -- --ignored
+        if: matrix.rust == 'stable'

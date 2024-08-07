@@ -1,7 +1,9 @@
 use gryf::{
     algo::ShortestPaths,
     core::{
-        id::IdType, marker::{Direction, Undirected}, GraphBase, Neighbors
+        id::IdType,
+        marker::{Direction, Undirected},
+        GraphBase, Neighbors,
     },
 };
 

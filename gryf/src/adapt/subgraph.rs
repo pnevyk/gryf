@@ -1,6 +1,8 @@
 use crate::core::{
-    id::IntegerIdType, marker::Direction, EdgeRef, EdgeSet, GraphBase, GraphRef, NeighborRef,
-    Neighbors, VertexRef, VertexSet,
+    base::{EdgeRef, NeighborRef, VertexRef},
+    id::IntegerIdType,
+    marker::Direction,
+    EdgeSet, GraphBase, GraphRef, Neighbors, VertexSet,
 };
 
 use gryf_derive::GraphBase;

@@ -1,13 +1,15 @@
 use std::{iter::Enumerate, marker::PhantomData, slice};
 
 use crate::common::CompactIdMap;
+use crate::core::connect::ConnectVertices;
+use crate::core::create::Create;
+use crate::core::properties::{Guarantee, MultiEdge};
 use crate::core::{
     error::{AddEdgeError, AddEdgeErrorKind, AddVertexError},
     id::{DefaultId, GraphIdTypes, IdType, IntegerIdType},
     marker::{Direction, EdgeType},
-    ConnectVertices, Create, GraphBase, Guarantee, Neighbors,
+    EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Neighbors, VertexSet,
 };
-use crate::core::{EdgeSet, GraphAdd, GraphFull, GraphMut, GraphRef, MultiEdge, VertexSet};
 
 use super::shared;
 pub use super::shared::{EdgesIter, RangeIds as VertexIds, RangeIds as EdgeIds, VerticesIter};

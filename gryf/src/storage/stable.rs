@@ -3,11 +3,14 @@ use std::collections::BTreeSet;
 use crate::{
     common::CompactIdMap,
     core::{
+        base::{EdgeRef, NeighborRef, VertexRef},
+        connect::ConnectVertices,
+        create::Create,
         error::{AddEdgeError, AddEdgeErrorKind, AddVertexError},
         id::{EdgeId, IntegerIdType, VertexId},
         marker::Direction,
-        ConnectVertices, Create, EdgeRef, EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut,
-        GraphRef, NeighborRef, Neighbors, NoReplace, StableId, VertexRef, VertexSet,
+        properties::{NoReplace, StableId},
+        EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Neighbors, VertexSet,
     },
 };
 

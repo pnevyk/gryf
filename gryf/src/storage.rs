@@ -14,7 +14,8 @@ pub use stable::Stable;
 #[cfg(test)]
 mod tests {
     use crate::core::{
-        facts, marker::Direction, ConnectVertices, Create, GraphFull, MultiEdge, Neighbors,
+        connect::ConnectVertices, create::Create, facts, marker::Direction, properties::MultiEdge,
+        GraphFull, Neighbors,
     };
 
     pub fn test_basic<G>()

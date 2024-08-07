@@ -2,9 +2,10 @@ use crate::{
     adapt::transpose::TransposeRef,
     common::CompactIdMap,
     core::{
+        base::EdgeRef,
         id::{IdType, IntegerIdType, Virtual},
-        weights::GetWeight,
-        EdgeRef, GraphRef, Weight,
+        weights::{GetWeight, Weight},
+        GraphRef,
     },
 };
 

@@ -2,7 +2,7 @@ use std::ops::Deref;
 
 use crate::core::{
     id::{EdgeId, VertexId},
-    Stability, StableId,
+    properties::{Stability, StableId},
 };
 
 use gryf_derive::{EdgeSet, GraphBase, GraphRef, Guarantee, Neighbors, VertexSet};

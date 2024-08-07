@@ -1,10 +1,12 @@
 use rustc_hash::FxHashSet;
 
 use crate::core::{
+    base::NeighborRef,
     facts,
     id::{IdType, IntegerIdType},
     marker::{Direction, Undirected},
-    EdgeSet, GraphBase, GraphFull, NeighborRef, Neighbors, VertexSet, WeakRef,
+    weak::WeakRef,
+    EdgeSet, GraphBase, GraphFull, Neighbors, VertexSet,
 };
 
 use gryf_derive::{GraphBase, VertexSet};

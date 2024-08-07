@@ -7,7 +7,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
     common::VisitSet,
-    core::{marker::Direction, NeighborRef, Neighbors, Weight},
+    core::{base::NeighborRef, marker::Direction, weights::Weight, Neighbors},
 };
 
 use super::{Error, ShortestPaths};

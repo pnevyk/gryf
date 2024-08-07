@@ -6,14 +6,16 @@ use std::{
 
 use crate::{
     core::{
+        base::IntoEdge,
+        connect::ConnectVertices,
+        create::{Create, ExtendWithEdges, ExtendWithVertices},
         error::{
             AddEdgeConnectingError, AddEdgeError, AddVertexError, ReplaceEdgeError,
             ReplaceVertexError,
         },
         id::{DefaultId, IntegerIdType},
         marker::{Directed, Direction, EdgeType, Undirected},
-        ConnectVertices, Create, EdgeSet, ExtendWithEdges, ExtendWithVertices, GraphAdd, GraphBase,
-        GraphFull, GraphMut, GraphRef, IntoEdge, Neighbors, VertexSet,
+        EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Neighbors, VertexSet,
     },
     storage::{AdjList, Frozen, Stable},
 };

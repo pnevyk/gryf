@@ -5,7 +5,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use crate::{
     adapt::Undirect,
     common::VisitSet,
-    core::{marker::Direction, EdgeSet, NeighborRef, Neighbors, VertexSet},
+    core::{base::NeighborRef, marker::Direction, EdgeSet, Neighbors, VertexSet},
 };
 
 use super::Cycle;

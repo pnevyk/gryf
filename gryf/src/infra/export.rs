@@ -4,7 +4,11 @@ use std::{
     io::{self, Cursor, Write},
 };
 
-use crate::core::{id::IdType, EdgeRef, GraphRef, VertexRef};
+use crate::core::{
+    base::{EdgeRef, VertexRef},
+    id::IdType,
+    GraphRef,
+};
 
 pub trait Export<G> {
     fn export<W: Write>(&self, graph: &G, out: &mut W) -> io::Result<()>;

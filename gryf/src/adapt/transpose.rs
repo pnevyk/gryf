@@ -1,8 +1,10 @@
 use crate::core::{
+    base::{EdgeRef, NeighborRef},
     id::IdType,
     marker::{Directed, Direction},
-    EdgeRef, EdgeSet, GraphBase, GraphFull, GraphRef, NeighborRef, Neighbors, Stability, StableId,
-    WeakRef,
+    properties::{Stability, StableId},
+    weak::WeakRef,
+    EdgeSet, GraphBase, GraphFull, GraphRef, Neighbors,
 };
 
 use gryf_derive::{GraphBase, GraphMut, Guarantee, VertexSet};

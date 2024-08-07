@@ -1,14 +1,9 @@
-use crate::{
-    common::CompactIdMap,
-    core::{id::IntegerIdType, marker::Direction, Neighbors},
-};
+use crate::core::{marker::Direction, Neighbors};
 
 use gryf_derive::{EdgeSet, GraphBase, Guarantee, VertexSet};
 
-// TODO: Remove these imports once hygiene of procedural macros is fixed.
-use crate::core::{EdgeSet, GraphBase, Guarantee, VertexSet};
-
 #[derive(Debug, GraphBase, VertexSet, EdgeSet, Guarantee)]
+#[gryf_crate]
 pub struct Undirect<G> {
     #[graph]
     graph: G,

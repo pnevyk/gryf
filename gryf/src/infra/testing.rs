@@ -4,20 +4,13 @@ use thiserror::Error;
 
 use crate::core::{
     facts,
+    id::IntegerIdType,
     marker::{Direction, EdgeType},
     Create, GraphRef, Neighbors,
 };
 
 use gryf_derive::{
     EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, MultiEdge, Neighbors, VertexSet,
-};
-
-// TODO: Remove these imports once hygiene of procedural macros is fixed.
-use crate::common::CompactIdMap;
-use crate::core::{
-    error::{AddEdgeError, AddVertexError, ReplaceEdgeError, ReplaceVertexError},
-    id::IntegerIdType,
-    EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, MultiEdge, VertexSet,
 };
 
 use super::export::Dot;
@@ -335,6 +328,7 @@ where
 #[derive(
     GraphBase, Neighbors, VertexSet, EdgeSet, GraphRef, GraphMut, GraphAdd, GraphFull, MultiEdge,
 )]
+#[gryf_crate]
 pub struct AsDot<V, E, G> {
     #[graph]
     graph: G,

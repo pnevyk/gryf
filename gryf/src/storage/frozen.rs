@@ -7,14 +7,8 @@ use crate::core::{
 
 use gryf_derive::{EdgeSet, GraphBase, GraphRef, Guarantee, Neighbors, VertexSet};
 
-// TODO: Remove these imports once hygiene of procedural macros is fixed.
-use crate::common::CompactIdMap;
-use crate::core::{
-    id::IntegerIdType, marker::Direction, EdgeSet, GraphBase, GraphRef, Guarantee, Neighbors,
-    VertexSet,
-};
-
 #[derive(Debug, GraphBase, Neighbors, VertexSet, EdgeSet, GraphRef, Guarantee)]
+#[gryf_crate]
 pub struct Frozen<G> {
     #[graph]
     inner: G,

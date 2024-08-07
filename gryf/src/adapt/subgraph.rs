@@ -6,6 +6,7 @@ use crate::core::{
 use gryf_derive::GraphBase;
 
 #[derive(GraphBase)]
+#[gryf_crate]
 pub struct Subgraph<G, S = ()>
 where
     G: GraphBase,

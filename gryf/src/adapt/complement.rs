@@ -4,16 +4,13 @@ use crate::core::{
     facts,
     id::{IdType, IntegerIdType},
     marker::{Direction, Undirected},
-    EdgeSet, GraphFull, Neighbors, WeakRef,
+    EdgeSet, GraphBase, GraphFull, NeighborRef, Neighbors, VertexSet, WeakRef,
 };
 
 use gryf_derive::{GraphBase, VertexSet};
 
-// TODO: Remove these imports once hygiene of procedural macros is fixed.
-use crate::common::CompactIdMap;
-use crate::core::{GraphBase, NeighborRef, VertexSet};
-
 #[derive(Debug, GraphBase, VertexSet)]
+#[gryf_crate]
 pub struct Complement<E, G> {
     #[graph]
     graph: G,

@@ -11,7 +11,7 @@ use crate::{
     core::{
         base::NeighborRef,
         marker::Direction,
-        weights::{GetWeight, Weight, Weighted},
+        weight::{GetWeight, Weight, Weighted},
         GraphWeak, Neighbors,
     },
 };

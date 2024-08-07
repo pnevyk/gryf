@@ -8,7 +8,7 @@ use crate::{
         error::{AddEdgeError, AddEdgeErrorKind, AddVertexError},
         id::{DefaultId, GraphIdTypes, IdType, IntegerIdType},
         marker::{Direction, EdgeType},
-        properties::Guarantee,
+        props::Guarantee,
         EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Neighbors, VertexSet,
     },
 };

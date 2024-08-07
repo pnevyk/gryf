@@ -9,7 +9,7 @@ use crate::{
         error::{AddEdgeError, AddEdgeErrorKind, AddVertexError},
         id::{EdgeId, IntegerIdType, VertexId},
         marker::Direction,
-        properties::{NoReplace, StableId},
+        props::{NoReplace, StableId},
         EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Neighbors, VertexSet,
     },
 };

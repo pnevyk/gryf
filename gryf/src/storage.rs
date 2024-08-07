@@ -14,7 +14,7 @@ pub use stable::Stable;
 #[cfg(test)]
 mod tests {
     use crate::core::{
-        connect::ConnectVertices, create::Create, facts, marker::Direction, properties::MultiEdge,
+        connect::ConnectVertices, create::Create, facts, marker::Direction, props::MultiEdge,
         GraphFull, Neighbors,
     };
 

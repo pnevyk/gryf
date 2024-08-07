@@ -10,10 +10,11 @@ pub mod visit;
 pub use self::graph::Graph;
 
 pub mod prelude {
-    pub use crate::core::id::{IdType, IntegerIdType};
-    pub use crate::core::{EdgeRef, NeighborRef, VertexRef};
-    pub use crate::graph::Graph;
-    pub use crate::visit::Visitor;
+    #[doc(hidden)]
+    pub use crate::{
+        core::{EdgeRef, NeighborRef, VertexRef},
+        visit::Visitor,
+    };
 }
 
 #[cfg(feature = "derive")]

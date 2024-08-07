@@ -3,9 +3,9 @@ use std::iter;
 use gryf::prelude::*;
 use gryf::{
     core::{
-        id::{EdgeId, VertexId},
+        id::{EdgeId, IdType, VertexId},
         marker::{Directed, Direction},
-        GraphBase, Neighbors, WeakRef,
+        GraphBase, NeighborRef, Neighbors, WeakRef,
     },
     visit::Dfs,
 };

@@ -30,8 +30,8 @@ future. Incorporate parallel algorithms._
 
 _The following text is more like a vision than a description of the current
 state of being. Some of the concepts are **implemented and under review**
-(:mag:) or under **construction** (:construction:), while others are solely on a
-**wish list** (:crystal_ball:)._
+( :mag: ) or under **construction** ( :construction: ), while others
+are solely on a **wish list** ( :crystal_ball: )._
 
 * [Problems instead of algorithms](#problems-instead-of-algorithms)
 * [Builder pattern for algorithms](#builder-pattern-for-algorithms)
@@ -51,7 +51,7 @@ even can) be used to solve given problem at hand, and in order to find that out
 they need to consult the documentation or do their own research.
 
 In gryf, the algorithms are organized into the problem they solve represented by
-a single type (:mag:). So instead of exposing `dijkstra` and `bellman_ford`
+a single type ( :mag: ). So instead of exposing `dijkstra` and `bellman_ford`
 functions, we have `ShortestPaths` type. Unless explicitly specified, the actual
 algorithm used is even chosen by the library given the properties of the graph.
 For instance, dijkstra algorithm is preferred, especially if there is a goal
@@ -59,7 +59,7 @@ vertex, but bellman ford is chosen when the edge weight can be negative
 (dijkstra requires non-negative weights). The user does not need to care about
 these "details".
 
-This brings benefits on all our goals. It is very _convenient_ (:handshake:),
+This brings benefits on all our goals. It is very _convenient_ ( :handshake: ),
 especially for a beginner, who does not (and should not) care about the actual
 algorithm, as they only want a solution to their problem. Moreover, by getting a
 value of specific type instead of a generic one such as `Vec` or `HashMap`, they
@@ -72,15 +72,16 @@ mainly in the opportunity to tweak internals of the algorithms and outputs
 without breaking the public API.
 
 This abstraction has also many nice consequences in regards of _performance_
-(:fire:). First and foremost, there is an **automatic algorithm selection**,
+( :fire: ). First and foremost, there is an **automatic algorithm selection**,
 which makes the decision based on the dynamic properties (e.g., vertex or edge
 count) and static properties (e.g., graph being bipartite or connected, or edge
-weight guaranteed to be positive) of the graph (:mag:). Second, implementations
-of new, faster algorithms can be started to be used under the hood so that the
-user gets better performance after update without any work on their side.
+weight guaranteed to be positive) of the graph ( :mag: ). Second,
+implementations of new, faster algorithms can be started to be used under the
+hood so that the user gets better performance after update without any work on
+their side.
 
 Nevertheless, it is still possible to choose a specific algorithm. Therefore,
-this organization does not prevent _versatility_ (:hammer:). The reasons why
+this organization does not prevent _versatility_ ( :hammer: ). The reasons why
 enforcing an algorithm might be needed are these:
 
 * The user knows for sure that the specific algorithm is the best option for
@@ -92,9 +93,9 @@ enforcing an algorithm might be needed are these:
 * The specific algorithm provides an output that has richer API than the common
   entrypoint (which provides as much as each and every available algorithm can).
 
-Regarding _correctness_ (:heavy_check_mark:), it is mainly about avoiding misuse
-by the user. Automatic selection makes sure to choose an algorithm that is
-supposed to work correctly on the graph given known properties (for example,
+Regarding _correctness_ ( :heavy_check_mark: ), it is mainly about avoiding
+misuse by the user. Automatic selection makes sure to choose an algorithm that
+is supposed to work correctly on the graph given known properties (for example,
 negative weights aware algorithm when weights are not guaranteed to be positive
 or generic algorithm when graph is not guaranteed to have certain structural
 properties). Rich API on the output also encourages user to use it instead of
@@ -102,10 +103,10 @@ implementing it on their own, which should avoid subtle bugs.
 
 ### Builder pattern for algorithms
 
-Specifying arguments for algorithms is done using the builder pattern (:mag:).
-This is _convenient_ (:handshake:) because the user does not need to deal with
+Specifying arguments for algorithms is done using the builder pattern ( :mag: ).
+This is _convenient_ ( :handshake: ) because the user does not need to deal with
 optional parameters that they do not need/use. On the other hand, it also brings
-_versatility_ (:hammer:) because the user _can_ specify these optional
+_versatility_ ( :hammer: ) because the user _can_ specify these optional
 parameters if it is useful/necessary for the situation. It is also valuable for
 development of new capabilities, because new parameters can be added in a
 backwards compatible way. As a concrete example, shortest path algorithm allows
@@ -122,31 +123,31 @@ improves error feedback (causing errors to be located right at the problematic
 builder methods, not at the `run` method which is too late, making the cause
 less obvious). For the same reason, all builder methods must specify all the
 constraints that will be needed for running the algorithm. All this helps
-_convenience_ (:handshake:) by leading to better error messages produced by the
-compiler.
+_convenience_ ( :handshake: ) by leading to better error messages produced by
+the compiler.
 
 ### Separation of graph storage and semantics
 
 In gryf, high-level semantics provided by user-facing types are strictly
-separated from the underlying storage/representation (:mag:). The graph data can
-be stored in a
+separated from the underlying storage/representation ( :mag: ). The graph data
+can be stored in a
 [common](https://en.wikipedia.org/wiki/Graph_(abstract_data_type)#Common_data_structures_for_graph_representation)
 representation such as adjacency list or adjacency matrix, but it can as well be
 stored in or represented by a custom, problem-tailored implementation, as long
-as it implements provided interfaces. This helps _versatility_ (:hammer:), a
+as it implements provided interfaces. This helps _versatility_ ( :hammer: ), a
 default storage might be fine in most cases, but where it truly matters the user
 can choose whichever representation is most suitable given the
 [trade-offs](https://en.wikipedia.org/wiki/Adjacency_list#Trade-offs). This idea
 can be stretched to use cases where the representation wraps user's graph-like
 data, encodes the structure
 [implicitly](https://en.wikipedia.org/wiki/Implicit_graph) or happens to be in a
-particular environment (e.g., embedded device or distributed system) (:mag:).
+particular environment (e.g., embedded device or distributed system) ( :mag: ).
 
 On top of a storage, there is an encapsulation with clear semantics. The most
 general is a generic graph, but restricted forms include simple graph (without
-parallel edges), path, bipartite graph and so on (:construction:). Each of these
-encapsulations provide access and manipulation APIs that guarantee imposed
-restrictions on the structure. A little _convenience_ (:handshake:) benefit is
+parallel edges), path, bipartite graph and so on ( :construction: ). Each of
+these encapsulations provide access and manipulation APIs that guarantee imposed
+restrictions on the structure. A little _convenience_ ( :handshake: ) benefit is
 that, in documentation, available API is listed and easily discoverable under
 _Methods_ list, instead of hidden under _Trait Implementations_, which should
 help newcomers.
@@ -159,7 +160,7 @@ Among the advantages of restricted semantics (tree, bipartite, ...) are:
 * For some problems, there exist (significantly) more efficient/less complicated
   algorithms for particular classes of graphs. Guaranteed property of a
   restricted graph can be utilized in choosing such an algorithm for better
-  _performance_ (:fire:).
+  _performance_ ( :fire: ).
 
 The separation also benefits the development as it allows to focus on limited
 scope when implementing the encapsulation with specific semantics or the graph
@@ -172,7 +173,7 @@ bipartite, ...) and _M_ is the number of graph representations.
 There are two extremes in regards of a graph interface: (a) single trait
 covering everything, or (b) single trait per aspect/behavior. The goal is to
 find the ~right spot on the spectrum. The core of the gryf's trait hierarchy
-(:mag:) is the following:
+( :mag: ) is the following:
 
 ```mermaid
 flowchart
@@ -270,11 +271,11 @@ implementations. This enables having wide API surface on the graph available
 regardless of the storage, while keeping the requirements for the storage
 implementation at minimum.
 
-In order to preserve _versatility_ (:hammer:), we strictly separate traits that
-are require finiteness of the graph and traits that don't. The latter could be
-implemented by [implicit graphs](https://en.wikipedia.org/wiki/Implicit_graph),
-which do not store the structure and data explicitly, but produce them on demand
-instead.
+In order to preserve _versatility_ ( :hammer: ), we strictly separate traits
+that are require finiteness of the graph and traits that don't. The latter could
+be implemented by [implicit
+graphs](https://en.wikipedia.org/wiki/Implicit_graph), which do not store the
+structure and data explicitly, but produce them on demand instead.
 
 ### Fuzzing
 
@@ -282,23 +283,23 @@ Graphs are complicated data structures, especially if the implementation strives
 to be efficient, and algorithms on them can be very complex with many corner
 cases. For that reason, a high level of confidence in _correctness_ cannot be
 achieved by using just unit tests. Instead, gryf heavily utilizes fuzzing and
-property-based testing (:heavy_check_mark:).
+property-based testing ( :heavy_check_mark: ).
 
 There are two main areas for these testing techniques: _graph storages_ and
 _algorithms_. These two require a little bit different approaches.
 
 For graph storages, _fuzzing_ with [stateful
 modeling](https://propertesting.com/book_stateful_properties.html) of graph
-semantics is employed (:construction:). The idea is to generate sequences of
+semantics is employed ( :construction: ). The idea is to generate sequences of
 graph manipulating operations that are then applied on the graph. Crucially,
 these include removing operations too. There are three levels of what fuzz
 targets test:
 
-1. The graph does not panic while applying the operation (:mag:).
-2. The graph is in a consistent state after applying the operation (:mag:). See
-   `check_consistency` function for details.
+1. The graph does not panic while applying the operation ( :mag: ).
+2. The graph is in a consistent state after applying the operation ( :mag: ).
+   See `check_consistency` function for details.
 3. The graph exhibits the same behavior as a _model_ of graph semantics when
-   applying the operation (:construction:). Such model is an implementation of
+   applying the operation ( :construction: ). Such model is an implementation of
    the graph API, not necessarily efficient, which is simpler and easier to
    reason about, thus having higher confidence in correctness.
 
@@ -310,7 +311,7 @@ properties can be tested and not wasting cycles on inputs for which the
 algorithm returns an error.
 
 A considerable amount of effort was put into making the testing infrastructure
-_convenient_ (:handshake:) for gryf developers. On a crash, fuzz targets print
+_convenient_ ( :handshake: ) for gryf developers. On a crash, fuzz targets print
 Rust code that can be copy&pasted and ran in order to get almost complete,
 copy&pastable reproduction as a unit test. Property-based tests try hard to
 shrink the failing graphs into minimal reproducing examples and these are
@@ -320,9 +321,9 @@ effortless visualization.
 ### Statically guaranteed semantics
 
 The goal is to communicate various guarantees on graph semantics (such as being
-loop-free or path) (:construction:). These can be then used in algorithms (e.g.,
-choosing a more efficient algorithm for bipartite graphs) (:fire:). In order to
-minimize runtime performance penalty, these guarantees must be known
+loop-free or path) ( :construction: ). These can be then used in algorithms
+(e.g., choosing a more efficient algorithm for bipartite graphs) ( :fire: ). In
+order to minimize runtime performance penalty, these guarantees must be known
 "statically". The properties must be either maintained by the graph type by
 restricting the mutation, or determined dynamically just once when creating the
 wrapper type.
@@ -333,7 +334,7 @@ return boolean value. A nice thing is that the Rust compiler can often (always?)
 optimize out the tests for these properties (e.g., in automatic algorithm
 selection) thanks to monomorphization and dead code elimination.
 
-See `Guarantee` trait (:construction:) or `Weight::is_unsigned` (:mag:) for
+See `Guarantee` trait ( :construction: ) or `Weight::is_unsigned` ( :mag: ) for
 examples.
 
 ### Iteration over recursion
@@ -348,9 +349,9 @@ efficiency penalty. See implementation of `RawDfsExtra` for the most notable
 example.
 
 The current implementation is split into ["raw" base](src/visit/raw.rs) and
-high-level [wrappers](src/visit.rs) (:mag:). The raw base provides
+high-level [wrappers](src/visit.rs) ( :mag: ). The raw base provides
 implementations of fundamental types of traversal (BFS, a few variations on DFS)
-(:construction:), whereas the wrappers use them to offer variety of traversals
+( :construction: ), whereas the wrappers use them to offer variety of traversals
 with different capabilities and semantics (BFS, DFS, DFS events, DFS without
 backtracking, post order DFS). Raw base can also be used to implement
 specialized traversals in algorithms.
@@ -358,6 +359,6 @@ specialized traversals in algorithms.
 ### Parallel algorithms
 
 Parallel algorithms exist for many problems in graph theory. Such algorithms can
-significantly speed up getting the result, especially on large graphs (:fire:).
-The goal is to integrate parallel algorithms into the interface of gryf in a
-seamless way (:crystal_ball:).
+significantly speed up getting the result, especially on large graphs ( :fire:
+). The goal is to integrate parallel algorithms into the interface of gryf in a
+seamless way ( :crystal_ball: ).

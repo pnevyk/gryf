@@ -525,14 +525,20 @@ where
 }
 
 mod raw {
-    use std::marker::PhantomData;
-    use std::mem::{self, MaybeUninit};
+    use std::{
+        marker::PhantomData,
+        mem::{self, MaybeUninit},
+    };
 
     use bitvec::prelude::*;
 
-    use crate::common::matrix::*;
-    use crate::core::id::{GraphIdTypes, IdType, IntegerIdType};
-    use crate::core::marker::{Direction, EdgeType};
+    use crate::{
+        common::matrix::*,
+        core::{
+            id::{GraphIdTypes, IdType, IntegerIdType},
+            marker::{Direction, EdgeType},
+        },
+    };
 
     #[derive(Debug)]
     struct FlaggedVec<T> {

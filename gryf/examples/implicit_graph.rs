@@ -1,6 +1,5 @@
 use std::iter;
 
-use gryf::prelude::*;
 use gryf::{
     core::{
         id::{EdgeId, IdType, VertexId},
@@ -8,6 +7,7 @@ use gryf::{
         weak::WeakRef,
         GraphBase, Neighbors,
     },
+    prelude::*,
     visit::Dfs,
 };
 

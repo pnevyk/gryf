@@ -1,5 +1,4 @@
-use std::cmp::Ordering;
-use std::ops::Add;
+use std::{cmp::Ordering, ops::Add};
 
 mod ordered_float;
 mod unsigned_float;

@@ -1,14 +1,16 @@
 use std::{iter::Enumerate, marker::PhantomData, slice};
 
-use crate::common::CompactIdMap;
-use crate::core::connect::ConnectVertices;
-use crate::core::create::Create;
-use crate::core::props::{Guarantee, MultiEdge};
-use crate::core::{
-    error::{AddEdgeError, AddEdgeErrorKind, AddVertexError},
-    id::{DefaultId, GraphIdTypes, IdType, IntegerIdType},
-    marker::{Direction, EdgeType},
-    EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Neighbors, VertexSet,
+use crate::{
+    common::CompactIdMap,
+    core::{
+        connect::ConnectVertices,
+        create::Create,
+        error::{AddEdgeError, AddEdgeErrorKind, AddVertexError},
+        id::{DefaultId, GraphIdTypes, IdType, IntegerIdType},
+        marker::{Direction, EdgeType},
+        props::{Guarantee, MultiEdge},
+        EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Neighbors, VertexSet,
+    },
 };
 
 use super::shared;

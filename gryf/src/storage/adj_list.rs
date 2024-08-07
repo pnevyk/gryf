@@ -9,11 +9,9 @@ use crate::{
         id::{DefaultId, GraphIdTypes, IdType, IntegerIdType},
         marker::{Direction, EdgeType},
         props::{Guarantee, MultiEdge},
-        GraphBase, Neighbors,
+        EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Neighbors, VertexSet,
     },
 };
-
-use crate::core::{EdgeSet, GraphAdd, GraphFull, GraphMut, GraphRef, VertexSet};
 
 use super::shared;
 pub use super::shared::{

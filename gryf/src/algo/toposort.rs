@@ -353,29 +353,29 @@ mod tests {
 
     proptest! {
         #[test]
-        #[cfg_attr(not(proptest), ignore = "compile with --cfg proptest")]
-        fn toposort_dfs_acyclic(graph in graph_directed(any::<()>(), any::<()>()).acyclic()) {
+        #[ignore = "run property-based tests with `cargo test proptest_ -- --ignored`"]
+        fn proptest_toposort_dfs_acyclic(graph in graph_directed(any::<()>(), any::<()>()).acyclic()) {
             let toposort = TopoSort::on(&graph).with(Algo::Dfs).run();
             assert_valid(toposort, &graph);
         }
 
         #[test]
-        #[cfg_attr(not(proptest), ignore = "compile with --cfg proptest")]
-        fn toposort_dfs_any(graph in graph_directed(any::<()>(), any::<()>())) {
+        #[ignore = "run property-based tests with `cargo test proptest_ -- --ignored`"]
+        fn proptest_toposort_dfs_any(graph in graph_directed(any::<()>(), any::<()>())) {
             let toposort = TopoSort::on(&graph).with(Algo::Dfs).run();
             assert_valid(toposort, &graph);
         }
 
         #[test]
-        #[cfg_attr(not(proptest), ignore = "compile with --cfg proptest")]
-        fn toposort_kahn_acyclic(graph in graph_directed(any::<()>(), any::<()>()).acyclic()) {
+        #[ignore = "run property-based tests with `cargo test proptest_ -- --ignored`"]
+        fn proptest_toposort_kahn_acyclic(graph in graph_directed(any::<()>(), any::<()>()).acyclic()) {
             let toposort = TopoSort::on(&graph).with(Algo::Kahn).run();
             assert_valid(toposort, &graph);
         }
 
         #[test]
-        #[cfg_attr(not(proptest), ignore = "compile with --cfg proptest")]
-        fn toposort_kahn_any(graph in graph_directed(any::<()>(), any::<()>())) {
+        #[ignore = "run property-based tests with `cargo test proptest_ -- --ignored`"]
+        fn proptest_toposort_kahn_any(graph in graph_directed(any::<()>(), any::<()>())) {
             let toposort = TopoSort::on(&graph).with(Algo::Kahn).run();
             assert_valid(toposort, &graph);
         }

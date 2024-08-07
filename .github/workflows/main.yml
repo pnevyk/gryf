@@ -45,9 +45,6 @@ jobs:
       fail-fast: false
       matrix:
         rust: [stable, beta, nightly]
-    env:
-      # Property-based tests are ignored if not compiled with this --cfg.
-      RUSTFLAGS: --cfg proptest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
@@ -55,3 +52,4 @@ jobs:
           toolchain: ${{ matrix.rust }}
       - uses: Swatinem/rust-cache@v2
       - run: cargo test
+      - run: cargo test proptest_ -- --ignored

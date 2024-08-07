@@ -285,40 +285,6 @@ pub fn graph_ref(tokens: TokenStream) -> TokenStream {
     TokenStream::from(implemented)
 }
 
-#[proc_macro_derive(GraphWeak, attributes(graph, gryf_crate))]
-pub fn graph_weak(tokens: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(tokens as DeriveInput);
-
-    let gryf = util::get_gryf_path(&input);
-
-    let name = &input.ident;
-    let field = util::get_graph_field(&input);
-
-    let field_name = field.ident.as_ref().unwrap();
-    let field_type = &field.ty;
-
-    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
-    let impl_generics = util::augment_impl_generics_if_necessary(impl_generics, vec!["V", "E"]);
-    let where_clause = util::augment_where_clause(
-        where_clause,
-        vec![(field_type.clone(), quote! { #gryf::core::GraphWeak<V, E> })],
-    );
-
-    let implemented = quote! {
-        impl #impl_generics #gryf::core::GraphWeak<V, E> for #name #ty_generics #where_clause {
-            fn vertex_weak(&self, id: &Self::VertexId) -> Option<#gryf::core::WeakRef<'_, V>> {
-                <#field_type as #gryf::core::GraphWeak<V, E>>::vertex_weak(&self.#field_name, id)
-            }
-
-            fn edge_weak(&self, id: &Self::EdgeId) -> Option<#gryf::core::WeakRef<'_, E>> {
-                <#field_type as #gryf::core::GraphWeak<V, E>>::edge_weak(&self.#field_name, id)
-            }
-        }
-    };
-
-    TokenStream::from(implemented)
-}
-
 #[proc_macro_derive(GraphMut, attributes(graph, gryf_crate))]
 pub fn graph_mut(tokens: TokenStream) -> TokenStream {
     let input = parse_macro_input!(tokens as DeriveInput);

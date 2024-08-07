@@ -176,24 +176,85 @@ find the ~right spot on the spectrum. The core of the gryf's trait hierarchy
 
 ```mermaid
 flowchart
-    GraphBase
-    GraphBase -->|+ structure| VerticesBase -->|+ data| Vertices -->|+ mutation| VerticesMut
-    GraphBase -->|+ structure| EdgesBase -->|+ data| Edges -->|+ mutation| EdgesMut
-    EdgesBase --> MultiEdges
-    GraphBase -->|+ structure| Neighbors
+  classDef finite fill:#1679ab
+  classDef nogen stroke:#ff8225,stroke-width:3px
+  classDef gen stroke:#508d4e,stroke-width:3px
+  classDef finite-nogen fill:#1679ab,stroke:#ff8225,stroke-width:3px
+  classDef finite-gen fill:#1679ab,stroke:#508d4e,stroke-width:3px
+  classDef invisible fill:transparent,stroke:transparent,width:200px
+
+  GraphBase:::nogen
+
+  GraphBase --> VertexSet
+  GraphBase --> EdgeSet
+  GraphBase --> Neighbors
+
+  VertexSet --> GraphRef
+  EdgeSet --> GraphRef
+  GraphBase --> GraphWeak
+
+  GraphRef --> GraphMut
+  GraphMut --> GraphAdd
+  GraphAdd --> GraphFull
+
+  subgraph structural [Structural properties]
+    VertexSet:::finite-nogen
+    EdgeSet:::finite-nogen
+    Neighbors:::nogen
+  end
+
+  subgraph readonly [Readonly access]
+    GraphRef:::finite-gen
+    GraphWeak:::gen
+  end
+
+  subgraph mutable [Mutable access]
+    GraphMut:::finite-gen
+    d1[ ]:::invisible
+  end
+
+  subgraph add [Adding vertices/edges]
+    GraphAdd:::finite-gen
+    d2[ ]:::invisible
+  end
+
+  subgraph remove [Removing vertices/edges]
+    GraphFull:::finite-gen
+    d3[ ]:::invisible
+  end
+
+  subgraph legend [Legend]
+    finite[Finite graphs]:::finite
+    nogen[No generics]:::nogen
+    gen[Generics]:::gen
+
+    finite ~~~ nogen ~~~ gen
+  end
+
+  remove ~~~ legend
 ```
 
-1. The _structure_ level provides information about the graph's structure (graph
-size, queries like "contains vertex/edge", neighbors of a vertex, etc.). This
-level is already useful for unweighted graphs.
-
-2. The _data_ level brings the possibility to attach data to vertices and edges.
-We use the term _data_ instead of _weights_ here, because the values attached to
-vertices and edges can be of any type from which a weight can be "extracted"
-(using our `GetWeight` trait).
-
-3. The _mutation_ level adds API for manipulating the graph: adding, removing,
-replacing and mutating vertices and edges.
+1. The _Structural properties_ level provides information about the graph's
+   structure (graph size, queries like "contains vertex/edge", neighbors of a
+   vertex, etc.). This level is already useful for graphs without attributes and
+   hence has no generics representing the attributes.
+2. The _Readonly access_ level brings the possibility to attach attributes to
+   vertices and edges. We use the term _attributes_ instead of _weights_ here,
+   because the values attached to vertices and edges can be of any type from
+   which a weight can be "extracted" (using our `GetWeight` trait).
+3. The _Mutable access_ level adds possibility to change the attributes in the
+   graph, but not its structure.
+4. The _Adding vertices/edges_ level unlocks the possibility to add new vertices
+   and edges to the graph. Splitting this from the mutable access may be
+   beneficial for semantic or practical reasons. For the former, there might be
+   use case for fixed, predetermined graph of which the structure can't be
+   changed, but the mutable access to attributes is still desired. For the
+   latter, implementing the vertex/edge insertion is unnecessary effort if it's
+   not useful for the use case.
+5. The _Removing vertices/edges_ level is the final step for a full-fledged
+   graph implementation. Separating insertion and removal is mainly practical,
+   because implementing removal is usually even harder than insertion and is
+   less common than building a graph from scratch.
 
 One of the goals is to require only a core minimum of methods on these traits
 and provide default implementations of others on top of that (similarly to what
@@ -209,23 +270,11 @@ implementations. This enables having wide API surface on the graph available
 regardless of the storage, while keeping the requirements for the storage
 implementation at minimum.
 
-In order to preserve _versatility_ (:hammer:), there is also this tree parallel
-to the one showed above:
-
-```mermaid
-flowchart
-    GraphBase
-    GraphBase -->|+ structure| VerticesBaseWeak -->|+ data| VerticesWeak
-    GraphBase -->|+ structure| EdgesBaseWeak -->|+ data| EdgesWeak
-    GraphBase -->|+ structure| Neighbors
-```
-
-This is solely to be able to support [implicit
-graphs](https://en.wikipedia.org/wiki/Implicit_graph), which do not store the
-structure and data explicitly, but produce them on demand instead. These "weak"
-interfaces have many relaxations compared to the standard interfaces. For
-example, there is no method for the number of vertices or edges, just a method
-for giving a hint on this number if available.
+In order to preserve _versatility_ (:hammer:), we strictly separate traits that
+are require finiteness of the graph and traits that don't. The latter could be
+implemented by [implicit graphs](https://en.wikipedia.org/wiki/Implicit_graph),
+which do not store the structure and data explicitly, but produce them on demand
+instead.
 
 ### Fuzzing
 

@@ -29,7 +29,7 @@ document.
 * `gryf/src/core` -- Mostly core traits and marker types + their implementations. Most important:
     * `gryf/src/core/id.rs` -- Id type (vertex id and edge id) traits and implementations.
     * `gryf/src/core/marker.rs` -- Marker types for directionality of graphs (directed and undirected).
-    * `gryf/src/core/{base,vertices,edges,neighbors}.rs` -- Graph access and manipulation traits.
+    * `gryf/src/core/graph.rs` -- Graph access and manipulation traits.
 * `gryf/src/storage` -- Implementations of various graph [representations](https://en.wikipedia.org/wiki/Graph_(abstract_data_type)#Common_data_structures_for_graph_representation).
 * `gryf/src/visit.rs` -- Graph traversal (BFS, DFS) implementations. Their internals are based on `gryf/src/visit/raw.rs`.
 * `gryf/src/algo` -- Implementations of graph algorithms. The structure of an algorithm follows this convention:

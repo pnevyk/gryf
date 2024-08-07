@@ -338,22 +338,22 @@ mod tests {
 
     proptest! {
         #[test]
-        #[cfg_attr(not(proptest), ignore = "compile with --cfg proptest")]
-        fn connected_undirected_any(graph in graph_undirected(any::<()>(), any::<()>())) {
+        #[ignore = "run property-based tests with `cargo test proptest_ -- --ignored`"]
+        fn proptest_connected_undirected_any(graph in graph_undirected(any::<()>(), any::<()>())) {
             let connected = Connected::on(&graph).run();
             assert_valid(connected, &graph, None);
         }
 
         #[test]
-        #[cfg_attr(not(proptest), ignore = "compile with --cfg proptest")]
-        fn connected_directed_any(graph in graph_directed(any::<()>(), any::<()>())) {
+        #[ignore = "run property-based tests with `cargo test proptest_ -- --ignored`"]
+        fn proptest_connected_directed_any(graph in graph_directed(any::<()>(), any::<()>())) {
             let connected = Connected::on(&graph).run();
             assert_valid(connected, &graph, None);
         }
 
         #[test]
-        #[cfg_attr(not(proptest), ignore = "compile with --cfg proptest")]
-        fn connected_between_undirected_any(graph in graph_undirected(any::<()>(), any::<()>()), src: u64, dst: u64) {
+        #[ignore = "run property-based tests with `cargo test proptest_ -- --ignored`"]
+        fn proptest_connected_between_undirected_any(graph in graph_undirected(any::<()>(), any::<()>()), src: u64, dst: u64) {
             let n = graph.vertex_count() as u64;
             prop_assume!(n > 0);
 
@@ -364,8 +364,8 @@ mod tests {
         }
 
         #[test]
-        #[cfg_attr(not(proptest), ignore = "compile with --cfg proptest")]
-        fn connected_between_directed_any(graph in graph_directed(any::<()>(), any::<()>()), src: u64, dst: u64) {
+        #[ignore = "run property-based tests with `cargo test proptest_ -- --ignored`"]
+        fn proptest_connected_between_directed_any(graph in graph_directed(any::<()>(), any::<()>()), src: u64, dst: u64) {
             let n = graph.vertex_count() as u64;
             prop_assume!(n > 0);
 

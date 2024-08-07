@@ -369,8 +369,8 @@ mod tests {
 
     proptest! {
         #[test]
-        #[cfg_attr(not(proptest), ignore = "compile with --cfg proptest")]
-        fn dijkstra_any(graph in graph_undirected(any::<()>(), any::<u16>().prop_map(|e| e as u32)), start: u64) {
+        #[ignore = "run property-based tests with `cargo test proptest_ -- --ignored`"]
+        fn proptest_dijkstra_any(graph in graph_undirected(any::<()>(), any::<u16>().prop_map(|e| e as u32)), start: u64) {
             let n = graph.vertex_count() as u64;
             prop_assume!(n > 0);
 
@@ -380,8 +380,8 @@ mod tests {
         }
 
         #[test]
-        #[cfg_attr(not(proptest), ignore = "compile with --cfg proptest")]
-        fn bellman_ford_any(graph in graph_directed(any::<()>(), any::<i16>().prop_map(|e| e as i32)).max_size(128), start: u64) {
+        #[ignore = "run property-based tests with `cargo test proptest_ -- --ignored`"]
+        fn proptest_bellman_ford_any(graph in graph_directed(any::<()>(), any::<i16>().prop_map(|e| e as i32)).max_size(128), start: u64) {
             let n = graph.vertex_count() as u64;
             prop_assume!(n > 0);
 

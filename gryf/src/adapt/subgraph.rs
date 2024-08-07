@@ -1,6 +1,6 @@
 use crate::core::{
-    marker::Direction, EdgeRef, EdgeSet, GraphBase, GraphRef, NeighborRef, Neighbors, VertexRef,
-    VertexSet,
+    id::IntegerIdType, marker::Direction, EdgeRef, EdgeSet, GraphBase, GraphRef, NeighborRef,
+    Neighbors, VertexRef, VertexSet,
 };
 
 use gryf_derive::GraphBase;
@@ -126,7 +126,7 @@ where
 
     fn vertex_bound(&self) -> usize
     where
-        Self::VertexId: crate::prelude::IntegerIdType,
+        Self::VertexId: IntegerIdType,
     {
         self.graph.vertex_bound()
     }
@@ -177,7 +177,7 @@ where
 
     fn edge_bound(&self) -> usize
     where
-        Self::EdgeId: crate::prelude::IntegerIdType,
+        Self::EdgeId: IntegerIdType,
     {
         self.graph.edge_bound()
     }

@@ -1,9 +1,8 @@
-use gryf::algo::ShortestPaths;
-use gryf::prelude::*;
+use gryf::{algo::ShortestPaths, Graph};
 
 fn main() {
     // Default storage is adjacency list, but that can be simply changed by
-    // using `Graph::with_storage`.
+    // using `Graph::new_undirected_in`.
     let mut graph = Graph::new_undirected();
 
     let prague = graph.add_vertex("Prague");

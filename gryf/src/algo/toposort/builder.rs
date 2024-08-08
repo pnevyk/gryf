@@ -46,7 +46,7 @@ impl<'a, G, A> TopoSortBuilder<'a, G, A> {
         }
     }
 
-    pub fn with(self, algo: Algo) -> TopoSortBuilder<'a, G, algo::SpecificAlgo>
+    pub fn using(self, algo: Algo) -> TopoSortBuilder<'a, G, algo::SpecificAlgo>
     where
         G: GraphBase,
         G::VertexId: IntegerIdType,
@@ -57,7 +57,7 @@ impl<'a, G, A> TopoSortBuilder<'a, G, A> {
         }
     }
 
-    pub fn with_opt(self, algo: Option<Algo>) -> TopoSortBuilder<'a, G, algo::SpecificAlgo>
+    pub fn using_opt(self, algo: Option<Algo>) -> TopoSortBuilder<'a, G, algo::SpecificAlgo>
     where
         G: GraphBase,
         G::VertexId: IntegerIdType,

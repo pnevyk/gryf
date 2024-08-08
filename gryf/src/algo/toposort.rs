@@ -270,7 +270,7 @@ mod tests {
     #[test]
     fn dfs_basic() {
         let graph = create_basic_graph();
-        let toposort = TopoSort::on(&graph).with(Algo::Dfs).run();
+        let toposort = TopoSort::on(&graph).using(Algo::Dfs).run();
 
         assert_valid(toposort, &graph);
     }
@@ -278,7 +278,7 @@ mod tests {
     #[test]
     fn dfs_cycle() {
         let graph = create_cyclic_graph();
-        let toposort = TopoSort::on(&graph).with(Algo::Dfs).run();
+        let toposort = TopoSort::on(&graph).using(Algo::Dfs).run();
 
         assert_valid(toposort, &graph);
     }
@@ -286,7 +286,7 @@ mod tests {
     #[test]
     fn dfs_disconnected() {
         let graph = create_disconnected_graph();
-        let toposort = TopoSort::on(&graph).with(Algo::Dfs).run();
+        let toposort = TopoSort::on(&graph).using(Algo::Dfs).run();
 
         assert_valid(toposort, &graph);
     }
@@ -294,7 +294,7 @@ mod tests {
     #[test]
     fn dfs_none_after_cycle() {
         let graph = create_cyclic_graph();
-        let mut toposort = TopoSort::on(&graph).with(Algo::Dfs).run();
+        let mut toposort = TopoSort::on(&graph).using(Algo::Dfs).run();
 
         for result in toposort.by_ref() {
             match result {
@@ -312,7 +312,7 @@ mod tests {
     #[test]
     fn kahn_basic() {
         let graph = create_basic_graph();
-        let toposort = TopoSort::on(&graph).with(Algo::Kahn).run();
+        let toposort = TopoSort::on(&graph).using(Algo::Kahn).run();
 
         assert_valid(toposort, &graph);
     }
@@ -320,7 +320,7 @@ mod tests {
     #[test]
     fn kahn_cycle() {
         let graph = create_cyclic_graph();
-        let toposort = TopoSort::on(&graph).with(Algo::Kahn).run();
+        let toposort = TopoSort::on(&graph).using(Algo::Kahn).run();
 
         assert_valid(toposort, &graph);
     }
@@ -328,7 +328,7 @@ mod tests {
     #[test]
     fn kahn_disconnected() {
         let graph = create_disconnected_graph();
-        let toposort = TopoSort::on(&graph).with(Algo::Kahn).run();
+        let toposort = TopoSort::on(&graph).using(Algo::Kahn).run();
 
         assert_valid(toposort, &graph);
     }
@@ -336,7 +336,7 @@ mod tests {
     #[test]
     fn kahn_none_after_cycle() {
         let graph = create_cyclic_graph();
-        let mut toposort = TopoSort::on(&graph).with(Algo::Kahn).run();
+        let mut toposort = TopoSort::on(&graph).using(Algo::Kahn).run();
 
         for result in toposort.by_ref() {
             match result {
@@ -355,28 +355,28 @@ mod tests {
         #[test]
         #[ignore = "run property-based tests with `cargo test proptest_ -- --ignored`"]
         fn proptest_toposort_dfs_acyclic(graph in graph_directed(any::<()>(), any::<()>()).acyclic()) {
-            let toposort = TopoSort::on(&graph).with(Algo::Dfs).run();
+            let toposort = TopoSort::on(&graph).using(Algo::Dfs).run();
             assert_valid(toposort, &graph);
         }
 
         #[test]
         #[ignore = "run property-based tests with `cargo test proptest_ -- --ignored`"]
         fn proptest_toposort_dfs_any(graph in graph_directed(any::<()>(), any::<()>())) {
-            let toposort = TopoSort::on(&graph).with(Algo::Dfs).run();
+            let toposort = TopoSort::on(&graph).using(Algo::Dfs).run();
             assert_valid(toposort, &graph);
         }
 
         #[test]
         #[ignore = "run property-based tests with `cargo test proptest_ -- --ignored`"]
         fn proptest_toposort_kahn_acyclic(graph in graph_directed(any::<()>(), any::<()>()).acyclic()) {
-            let toposort = TopoSort::on(&graph).with(Algo::Kahn).run();
+            let toposort = TopoSort::on(&graph).using(Algo::Kahn).run();
             assert_valid(toposort, &graph);
         }
 
         #[test]
         #[ignore = "run property-based tests with `cargo test proptest_ -- --ignored`"]
         fn proptest_toposort_kahn_any(graph in graph_directed(any::<()>(), any::<()>())) {
-            let toposort = TopoSort::on(&graph).with(Algo::Kahn).run();
+            let toposort = TopoSort::on(&graph).using(Algo::Kahn).run();
             assert_valid(toposort, &graph);
         }
     }

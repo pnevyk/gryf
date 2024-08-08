@@ -175,7 +175,7 @@ mod tests {
     fn dijkstra_basic() {
         let graph = create_basic_graph();
         let shortest_paths = ShortestPaths::on(&graph)
-            .with(Algo::Dijkstra)
+            .using(Algo::Dijkstra)
             .run(v(0))
             .unwrap();
 
@@ -193,7 +193,7 @@ mod tests {
         let graph = create_basic_graph();
         let shortest_paths = ShortestPaths::on(&graph)
             .goal(v(4))
-            .with(Algo::Dijkstra)
+            .using(Algo::Dijkstra)
             .run(v(0))
             .unwrap();
 
@@ -207,7 +207,7 @@ mod tests {
 
         let shortest_paths = ShortestPaths::on(&graph)
             .goal(v(4))
-            .with(Algo::Dijkstra)
+            .using(Algo::Dijkstra)
             .run(v(0));
 
         assert_matches!(shortest_paths, Err(Error::NegativeWeight));
@@ -219,7 +219,7 @@ mod tests {
 
         let shortest_paths = ShortestPaths::on(&graph)
             .goal(u)
-            .with(Algo::Dijkstra)
+            .using(Algo::Dijkstra)
             .run(v(0));
 
         assert_matches!(shortest_paths, Err(Error::GoalNotReached));
@@ -229,7 +229,7 @@ mod tests {
     fn bellman_ford_basic() {
         let graph = create_basic_graph();
         let shortest_paths = ShortestPaths::on(&graph)
-            .with(Algo::BellmanFord)
+            .using(Algo::BellmanFord)
             .run(v(0))
             .unwrap();
 
@@ -263,7 +263,7 @@ mod tests {
         graph.add_edge(&v4, &v5, 10);
 
         let shortest_paths = ShortestPaths::on(&graph)
-            .with(Algo::BellmanFord)
+            .using(Algo::BellmanFord)
             .run(v(0))
             .unwrap();
 
@@ -292,7 +292,7 @@ mod tests {
         graph.add_edge(&v2, &v1, -2);
         graph.add_edge(&v2, &v4, 3);
 
-        let shortest_paths = ShortestPaths::on(&graph).with(Algo::BellmanFord).run(v(0));
+        let shortest_paths = ShortestPaths::on(&graph).using(Algo::BellmanFord).run(v(0));
 
         assert_matches!(shortest_paths, Err(Error::NegativeCycle));
     }
@@ -303,7 +303,7 @@ mod tests {
 
         let shortest_paths = ShortestPaths::on(&graph)
             .goal(u)
-            .with(Algo::BellmanFord)
+            .using(Algo::BellmanFord)
             .run(v(0));
 
         assert_matches!(shortest_paths, Err(Error::GoalNotReached));
@@ -375,7 +375,7 @@ mod tests {
             prop_assume!(n > 0);
 
             let start = VertexId(start % n);
-            let _ = ShortestPaths::on(&graph).with(Algo::Dijkstra).run(start);
+            let _ = ShortestPaths::on(&graph).using(Algo::Dijkstra).run(start);
             // Check for panics only for now.
         }
 
@@ -386,7 +386,7 @@ mod tests {
             prop_assume!(n > 0);
 
             let start = VertexId(start % n);
-            let _ = ShortestPaths::on(&graph).with(Algo::BellmanFord).run(start);
+            let _ = ShortestPaths::on(&graph).using(Algo::BellmanFord).run(start);
             // Check for panics only for now.
         }
     }

@@ -473,6 +473,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         Graph::new_in(Stable::new(self.storage))
     }
 
+    #[doc(hidden)]
     pub fn freeze(self) -> Graph<V, E, Ty, Frozen<G>> {
         Graph::new_in(Frozen::new(self.storage))
     }

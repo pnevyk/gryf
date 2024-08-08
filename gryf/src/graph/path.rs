@@ -585,6 +585,7 @@ where
         Path::new_unchecked(Stable::new(self.storage), self.ends)
     }
 
+    #[doc(hidden)]
     pub fn freeze(self) -> Path<V, E, Ty, Frozen<G>> {
         Path::new_unchecked(Frozen::new(self.storage), self.ends)
     }

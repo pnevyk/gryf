@@ -401,7 +401,7 @@ mod imp {
     deref_neighbors!(&);
     deref_neighbors!(&mut);
 
-    macro_rules! deref_vertex_id_iterable {
+    macro_rules! deref_vertex_set {
         ($($ref_kind:tt)*) => {
             impl<G> VertexSet for $($ref_kind)* G
             where
@@ -440,10 +440,10 @@ mod imp {
         }
     }
 
-    deref_vertex_id_iterable!(&);
-    deref_vertex_id_iterable!(&mut);
+    deref_vertex_set!(&);
+    deref_vertex_set!(&mut);
 
-    macro_rules! deref_edge_id_iterable {
+    macro_rules! deref_edge_set {
         ($($ref_kind:tt)*) => {
             impl<G> EdgeSet for $($ref_kind)* G
             where
@@ -498,6 +498,6 @@ mod imp {
         }
     }
 
-    deref_edge_id_iterable!(&);
-    deref_edge_id_iterable!(&mut);
+    deref_edge_set!(&);
+    deref_edge_set!(&mut);
 }

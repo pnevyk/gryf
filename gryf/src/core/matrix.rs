@@ -1,24 +1,24 @@
 use crate::core::marker::EdgeType;
 
 #[allow(clippy::len_without_is_empty)]
-pub trait MatrixResize<E>: Default + IntoIterator<Item = Option<E>> {
+pub trait MatrixLinearStorage<E>: Default + IntoIterator<Item = Option<E>> {
     fn with_capacity(capacity: usize) -> Self;
     fn resize_with_none(&mut self, new_len: usize);
     fn push(&mut self, value: Option<E>);
     fn len(&self) -> usize;
 }
 
-pub fn size_of<Ty: EdgeType>(capacity: usize) -> usize {
+pub fn linear_len<Ty: EdgeType>(vertex_capacity: usize) -> usize {
     if Ty::is_directed() {
-        capacity * capacity
+        vertex_capacity * vertex_capacity
     } else {
-        capacity * (capacity + 1) / 2
+        vertex_capacity * (vertex_capacity + 1) / 2
     }
 }
 
-pub fn resize<E, Ty: EdgeType, M: MatrixResize<E>>(prev: &mut M, capacity: usize) {
+pub fn resize<E, Ty: EdgeType, M: MatrixLinearStorage<E>>(prev: &mut M, vertex_capacity: usize) {
     let prev_len = prev.len();
-    let len = size_of::<Ty>(capacity);
+    let len = linear_len::<Ty>(vertex_capacity);
 
     if len <= prev_len {
         // This routine is only for growing.
@@ -36,7 +36,7 @@ pub fn resize<E, Ty: EdgeType, M: MatrixResize<E>>(prev: &mut M, capacity: usize
             // Are we on the right edge of the original square?
             if (i + 1) % prev_capacity == 0 {
                 // New elements into top-right corner.
-                let additional = next.len() + capacity - prev_capacity;
+                let additional = next.len() + vertex_capacity - prev_capacity;
                 next.resize_with_none(additional);
             }
         }
@@ -50,9 +50,9 @@ pub fn resize<E, Ty: EdgeType, M: MatrixResize<E>>(prev: &mut M, capacity: usize
     }
 }
 
-pub fn index<Ty: EdgeType>(row: usize, col: usize, capacity: usize) -> usize {
+pub fn index<Ty: EdgeType>(row: usize, col: usize, vertex_capacity: usize) -> usize {
     if Ty::is_directed() {
-        row * capacity + col
+        row * vertex_capacity + col
     } else {
         // Make sure that the coordinates are in the lower triangle.
         let (row, col) = if row >= col { (row, col) } else { (col, row) };
@@ -61,10 +61,10 @@ pub fn index<Ty: EdgeType>(row: usize, col: usize, capacity: usize) -> usize {
     }
 }
 
-pub fn coords<Ty: EdgeType>(index: usize, capacity: usize) -> (usize, usize) {
+pub fn coords<Ty: EdgeType>(index: usize, vertex_capacity: usize) -> (usize, usize) {
     if Ty::is_directed() {
-        let col = index % capacity;
-        let row = index / capacity;
+        let col = index % vertex_capacity;
+        let row = index / vertex_capacity;
         (row, col)
     } else {
         // index = row * (row + 1) / 2 + col => 2 * (index - col) = row^2 + row
@@ -81,9 +81,9 @@ pub fn coords<Ty: EdgeType>(index: usize, capacity: usize) -> (usize, usize) {
 }
 
 mod imp {
-    use super::MatrixResize;
+    use super::MatrixLinearStorage;
 
-    impl<E> MatrixResize<E> for Vec<Option<E>> {
+    impl<E> MatrixLinearStorage<E> for Vec<Option<E>> {
         fn with_capacity(capacity: usize) -> Self {
             Self::with_capacity(capacity)
         }

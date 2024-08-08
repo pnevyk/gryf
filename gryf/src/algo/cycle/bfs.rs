@@ -4,8 +4,8 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
     adapt::Undirect,
-    common::VisitSet,
     core::{base::NeighborRef, marker::Direction, EdgeSet, Neighbors, VertexSet},
+    visit::VisitSet,
 };
 
 use super::Cycle;

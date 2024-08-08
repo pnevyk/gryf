@@ -5,11 +5,10 @@ use rustc_hash::FxHashSet;
 use crate::{
     adapt::Transpose,
     algo::Cycle,
-    common::VisitSet,
     core::{id::UseVertexId, marker::Directed, Neighbors, VertexSet},
     visit::{
         raw::{RawDfsExtra, RawDfsExtraEvent, RawEvent, RawVisit, RawVisitMulti},
-        VisitAll, Visitor,
+        VisitAll, VisitSet, Visitor,
     },
 };
 

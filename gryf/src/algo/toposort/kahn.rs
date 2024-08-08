@@ -1,9 +1,8 @@
 use crate::{
     algo::Cycle,
-    common::CompactIdMap,
     core::{
         base::NeighborRef,
-        id::{IdType, IntegerIdType, Virtual},
+        id::{CompactIdMap, IdType, IntegerIdType, Virtual},
         marker::Direction,
         GraphBase, Neighbors, VertexSet,
     },

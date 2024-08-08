@@ -7,13 +7,13 @@ use std::{
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
-    common::VisitSet,
     core::{
         base::NeighborRef,
         marker::Direction,
         weight::{GetWeight, Weight, Weighted},
         GraphWeak, Neighbors,
     },
+    visit::VisitSet,
 };
 
 use super::{Error, ShortestPaths};

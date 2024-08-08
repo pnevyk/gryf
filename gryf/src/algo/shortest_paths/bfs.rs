@@ -6,8 +6,8 @@ use std::{
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
-    common::VisitSet,
     core::{base::NeighborRef, marker::Direction, weight::Weight, Neighbors},
+    visit::VisitSet,
 };
 
 use super::{Error, ShortestPaths};

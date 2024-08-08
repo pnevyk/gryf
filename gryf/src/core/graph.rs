@@ -1,11 +1,9 @@
 use std::mem;
 
-use crate::common::CompactIdMap;
-
 use super::{
     base::{EdgeRef, NeighborRef, VertexRef},
     error::{AddEdgeError, AddVertexError, ReplaceEdgeError, ReplaceVertexError},
-    id::{IdType, IntegerIdType},
+    id::{CompactIdMap, IdType, IntegerIdType},
     marker::{Direction, EdgeType},
     weak::WeakRef,
 };

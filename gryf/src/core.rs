@@ -5,6 +5,7 @@ pub mod error;
 pub mod facts;
 pub mod id;
 pub mod marker;
+pub mod matrix;
 pub mod props;
 pub mod weak;
 pub mod weight;

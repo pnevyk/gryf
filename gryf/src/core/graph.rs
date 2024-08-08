@@ -2,7 +2,10 @@ use std::mem;
 
 use super::{
     base::{EdgeRef, NeighborRef, VertexRef},
-    error::{AddEdgeError, AddVertexError, ReplaceEdgeError, ReplaceVertexError},
+    error::{
+        AddEdgeError, AddVertexError, ReplaceEdgeError, ReplaceEdgeErrorKind, ReplaceVertexError,
+        ReplaceVertexErrorKind,
+    },
     id::{CompactIdMap, IdType, IntegerIdType},
     marker::{Direction, EdgeType},
     weak::WeakRef,
@@ -208,7 +211,10 @@ pub trait GraphMut<V, E>: GraphRef<V, E> {
     ) -> Result<V, ReplaceVertexError<V>> {
         match self.vertex_mut(id) {
             Some(slot) => Ok(mem::replace(slot, vertex)),
-            None => Err(ReplaceVertexError(vertex)),
+            None => Err(ReplaceVertexError::new(
+                vertex,
+                ReplaceVertexErrorKind::VertexAbsent,
+            )),
         }
     }
 
@@ -222,7 +228,10 @@ pub trait GraphMut<V, E>: GraphRef<V, E> {
     fn try_replace_edge(&mut self, id: &Self::EdgeId, edge: E) -> Result<E, ReplaceEdgeError<E>> {
         match self.edge_mut(id) {
             Some(slot) => Ok(mem::replace(slot, edge)),
-            None => Err(ReplaceEdgeError(edge)),
+            None => Err(ReplaceEdgeError::new(
+                edge,
+                ReplaceEdgeErrorKind::EdgeAbsent,
+            )),
         }
     }
 

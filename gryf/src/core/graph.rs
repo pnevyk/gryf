@@ -313,40 +313,6 @@ mod imp {
 
     use super::*;
 
-    impl<G> GraphBase for &G
-    where
-        G: GraphBase + ?Sized,
-    {
-        type VertexId = G::VertexId;
-        type EdgeId = G::EdgeId;
-        type EdgeType = G::EdgeType;
-
-        fn vertex_count_hint(&self) -> Option<usize> {
-            (**self).vertex_count_hint()
-        }
-
-        fn edge_count_hint(&self) -> Option<usize> {
-            (**self).edge_count_hint()
-        }
-    }
-
-    impl<G> GraphBase for &mut G
-    where
-        G: GraphBase + ?Sized,
-    {
-        type VertexId = G::VertexId;
-        type EdgeId = G::EdgeId;
-        type EdgeType = G::EdgeType;
-
-        fn vertex_count_hint(&self) -> Option<usize> {
-            (**self).vertex_count_hint()
-        }
-
-        fn edge_count_hint(&self) -> Option<usize> {
-            (**self).edge_count_hint()
-        }
-    }
-
     impl<G> GraphIdTypes for G
     where
         G: GraphBase,
@@ -355,7 +321,10 @@ mod imp {
         type EdgeId = G::EdgeId;
     }
 
-    impl<V, E, G: GraphRef<V, E>> GraphWeak<V, E> for G {
+    impl<V, E, G> GraphWeak<V, E> for G
+    where
+        G: GraphRef<V, E>,
+    {
         fn vertex_weak(&self, id: &Self::VertexId) -> Option<WeakRef<'_, V>> {
             self.vertex(id).map(WeakRef::Borrowed)
         }
@@ -364,6 +333,30 @@ mod imp {
             self.edge(id).map(WeakRef::Borrowed)
         }
     }
+
+    macro_rules! deref_graph_base {
+        ($($ref_kind:tt)*) => {
+            impl<G> GraphBase for $($ref_kind)* G
+            where
+                G: GraphBase + ?Sized,
+            {
+                type VertexId = G::VertexId;
+                type EdgeId = G::EdgeId;
+                type EdgeType = G::EdgeType;
+
+                fn vertex_count_hint(&self) -> Option<usize> {
+                    (**self).vertex_count_hint()
+                }
+
+                fn edge_count_hint(&self) -> Option<usize> {
+                    (**self).edge_count_hint()
+                }
+            }
+        }
+    }
+
+    deref_graph_base!(&);
+    deref_graph_base!(&mut);
 
     macro_rules! deref_neighbors {
         ($($ref_kind:tt)*) => {
@@ -500,4 +493,166 @@ mod imp {
 
     deref_edge_set!(&);
     deref_edge_set!(&mut);
+
+    macro_rules! deref_graph_ref {
+        ($($ref_kind:tt)*) => {
+            impl<V, E, G> GraphRef<V, E> for $($ref_kind)* G
+            where
+                G: GraphRef<V, E>,
+            {
+                type VertexRef<'a> = G::VertexRef<'a>
+                where
+                    Self: 'a,
+                    V: 'a;
+
+                type VerticesIter<'a> = G::VerticesIter<'a>
+                where
+                    Self: 'a,
+                    V: 'a;
+
+                type EdgeRef<'a> = G::EdgeRef<'a>
+                where
+                    Self: 'a,
+                    E: 'a;
+
+                type EdgesIter<'a> = G::EdgesIter<'a>
+                where
+                    Self: 'a,
+                    E: 'a;
+
+                fn vertices(&self) -> Self::VerticesIter<'_> {
+                    (**self).vertices()
+                }
+
+                fn edges(&self) -> Self::EdgesIter<'_> {
+                    (**self).edges()
+                }
+
+                fn vertex(&self, id: &Self::VertexId) -> Option<&V> {
+                    (**self).vertex(id)
+                }
+
+                fn edge(&self, id: &Self::EdgeId) -> Option<&E> {
+                    (**self).edge(id)
+                }
+
+                fn find_vertex(&self, vertex: &V) -> Option<Self::VertexId>
+                where
+                    V: Eq,
+                {
+                    (**self).find_vertex(vertex)
+                }
+            }
+        }
+    }
+
+    deref_graph_ref!(&);
+    deref_graph_ref!(&mut);
+
+    impl<V, E, G> GraphMut<V, E> for &mut G
+    where
+        G: GraphMut<V, E>,
+    {
+        fn vertex_mut(&mut self, id: &Self::VertexId) -> Option<&mut V> {
+            (**self).vertex_mut(id)
+        }
+
+        fn edge_mut(&mut self, id: &Self::EdgeId) -> Option<&mut E> {
+            (**self).edge_mut(id)
+        }
+
+        fn try_replace_vertex(
+            &mut self,
+            id: &Self::VertexId,
+            vertex: V,
+        ) -> Result<V, ReplaceVertexError<V>> {
+            (**self).try_replace_vertex(id, vertex)
+        }
+
+        fn replace_vertex(&mut self, id: &Self::VertexId, vertex: V) -> V {
+            (**self).replace_vertex(id, vertex)
+        }
+
+        fn try_replace_edge(
+            &mut self,
+            id: &Self::EdgeId,
+            edge: E,
+        ) -> Result<E, ReplaceEdgeError<E>> {
+            (**self).try_replace_edge(id, edge)
+        }
+
+        fn replace_edge(&mut self, id: &Self::EdgeId, edge: E) -> E {
+            (**self).replace_edge(id, edge)
+        }
+    }
+
+    impl<V, E, G> GraphAdd<V, E> for &mut G
+    where
+        G: GraphAdd<V, E>,
+    {
+        fn try_add_vertex(&mut self, vertex: V) -> Result<Self::VertexId, AddVertexError<V>> {
+            (**self).try_add_vertex(vertex)
+        }
+
+        fn try_add_edge(
+            &mut self,
+            src: &Self::VertexId,
+            dst: &Self::VertexId,
+            edge: E,
+        ) -> Result<Self::EdgeId, AddEdgeError<E>> {
+            (**self).try_add_edge(src, dst, edge)
+        }
+
+        fn add_vertex(&mut self, vertex: V) -> Self::VertexId {
+            (**self).add_vertex(vertex)
+        }
+
+        fn try_get_or_add_vertex(&mut self, vertex: V) -> Result<Self::VertexId, AddVertexError<V>>
+        where
+            V: Eq,
+        {
+            (**self).try_get_or_add_vertex(vertex)
+        }
+
+        fn get_or_add_vertex(&mut self, vertex: V) -> Self::VertexId
+        where
+            V: Eq,
+        {
+            (**self).get_or_add_vertex(vertex)
+        }
+
+        fn add_edge(
+            &mut self,
+            src: &Self::VertexId,
+            dst: &Self::VertexId,
+            edge: E,
+        ) -> Self::EdgeId {
+            (**self).add_edge(src, dst, edge)
+        }
+    }
+
+    impl<V, E, G> GraphFull<V, E> for &mut G
+    where
+        G: GraphFull<V, E>,
+    {
+        fn remove_vertex(&mut self, id: &Self::VertexId) -> Option<V> {
+            (**self).remove_vertex(id)
+        }
+
+        fn remove_edge(&mut self, id: &Self::EdgeId) -> Option<E> {
+            (**self).remove_edge(id)
+        }
+
+        fn clear(&mut self) {
+            (**self).clear()
+        }
+
+        fn remove_edge_between(&mut self, src: &Self::VertexId, dst: &Self::VertexId) -> Option<E> {
+            (**self).remove_edge_between(src, dst)
+        }
+
+        fn clear_edges(&mut self) {
+            (**self).clear_edges()
+        }
+    }
 }

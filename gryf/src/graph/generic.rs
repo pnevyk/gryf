@@ -434,12 +434,12 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         self.storage.clear_edges()
     }
 
-    pub fn neighbors<VId>(&self, src: VId) -> G::NeighborsIter<'_>
+    pub fn neighbors_undirected<VId>(&self, src: VId) -> G::NeighborsIter<'_>
     where
         G: Neighbors,
         VId: Borrow<G::VertexId>,
     {
-        self.storage.neighbors(src.borrow())
+        self.storage.neighbors_undirected(src.borrow())
     }
 
     pub fn neighbors_directed<VId>(&self, src: VId, dir: Direction) -> G::NeighborsIter<'_>
@@ -450,12 +450,12 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         self.storage.neighbors_directed(src.borrow(), dir)
     }
 
-    pub fn degree<VId>(&self, src: VId) -> usize
+    pub fn degree_undirected<VId>(&self, src: VId) -> usize
     where
         G: Neighbors,
         VId: Borrow<G::VertexId>,
     {
-        self.storage.degree(src.borrow())
+        self.storage.degree_undirected(src.borrow())
     }
 
     pub fn degree_directed<VId>(&self, src: VId, dir: Direction) -> usize

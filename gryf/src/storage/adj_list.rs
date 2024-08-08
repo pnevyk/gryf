@@ -152,7 +152,7 @@ where
     where
         Self: 'a;
 
-    fn neighbors(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_> {
+    fn neighbors_undirected(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_> {
         let vertex = self
             .vertices
             .get(src.as_usize())
@@ -194,7 +194,7 @@ where
         }
     }
 
-    fn degree(&self, id: &Self::VertexId) -> usize {
+    fn degree_undirected(&self, id: &Self::VertexId) -> usize {
         Ty::directions()
             .iter()
             .map(|dir| self.degree_directed(id, *dir))

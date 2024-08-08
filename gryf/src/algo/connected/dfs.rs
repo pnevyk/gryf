@@ -74,7 +74,7 @@ where
         (None, true) => {
             while let Some(v) = stack.pop() {
                 if visited.visit(v.clone()) {
-                    for n in graph.neighbors(&v) {
+                    for n in graph.neighbors_undirected(&v) {
                         stack.push(n.id().into_owned());
                     }
                 }
@@ -106,7 +106,7 @@ where
                 }
 
                 if visited.visit(v.clone()) {
-                    for n in graph.neighbors(&v) {
+                    for n in graph.neighbors_undirected(&v) {
                         stack.push(n.id().into_owned());
                     }
                 }

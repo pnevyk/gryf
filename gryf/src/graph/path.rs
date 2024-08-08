@@ -131,11 +131,11 @@ where
                 visited.visit(v.clone());
 
                 loop {
-                    match storage.degree(&v) {
+                    match storage.degree_undirected(&v) {
                         1 => return Ok(v),
                         2 => {
                             let u = storage
-                                .neighbors(&v)
+                                .neighbors_undirected(&v)
                                 .find(|n| n.id().as_ref() != &prev)
                                 .ok_or(PathError::Cycle)?
                                 .id()
@@ -155,20 +155,25 @@ where
 
         // Based on what vertex we picked, check the rest of the path from an
         // end or both segments from the middle.
-        let mut ends = match storage.degree(&v) {
+        let mut ends = match storage.degree_undirected(&v) {
             0 => {
                 // Isolated vertex.
                 [v.clone(), v]
             }
             1 => {
                 let u = check_segment(
-                    storage.neighbors(&v).next().unwrap().id().into_owned(),
+                    storage
+                        .neighbors_undirected(&v)
+                        .next()
+                        .unwrap()
+                        .id()
+                        .into_owned(),
                     v.clone(),
                 )?;
                 [v, u]
             }
             2 => {
-                let mut iter = storage.neighbors(&v);
+                let mut iter = storage.neighbors_undirected(&v);
                 let u = iter.next().unwrap();
                 let u1 = check_segment(u.id().into_owned(), v.clone())?;
                 let u = iter.next().unwrap();
@@ -365,7 +370,13 @@ where
             Some(ends) => match ends {
                 [end, _] | [_, end] if end == id => {
                     // The removed vertex is an end.
-                    *end = self.storage.neighbors(id).next().unwrap().id().into_owned();
+                    *end = self
+                        .storage
+                        .neighbors_undirected(id)
+                        .next()
+                        .unwrap()
+                        .id()
+                        .into_owned();
                     self.storage.remove_vertex(id)
                 }
                 _ => {
@@ -387,7 +398,7 @@ where
                             .into_owned();
                         (u, v)
                     } else {
-                        let mut neighbors = self.storage.neighbors(id);
+                        let mut neighbors = self.storage.neighbors_undirected(id);
                         let u = neighbors.next().unwrap().id().into_owned();
                         let v = neighbors.next().unwrap().id().into_owned();
                         (u, v)
@@ -399,7 +410,7 @@ where
                         // one of its neighbors.
                         let e = self
                             .storage
-                            .neighbors(id)
+                            .neighbors_undirected(id)
                             .next()
                             .unwrap()
                             .edge()
@@ -545,12 +556,12 @@ where
         self.storage.try_replace_edge(id.borrow(), edge)
     }
 
-    pub fn neighbors<VId>(&self, src: VId) -> G::NeighborsIter<'_>
+    pub fn neighbors_undirected<VId>(&self, src: VId) -> G::NeighborsIter<'_>
     where
         G: Neighbors,
         VId: Borrow<G::VertexId>,
     {
-        self.storage.neighbors(src.borrow())
+        self.storage.neighbors_undirected(src.borrow())
     }
 
     pub fn neighbors_directed<VId>(&self, src: VId, dir: Direction) -> G::NeighborsIter<'_>
@@ -561,12 +572,12 @@ where
         self.storage.neighbors_directed(src.borrow(), dir)
     }
 
-    pub fn degree<VId>(&self, src: VId) -> usize
+    pub fn degree_undirected<VId>(&self, src: VId) -> usize
     where
         G: Neighbors,
         VId: Borrow<G::VertexId>,
     {
-        self.storage.degree(src.borrow())
+        self.storage.degree_undirected(src.borrow())
     }
 
     pub fn degree_directed<VId>(&self, src: VId, dir: Direction) -> usize

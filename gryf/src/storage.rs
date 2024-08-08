@@ -58,7 +58,7 @@ mod tests {
 
         let mut deg = graph
             .vertex_ids()
-            .map(|id| graph.degree(&id))
+            .map(|id| graph.degree_undirected(&id))
             .collect::<Vec<_>>();
 
         let mut out_deg = graph
@@ -169,8 +169,8 @@ mod tests {
         // only once. But the degree should still be 2. This is the required
         // behavior for neighbors for any storage.
         let n_neighbors = if graph.is_directed() { 2 } else { 1 };
-        assert_eq!(graph.neighbors(&v0).count(), n_neighbors);
-        assert_eq!(graph.degree(&v0), 2);
+        assert_eq!(graph.neighbors_undirected(&v0).count(), n_neighbors);
+        assert_eq!(graph.degree_undirected(&v0), 2);
 
         if graph.is_directed() {
             assert_eq!(graph.degree_directed(&v0, Direction::Outgoing), 1);

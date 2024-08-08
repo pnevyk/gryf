@@ -72,7 +72,7 @@ where
     where
         Self: 'a;
 
-    fn neighbors(&self, src: &Id::VertexId) -> Self::NeighborsIter<'_> {
+    fn neighbors_undirected(&self, src: &Id::VertexId) -> Self::NeighborsIter<'_> {
         self.vertex(src).expect("vertex does not exist");
 
         NeighborsIter {
@@ -98,7 +98,7 @@ where
         }
     }
 
-    fn degree(&self, id: &Self::VertexId) -> usize {
+    fn degree_undirected(&self, id: &Self::VertexId) -> usize {
         self.vertex(id).expect("vertex does not exist");
 
         self.endpoints
@@ -125,7 +125,7 @@ where
                     .sum(),
             }
         } else {
-            self.degree(id)
+            self.degree_undirected(id)
         }
     }
 }

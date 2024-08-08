@@ -234,7 +234,7 @@ where
 
     let deg_sum = graph
         .vertex_ids()
-        .map(|id| graph.degree(&id))
+        .map(|id| graph.degree_undirected(&id))
         .sum::<usize>();
 
     let out_deg_sum = graph

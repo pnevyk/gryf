@@ -88,13 +88,13 @@ where
     where
         Self: 'a;
 
-    fn neighbors(&self, src: &G::VertexId) -> Self::NeighborsIter<'_> {
+    fn neighbors_undirected(&self, src: &G::VertexId) -> Self::NeighborsIter<'_> {
         if self.removed_vertices.contains(src) {
             panic!("vertex does not exist");
         }
 
         NeighborsIter {
-            inner: self.inner.neighbors(src),
+            inner: self.inner.neighbors_undirected(src),
             removed_vertices: &self.removed_vertices,
             removed_edges: &self.removed_edges,
         }
@@ -337,7 +337,7 @@ where
             // may cause unnecessary overhead if a lot of edges incident to the
             // vertex has been removed.
             let mut removed_edges = BTreeSet::default();
-            for neighbor in self.neighbors(id) {
+            for neighbor in self.neighbors_undirected(id) {
                 removed_edges.insert(neighbor.edge().into_owned());
             }
 
@@ -365,7 +365,7 @@ where
 
     fn clear(&mut self) {
         for vertex in self.inner.vertex_ids() {
-            for neighbor in self.inner.neighbors(&vertex) {
+            for neighbor in self.inner.neighbors_undirected(&vertex) {
                 self.removed_edges.insert(neighbor.edge().into_owned());
             }
 

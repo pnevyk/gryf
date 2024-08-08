@@ -416,7 +416,7 @@ impl<V, E, Ty: EdgeType> Neighbors for Model<V, E, Ty> {
     where
         Self: 'a;
 
-    fn neighbors(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_> {
+    fn neighbors_undirected(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_> {
         NeighborsIter::new(src.as_usize(), &self.neighbors, None)
     }
 

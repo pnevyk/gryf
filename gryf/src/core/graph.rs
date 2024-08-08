@@ -40,10 +40,10 @@ pub trait Neighbors: GraphBase {
     where
         Self: 'a;
 
-    fn neighbors(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_>;
+    fn neighbors_undirected(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_>;
     fn neighbors_directed(&self, src: &Self::VertexId, dir: Direction) -> Self::NeighborsIter<'_>;
 
-    fn degree(&self, id: &Self::VertexId) -> usize {
+    fn degree_undirected(&self, id: &Self::VertexId) -> usize {
         if Self::EdgeType::is_directed() {
             self.degree_directed(id, Direction::Outgoing)
                 + self.degree_directed(id, Direction::Incoming)
@@ -379,16 +379,16 @@ mod imp {
                 where
                     Self: 'a;
 
-                fn neighbors(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_> {
-                    (**self).neighbors(src)
+                fn neighbors_undirected(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_> {
+                    (**self).neighbors_undirected(src)
                 }
 
                 fn neighbors_directed(&self, src: &Self::VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
                     (**self).neighbors_directed(src, dir)
                 }
 
-                fn degree(&self, id: &Self::VertexId) -> usize {
-                    (**self).degree(id)
+                fn degree_undirected(&self, id: &Self::VertexId) -> usize {
+                    (**self).degree_undirected(id)
                 }
 
                 fn degree_directed(&self, id: &Self::VertexId, dir: Direction) -> usize {

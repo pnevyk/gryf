@@ -1,3 +1,5 @@
+#![doc(hidden)]
+
 pub mod complement;
 pub mod subgraph;
 pub mod transpose;

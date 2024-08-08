@@ -1,3 +1,5 @@
+#![doc(hidden)]
+
 pub mod export;
 pub mod testing;
 

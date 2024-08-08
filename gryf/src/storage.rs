@@ -1,15 +1,19 @@
 pub mod adj_list;
 pub mod adj_matrix;
 pub mod edge_list;
-pub mod frozen;
 mod shared;
 pub mod stable;
+
+#[doc(hidden)]
+pub mod frozen;
 
 pub use adj_list::AdjList;
 pub use adj_matrix::AdjMatrix;
 pub use edge_list::EdgeList;
-pub use frozen::Frozen;
 pub use stable::Stable;
+
+#[doc(hidden)]
+pub use frozen::Frozen;
 
 #[cfg(test)]
 mod tests {

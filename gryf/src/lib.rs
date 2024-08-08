@@ -114,4 +114,256 @@ mod tests {
         require_guarantee(&g);
         require_guarantee(&mut g);
     }
+
+    // Check that the "auto" implementations of core traits implement all (even
+    // default) methods by delegating them to the dereferenced type (in case of
+    // standard implementation) or derived-for type (in case of macro). Method
+    // delegation of default methods is important to keep performance
+    // characteristics of dereferenced/derived-for types on these methods.
+    #[test]
+    fn trait_impl_correspondence() {
+        let graph_traits_source = include_str!("core/graph.rs");
+        let macros_source = include_str!("../../gryf-derive/src/lib.rs");
+        let props_traits_source = include_str!("core/props.rs");
+
+        test_method_list_equality(
+            graph_traits_source,
+            graph_traits_source,
+            "GraphBase",
+            ImplKind::Impl,
+            Some(vec!["is_directed"]),
+        );
+
+        test_method_list_equality(
+            graph_traits_source,
+            macros_source,
+            "GraphBase",
+            ImplKind::Macro,
+            Some(vec!["is_directed"]),
+        );
+
+        test_method_list_equality(
+            graph_traits_source,
+            graph_traits_source,
+            "Neighbors",
+            ImplKind::Impl,
+            None,
+        );
+        test_method_list_equality(
+            graph_traits_source,
+            macros_source,
+            "Neighbors",
+            ImplKind::Macro,
+            None,
+        );
+
+        test_method_list_equality(
+            graph_traits_source,
+            graph_traits_source,
+            "VertexSet",
+            ImplKind::Impl,
+            None,
+        );
+        test_method_list_equality(
+            graph_traits_source,
+            macros_source,
+            "VertexSet",
+            ImplKind::Macro,
+            None,
+        );
+
+        test_method_list_equality(
+            graph_traits_source,
+            graph_traits_source,
+            "EdgeSet",
+            ImplKind::Impl,
+            None,
+        );
+        test_method_list_equality(
+            graph_traits_source,
+            macros_source,
+            "EdgeSet",
+            ImplKind::Macro,
+            None,
+        );
+
+        test_method_list_equality(
+            graph_traits_source,
+            graph_traits_source,
+            "GraphRef",
+            ImplKind::Impl,
+            None,
+        );
+        test_method_list_equality(
+            graph_traits_source,
+            macros_source,
+            "GraphRef",
+            ImplKind::Macro,
+            None,
+        );
+
+        test_method_list_equality(
+            graph_traits_source,
+            graph_traits_source,
+            "GraphWeak",
+            ImplKind::Impl,
+            None,
+        );
+
+        test_method_list_equality(
+            graph_traits_source,
+            graph_traits_source,
+            "GraphMut",
+            ImplKind::Impl,
+            None,
+        );
+        test_method_list_equality(
+            graph_traits_source,
+            macros_source,
+            "GraphMut",
+            ImplKind::Macro,
+            None,
+        );
+
+        test_method_list_equality(
+            graph_traits_source,
+            graph_traits_source,
+            "GraphAdd",
+            ImplKind::Impl,
+            None,
+        );
+        test_method_list_equality(
+            graph_traits_source,
+            macros_source,
+            "GraphAdd",
+            ImplKind::Macro,
+            None,
+        );
+
+        test_method_list_equality(
+            graph_traits_source,
+            graph_traits_source,
+            "GraphFull",
+            ImplKind::Impl,
+            None,
+        );
+        test_method_list_equality(
+            graph_traits_source,
+            macros_source,
+            "GraphFull",
+            ImplKind::Macro,
+            None,
+        );
+
+        test_method_list_equality(
+            props_traits_source,
+            props_traits_source,
+            "Guarantee",
+            ImplKind::Impl,
+            None,
+        );
+        test_method_list_equality(
+            props_traits_source,
+            macros_source,
+            "Guarantee",
+            ImplKind::Macro,
+            None,
+        );
+    }
+
+    fn test_method_list_equality(
+        def_source: &str,
+        impl_source: &str,
+        name: &'static str,
+        impl_kind: ImplKind,
+        ignore: Option<Vec<&'static str>>,
+    ) {
+        let mut definition = parse_method_list(def_source, SourceKind::Trait(name));
+
+        if let Some(ignore) = ignore {
+            definition.retain(|def| !ignore.contains(&def.as_str()));
+        }
+
+        let mut implementation = parse_method_list(impl_source, impl_kind.to_source_kind(name));
+
+        definition.sort_unstable();
+        implementation.sort_unstable();
+
+        assert_eq!(definition, implementation, "{name} trait ({impl_kind:?})");
+    }
+
+    #[derive(Debug, Clone, Copy)]
+    enum ImplKind {
+        Impl,
+        Macro,
+    }
+
+    impl ImplKind {
+        fn to_source_kind(self, name: &'static str) -> SourceKind {
+            match self {
+                ImplKind::Impl => SourceKind::Impl(name),
+                ImplKind::Macro => SourceKind::Macro(name),
+            }
+        }
+    }
+
+    #[derive(Debug)]
+    enum SourceKind {
+        Trait(&'static str),
+        Impl(&'static str),
+        Macro(&'static str),
+    }
+
+    // Extract the list of methods from a trait definition or implementation.
+    // The extraction implementation is text-based, quite primitive and not
+    // robust. Nevertheless, it does its job.
+    fn parse_method_list(source: &str, kind: SourceKind) -> Vec<String> {
+        let mut lines = source.split('\n');
+        let lines = lines.by_ref();
+
+        let anchor = match kind {
+            SourceKind::Trait(name) => vec![format!("pub trait {name}")],
+            SourceKind::Impl(name) | SourceKind::Macro(name) => {
+                vec!["impl".to_string(), name.to_string(), "for".to_string()]
+            }
+        };
+
+        let item_start = lines
+            .find(|line| anchor.iter().all(|pat| line.contains(pat)))
+            .unwrap_or_else(|| panic!("item start not found ({kind:?})"));
+
+        assert!(!item_start.contains("{}"), "empty item ({kind:?})");
+
+        let indent = item_start.chars().take_while(|&ch| ch == ' ').count();
+        let item_end = " ".repeat(indent) + "}";
+
+        let body_lines = lines.take_while(|&line| line != item_end);
+
+        let method_list = body_lines
+            .filter_map(|line| {
+                let trimmed = line.trim_start();
+                if trimmed.starts_with("fn") {
+                    let name = trimmed
+                        .strip_prefix("fn ")
+                        .unwrap()
+                        .chars()
+                        .take_while(|&ch| ch != '(')
+                        .collect::<String>();
+
+                    Some(name)
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+
+        assert!(!method_list.is_empty(), "no methods found ({kind:?})");
+
+        assert!(
+            !lines.any(|line| anchor.iter().all(|pat| line.contains(pat))),
+            "multiple items found ({kind:?})"
+        );
+
+        method_list
+    }
 }

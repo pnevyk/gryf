@@ -27,7 +27,7 @@ where
     let mut dist = vec![W::inf(); vertex_map.len()];
     let mut pred = vec![Virtual::sentinel(); vertex_map.len()];
 
-    dist[vertex_map.virt(start).unwrap().as_usize()] = W::zero();
+    dist[vertex_map.to_virt(start).unwrap().as_usize()] = W::zero();
 
     let mut terminated_early = false;
 
@@ -83,7 +83,7 @@ where
     }
 
     if let Some(goal) = goal {
-        if dist[vertex_map.virt(goal).unwrap().as_usize()] == W::inf() {
+        if dist[vertex_map.to_virt(goal).unwrap().as_usize()] == W::inf() {
             return Err(Error::GoalNotReached);
         }
     }
@@ -93,7 +93,7 @@ where
         .enumerate()
         .filter_map(|(i, d)| {
             if d != W::inf() {
-                vertex_map.real(Virtual::from(i)).map(|u| (u, d))
+                vertex_map.to_real(Virtual::from(i)).map(|u| (u, d))
             } else {
                 None
             }
@@ -106,8 +106,8 @@ where
         .filter_map(|(i, p)| {
             if !p.is_sentinel() {
                 Some((
-                    vertex_map.real(Virtual::from(i)).unwrap(),
-                    vertex_map.real(p).unwrap(),
+                    vertex_map.to_real(Virtual::from(i)).unwrap(),
+                    vertex_map.to_real(p).unwrap(),
                 ))
             } else {
                 None
@@ -132,14 +132,14 @@ where
     W: Weight,
     F: GetWeight<E, W>,
 {
-    let u = vertex_map.virt(*edge.src()).unwrap();
+    let u = vertex_map.to_virt(*edge.src()).unwrap();
 
     let short_dist = &dist[u.as_usize()];
     if short_dist == &W::inf() {
         return None;
     }
 
-    let v = vertex_map.virt(*edge.dst()).unwrap();
+    let v = vertex_map.to_virt(*edge.dst()).unwrap();
 
     let edge_dist = edge_weight.get(edge.attr());
     let next_dist = short_dist.clone() + edge_dist;

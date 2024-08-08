@@ -22,7 +22,7 @@ use crate::core::{id::UseVertexId, GraphBase, Neighbors, VertexSet};
 pub trait Visitor<G> {
     type Item;
 
-    fn next(&mut self, graph: &G) -> Option<Self::Item>;
+    fn visit_next(&mut self, graph: &G) -> Option<Self::Item>;
 
     fn iter<'a>(&'a mut self, graph: &'a G) -> Iter<'a, Self, G>
     where
@@ -57,7 +57,7 @@ where
     type Item = V::Item;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.visitor.next(self.graph)
+        self.visitor.visit_next(self.graph)
     }
 }
 
@@ -73,7 +73,7 @@ where
     type Item = V::Item;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.visitor.next(self.graph)
+        self.visitor.visit_next(self.graph)
     }
 }
 

@@ -45,7 +45,7 @@ where
 {
     type Item = Result<G::VertexId, Error<G>>;
 
-    fn next(&mut self, graph: &G) -> Option<Self::Item> {
+    fn visit_next(&mut self, graph: &G) -> Option<Self::Item> {
         if self.cycle.is_some() {
             // We discovered a cycle in the previous iteration, but next vertex
             // was still requested.

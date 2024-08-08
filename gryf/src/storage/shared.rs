@@ -6,17 +6,17 @@ use std::{
 };
 
 use crate::core::{
-    id::{GraphIdTypes, IdType, IntegerIdType},
+    id::{IdPair, IdType, IntegerIdType},
     marker::EdgeType,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AdjVertex<Id: GraphIdTypes, V> {
+pub struct AdjVertex<Id: IdPair, V> {
     pub attr: V,
     pub edges: [Vec<Id::EdgeId>; 2],
 }
 
-impl<Id: GraphIdTypes, V> AdjVertex<Id, V> {
+impl<Id: IdPair, V> AdjVertex<Id, V> {
     pub fn new(attr: V) -> Self {
         Self {
             attr,
@@ -62,7 +62,7 @@ impl<'a, Id, V> VerticesIter<'a, Id, V> {
     }
 }
 
-impl<'a, Id: GraphIdTypes, V> Iterator for VerticesIter<'a, Id, V>
+impl<'a, Id: IdPair, V> Iterator for VerticesIter<'a, Id, V>
 where
     Id::VertexId: IntegerIdType,
 {
@@ -75,11 +75,11 @@ where
     }
 }
 
-pub struct AdjVerticesIter<'a, Id: GraphIdTypes, V> {
+pub struct AdjVerticesIter<'a, Id: IdPair, V> {
     inner: Enumerate<Iter<'a, AdjVertex<Id, V>>>,
 }
 
-impl<'a, Id: GraphIdTypes, V> AdjVerticesIter<'a, Id, V> {
+impl<'a, Id: IdPair, V> AdjVerticesIter<'a, Id, V> {
     pub fn new(inner: Iter<'a, AdjVertex<Id, V>>) -> Self {
         Self {
             inner: inner.enumerate(),
@@ -87,7 +87,7 @@ impl<'a, Id: GraphIdTypes, V> AdjVerticesIter<'a, Id, V> {
     }
 }
 
-impl<'a, Id: GraphIdTypes, V> Iterator for AdjVerticesIter<'a, Id, V>
+impl<'a, Id: IdPair, V> Iterator for AdjVerticesIter<'a, Id, V>
 where
     Id::VertexId: IntegerIdType,
 {
@@ -100,12 +100,12 @@ where
     }
 }
 
-pub struct EdgesIter<'a, Id: GraphIdTypes, E> {
+pub struct EdgesIter<'a, Id: IdPair, E> {
     #[allow(clippy::type_complexity)]
     inner: Enumerate<Zip<Iter<'a, E>, Iter<'a, [Id::VertexId; 2]>>>,
 }
 
-impl<'a, Id: GraphIdTypes, E> EdgesIter<'a, Id, E> {
+impl<'a, Id: IdPair, E> EdgesIter<'a, Id, E> {
     pub fn new(edges: Iter<'a, E>, endpoints: Iter<'a, [Id::VertexId; 2]>) -> Self {
         Self {
             inner: edges.zip(endpoints).enumerate(),
@@ -113,7 +113,7 @@ impl<'a, Id: GraphIdTypes, E> EdgesIter<'a, Id, E> {
     }
 }
 
-impl<'a, Id: GraphIdTypes, E> Iterator for EdgesIter<'a, Id, E>
+impl<'a, Id: IdPair, E> Iterator for EdgesIter<'a, Id, E>
 where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,

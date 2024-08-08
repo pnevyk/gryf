@@ -8,7 +8,7 @@ use rustc_hash::FxHashSet;
 
 use crate::core::{
     base::NeighborRef,
-    id::{GraphIdTypes, IdType, UseId, UseVertexId},
+    id::{IdPair, IdType, UseId, UseVertexId},
     marker::Direction,
     GraphBase, Neighbors,
 };
@@ -89,7 +89,7 @@ impl<T> TraversalCollection<T> for Single<T> {
     }
 }
 
-pub(crate) trait RawAlgo<Id: GraphIdTypes, U: UseId<Id>> {
+pub(crate) trait RawAlgo<Id: IdPair, U: UseId<Id>> {
     type Item;
     type Collection: TraversalCollection<Self::Item>;
 
@@ -98,14 +98,14 @@ pub(crate) trait RawAlgo<Id: GraphIdTypes, U: UseId<Id>> {
     fn visit_on_start() -> bool;
 }
 
-pub(crate) struct RawVisit<Id: GraphIdTypes, U: UseId<Id>, A: RawAlgo<Id, U>> {
+pub(crate) struct RawVisit<Id: IdPair, U: UseId<Id>, A: RawAlgo<Id, U>> {
     pub collection: A::Collection,
     // FixedBitSet cannot be used because there can be vertex additions/removals
     // during the visiting since the Visitors are detached from the graph.
     pub visited: FxHashSet<U::Id>,
 }
 
-impl<Id: GraphIdTypes, U: UseId<Id>, A: RawAlgo<Id, U>> RawVisit<Id, U, A> {
+impl<Id: IdPair, U: UseId<Id>, A: RawAlgo<Id, U>> RawVisit<Id, U, A> {
     pub fn new(count_hint: Option<usize>) -> Self {
         let visited = count_hint
             .map(|count| HashSet::with_capacity_and_hasher(count, BuildHasherDefault::default()))
@@ -179,7 +179,7 @@ pub(crate) struct RawVisitMulti<Id, U, A, S> {
     ty: PhantomData<(Id, U, A)>,
 }
 
-impl<Id: GraphIdTypes, U: UseId<Id>, A: RawAlgo<Id, U>, S: VisitStarts<U::Id>>
+impl<Id: IdPair, U: UseId<Id>, A: RawAlgo<Id, U>, S: VisitStarts<U::Id>>
     RawVisitMulti<Id, U, A, S>
 {
     pub fn new(starts: S) -> Self {
@@ -221,7 +221,7 @@ impl<Id: GraphIdTypes, U: UseId<Id>, A: RawAlgo<Id, U>, S: VisitStarts<U::Id>>
 }
 
 #[derive(Debug, Clone)]
-pub enum RawEvent<Id: GraphIdTypes> {
+pub enum RawEvent<Id: IdPair> {
     Popped {
         #[allow(dead_code)]
         vertex: Id::VertexId,
@@ -238,7 +238,7 @@ pub enum RawEvent<Id: GraphIdTypes> {
 
 pub enum RawBfs {}
 
-impl<Id: GraphIdTypes> RawAlgo<Id, UseVertexId> for RawBfs {
+impl<Id: IdPair> RawAlgo<Id, UseVertexId> for RawBfs {
     type Item = Id::VertexId;
     type Collection = Queue<Id::VertexId>;
 
@@ -293,7 +293,7 @@ impl<G: GraphBase> RawVisit<G, UseVertexId, RawBfs> {
 
 pub enum RawDfs {}
 
-impl<Id: GraphIdTypes> RawAlgo<Id, UseVertexId> for RawDfs {
+impl<Id: IdPair> RawAlgo<Id, UseVertexId> for RawDfs {
     type Item = Id::VertexId;
     type Collection = Stack<Id::VertexId>;
 
@@ -359,12 +359,12 @@ impl<G: GraphBase> RawVisit<G, UseVertexId, RawDfs> {
 pub enum RawDfsExtra {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RawDfsExtraItem<Id: GraphIdTypes> {
+pub struct RawDfsExtraItem<Id: IdPair> {
     vertex: Id::VertexId,
     neighbors: Vec<(Id::VertexId, Id::EdgeId)>,
 }
 
-impl<Id: GraphIdTypes> RawDfsExtraItem<Id> {
+impl<Id: IdPair> RawDfsExtraItem<Id> {
     pub fn start(root: Id::VertexId) -> Self {
         Self {
             vertex: root,
@@ -405,7 +405,7 @@ impl<Id: GraphIdTypes> RawDfsExtraItem<Id> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum RawDfsExtraEvent<Id: GraphIdTypes> {
+pub enum RawDfsExtraEvent<Id: IdPair> {
     Open(Id::VertexId),
     Close(Id::VertexId),
 }
@@ -499,7 +499,7 @@ impl<Id: GraphBase> RawVisit<Id, UseVertexId, RawDfsExtra> {
 
 pub enum RawDfsNoBacktrack {}
 
-impl<Id: GraphIdTypes> RawAlgo<Id, UseVertexId> for RawDfsNoBacktrack {
+impl<Id: IdPair> RawAlgo<Id, UseVertexId> for RawDfsNoBacktrack {
     type Item = Id::VertexId;
     type Collection = Single<Id::VertexId>;
 

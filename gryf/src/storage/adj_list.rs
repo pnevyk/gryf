@@ -4,7 +4,7 @@ use crate::core::{
     connect::ConnectVertices,
     create::Create,
     error::{AddEdgeError, AddEdgeErrorKind, AddVertexError},
-    id::{CompactIdMap, DefaultId, GraphIdTypes, IdType, IntegerIdType},
+    id::{CompactIdMap, DefaultId, IdPair, IdType, IntegerIdType},
     marker::{Direction, EdgeType},
     props::{Guarantee, MultiEdge},
     EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Neighbors, VertexSet,
@@ -17,14 +17,14 @@ pub use super::shared::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AdjList<V, E, Ty, Id: GraphIdTypes> {
+pub struct AdjList<V, E, Ty, Id: IdPair> {
     vertices: Vec<Vertex<Id, V>>,
     edges: Vec<E>,
     endpoints: Vec<[Id::VertexId; 2]>,
     ty: PhantomData<fn() -> (Ty, Id)>,
 }
 
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> AdjList<V, E, Ty, Id> {
+impl<V, E, Ty: EdgeType, Id: IdPair> AdjList<V, E, Ty, Id> {
     pub fn new() -> Self {
         Self {
             vertices: Vec::new(),
@@ -35,7 +35,7 @@ impl<V, E, Ty: EdgeType, Id: GraphIdTypes> AdjList<V, E, Ty, Id> {
     }
 }
 
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> AdjList<V, E, Ty, Id>
+impl<V, E, Ty: EdgeType, Id: IdPair> AdjList<V, E, Ty, Id>
 where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
@@ -133,13 +133,13 @@ impl<V, E, Ty: EdgeType> Default for AdjList<V, E, Ty, DefaultId> {
     }
 }
 
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> GraphBase for AdjList<V, E, Ty, Id> {
+impl<V, E, Ty: EdgeType, Id: IdPair> GraphBase for AdjList<V, E, Ty, Id> {
     type VertexId = Id::VertexId;
     type EdgeId = Id::EdgeId;
     type EdgeType = Ty;
 }
 
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> Neighbors for AdjList<V, E, Ty, Id>
+impl<V, E, Ty: EdgeType, Id: IdPair> Neighbors for AdjList<V, E, Ty, Id>
 where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
@@ -220,7 +220,7 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> VertexSet for AdjList<V, E, Ty, Id>
+impl<V, E, Ty: EdgeType, Id: IdPair> VertexSet for AdjList<V, E, Ty, Id>
 where
     Id::VertexId: IntegerIdType,
 {
@@ -255,7 +255,7 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> EdgeSet for AdjList<V, E, Ty, Id>
+impl<V, E, Ty: EdgeType, Id: IdPair> EdgeSet for AdjList<V, E, Ty, Id>
 where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
@@ -318,7 +318,7 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> GraphRef<V, E> for AdjList<V, E, Ty, Id>
+impl<V, E, Ty: EdgeType, Id: IdPair> GraphRef<V, E> for AdjList<V, E, Ty, Id>
 where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
@@ -360,7 +360,7 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> GraphMut<V, E> for AdjList<V, E, Ty, Id>
+impl<V, E, Ty: EdgeType, Id: IdPair> GraphMut<V, E> for AdjList<V, E, Ty, Id>
 where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
@@ -376,7 +376,7 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> GraphAdd<V, E> for AdjList<V, E, Ty, Id>
+impl<V, E, Ty: EdgeType, Id: IdPair> GraphAdd<V, E> for AdjList<V, E, Ty, Id>
 where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
@@ -413,7 +413,7 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> GraphFull<V, E> for AdjList<V, E, Ty, Id>
+impl<V, E, Ty: EdgeType, Id: IdPair> GraphFull<V, E> for AdjList<V, E, Ty, Id>
 where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
@@ -467,14 +467,14 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> MultiEdge for AdjList<V, E, Ty, Id>
+impl<V, E, Ty: EdgeType, Id: IdPair> MultiEdge for AdjList<V, E, Ty, Id>
 where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
 {
 }
 
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> Create<V, E> for AdjList<V, E, Ty, Id>
+impl<V, E, Ty: EdgeType, Id: IdPair> Create<V, E> for AdjList<V, E, Ty, Id>
 where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
@@ -489,7 +489,7 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> ConnectVertices<V, E> for AdjList<V, E, Ty, Id>
+impl<V, E, Ty: EdgeType, Id: IdPair> ConnectVertices<V, E> for AdjList<V, E, Ty, Id>
 where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
@@ -512,16 +512,16 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> Guarantee for AdjList<V, E, Ty, Id> {}
+impl<V, E, Ty: EdgeType, Id: IdPair> Guarantee for AdjList<V, E, Ty, Id> {}
 
-pub struct EdgeIdIter<'a, Id: GraphIdTypes> {
+pub struct EdgeIdIter<'a, Id: IdPair> {
     src: Id::VertexId,
     dst: Id::VertexId,
     edges: &'a [Id::EdgeId],
     endpoints: &'a [[Id::VertexId; 2]],
 }
 
-impl<'a, Id: GraphIdTypes> Iterator for EdgeIdIter<'a, Id>
+impl<'a, Id: IdPair> Iterator for EdgeIdIter<'a, Id>
 where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
@@ -542,7 +542,7 @@ where
     }
 }
 
-pub struct NeighborsIter<'a, Ty, Id: GraphIdTypes> {
+pub struct NeighborsIter<'a, Ty, Id: IdPair> {
     src: Id::VertexId,
     edges: [&'a [Id::EdgeId]; 2],
     endpoints: &'a [[Id::VertexId; 2]],
@@ -550,7 +550,7 @@ pub struct NeighborsIter<'a, Ty, Id: GraphIdTypes> {
     ty: PhantomData<Ty>,
 }
 
-impl<Ty: EdgeType, Id: GraphIdTypes> Iterator for NeighborsIter<'_, Ty, Id>
+impl<Ty: EdgeType, Id: IdPair> Iterator for NeighborsIter<'_, Ty, Id>
 where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,

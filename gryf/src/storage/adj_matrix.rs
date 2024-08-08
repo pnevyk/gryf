@@ -4,7 +4,7 @@ use crate::core::{
     connect::ConnectVertices,
     create::Create,
     error::{AddEdgeError, AddEdgeErrorKind, AddVertexError},
-    id::{CompactIdMap, DefaultId, GraphIdTypes, IdType, IntegerIdType},
+    id::{CompactIdMap, DefaultId, IdPair, IdType, IntegerIdType},
     marker::{Direction, EdgeType},
     props::Guarantee,
     EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Neighbors, VertexSet,
@@ -20,7 +20,7 @@ pub struct AdjMatrix<V, E, Ty, Id> {
     n_edges: usize,
 }
 
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> AdjMatrix<V, E, Ty, Id>
+impl<V, E, Ty: EdgeType, Id: IdPair> AdjMatrix<V, E, Ty, Id>
 where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
@@ -40,13 +40,13 @@ impl<V, E, Ty: EdgeType> Default for AdjMatrix<V, E, Ty, DefaultId> {
     }
 }
 
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> GraphBase for AdjMatrix<V, E, Ty, Id> {
+impl<V, E, Ty: EdgeType, Id: IdPair> GraphBase for AdjMatrix<V, E, Ty, Id> {
     type VertexId = Id::VertexId;
     type EdgeId = Id::EdgeId;
     type EdgeType = Ty;
 }
 
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> Neighbors for AdjMatrix<V, E, Ty, Id>
+impl<V, E, Ty: EdgeType, Id: IdPair> Neighbors for AdjMatrix<V, E, Ty, Id>
 where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
@@ -106,7 +106,7 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> VertexSet for AdjMatrix<V, E, Ty, Id>
+impl<V, E, Ty: EdgeType, Id: IdPair> VertexSet for AdjMatrix<V, E, Ty, Id>
 where
     Id::VertexId: IntegerIdType,
 {
@@ -141,7 +141,7 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> EdgeSet for AdjMatrix<V, E, Ty, Id>
+impl<V, E, Ty: EdgeType, Id: IdPair> EdgeSet for AdjMatrix<V, E, Ty, Id>
 where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
@@ -193,7 +193,7 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> GraphRef<V, E> for AdjMatrix<V, E, Ty, Id>
+impl<V, E, Ty: EdgeType, Id: IdPair> GraphRef<V, E> for AdjMatrix<V, E, Ty, Id>
 where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
@@ -240,7 +240,7 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> GraphMut<V, E> for AdjMatrix<V, E, Ty, Id>
+impl<V, E, Ty: EdgeType, Id: IdPair> GraphMut<V, E> for AdjMatrix<V, E, Ty, Id>
 where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
@@ -254,7 +254,7 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> GraphAdd<V, E> for AdjMatrix<V, E, Ty, Id>
+impl<V, E, Ty: EdgeType, Id: IdPair> GraphAdd<V, E> for AdjMatrix<V, E, Ty, Id>
 where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
@@ -294,7 +294,7 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> GraphFull<V, E> for AdjMatrix<V, E, Ty, Id>
+impl<V, E, Ty: EdgeType, Id: IdPair> GraphFull<V, E> for AdjMatrix<V, E, Ty, Id>
 where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
@@ -375,7 +375,7 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> Create<V, E> for AdjMatrix<V, E, Ty, Id>
+impl<V, E, Ty: EdgeType, Id: IdPair> Create<V, E> for AdjMatrix<V, E, Ty, Id>
 where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
@@ -389,7 +389,7 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> ConnectVertices<V, E> for AdjMatrix<V, E, Ty, Id>
+impl<V, E, Ty: EdgeType, Id: IdPair> ConnectVertices<V, E> for AdjMatrix<V, E, Ty, Id>
 where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
@@ -412,7 +412,7 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, Id: GraphIdTypes> Guarantee for AdjMatrix<V, E, Ty, Id> {}
+impl<V, E, Ty: EdgeType, Id: IdPair> Guarantee for AdjMatrix<V, E, Ty, Id> {}
 
 pub struct EdgeIdsIter<'a, Ty, Id> {
     matrix: raw::DetachedMatrix<'a, Ty, Id>,
@@ -421,7 +421,7 @@ pub struct EdgeIdsIter<'a, Ty, Id> {
     ty: PhantomData<fn() -> Id>,
 }
 
-impl<'a, Ty: EdgeType, Id: GraphIdTypes> Iterator for EdgeIdsIter<'a, Ty, Id>
+impl<'a, Ty: EdgeType, Id: IdPair> Iterator for EdgeIdsIter<'a, Ty, Id>
 where
     Id::EdgeId: IntegerIdType,
 {
@@ -450,7 +450,7 @@ pub struct EdgesIter<'a, E, Ty, Id> {
     ty: PhantomData<fn() -> Id>,
 }
 
-impl<'a, E, Ty: EdgeType, Id: GraphIdTypes> Iterator for EdgesIter<'a, E, Ty, Id>
+impl<'a, E, Ty: EdgeType, Id: IdPair> Iterator for EdgesIter<'a, E, Ty, Id>
 where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
@@ -474,7 +474,7 @@ where
     }
 }
 
-pub struct NeighborsIter<'a, Ty, Id: GraphIdTypes> {
+pub struct NeighborsIter<'a, Ty, Id: IdPair> {
     matrix: raw::DetachedMatrix<'a, Ty, Id>,
     src: Id::VertexId,
     other: usize,
@@ -483,7 +483,7 @@ pub struct NeighborsIter<'a, Ty, Id: GraphIdTypes> {
     dir: Direction,
 }
 
-impl<'a, Ty: EdgeType, Id: GraphIdTypes> Iterator for NeighborsIter<'a, Ty, Id>
+impl<'a, Ty: EdgeType, Id: IdPair> Iterator for NeighborsIter<'a, Ty, Id>
 where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
@@ -530,7 +530,7 @@ mod raw {
     use bitvec::prelude::*;
 
     use crate::core::{
-        id::{GraphIdTypes, IdType, IntegerIdType},
+        id::{IdPair, IdType, IntegerIdType},
         marker::{Direction, EdgeType},
         matrix::*,
     };
@@ -734,7 +734,7 @@ mod raw {
         ty: PhantomData<(Ty, Id)>,
     }
 
-    impl<E, Ty: EdgeType, Id: GraphIdTypes> Matrix<E, Ty, Id>
+    impl<E, Ty: EdgeType, Id: IdPair> Matrix<E, Ty, Id>
     where
         Id::VertexId: IntegerIdType,
         Id::EdgeId: IntegerIdType,
@@ -841,7 +841,7 @@ mod raw {
         }
     }
 
-    impl<E, Ty: EdgeType, Id: GraphIdTypes> Matrix<E, Ty, Id> {
+    impl<E, Ty: EdgeType, Id: IdPair> Matrix<E, Ty, Id> {
         pub fn clear(&mut self) {
             self.data.clear();
         }
@@ -853,7 +853,7 @@ mod raw {
         ty: PhantomData<(Ty, Id)>,
     }
 
-    impl<Ty: EdgeType, Id: GraphIdTypes> DetachedMatrix<'_, Ty, Id>
+    impl<Ty: EdgeType, Id: IdPair> DetachedMatrix<'_, Ty, Id>
     where
         Id::EdgeId: IntegerIdType,
     {

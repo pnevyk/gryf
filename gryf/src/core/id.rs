@@ -143,7 +143,7 @@ impl<I: IntegerIdType> From<Virtual<I>> for u64 {
 
 impl<I: IntegerIdType> IntegerIdType for Virtual<I> {}
 
-pub trait GraphIdTypes {
+pub trait IdPair {
     type VertexId: IdType;
     type EdgeId: IdType;
 }
@@ -151,34 +151,34 @@ pub trait GraphIdTypes {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum DefaultId {}
 
-impl GraphIdTypes for DefaultId {
+impl IdPair for DefaultId {
     type VertexId = VertexId;
     type EdgeId = EdgeId;
 }
 
-pub struct CustomId<VIdd, EIdd> {
-    ty: PhantomData<fn() -> (VIdd, EIdd)>,
+pub struct CustomId<VId, EId> {
+    ty: PhantomData<fn() -> (VId, EId)>,
 }
 
-impl<VIdd: IdType, EIdd: IdType> GraphIdTypes for CustomId<VIdd, EIdd> {
-    type VertexId = VIdd;
-    type EdgeId = EIdd;
+impl<VId: IdType, EId: IdType> IdPair for CustomId<VId, EId> {
+    type VertexId = VId;
+    type EdgeId = EId;
 }
 
-pub(crate) trait UseId<Id: GraphIdTypes> {
+pub(crate) trait UseId<Id: IdPair> {
     type Id: IdType;
 }
 
 pub(crate) enum UseVertexId {}
 
-impl<Id: GraphIdTypes> UseId<Id> for UseVertexId {
+impl<Id: IdPair> UseId<Id> for UseVertexId {
     type Id = Id::VertexId;
 }
 
 #[allow(unused)]
 pub(crate) enum UseEdgeId {}
 
-impl<Id: GraphIdTypes> UseId<Id> for UseEdgeId {
+impl<Id: IdPair> UseId<Id> for UseEdgeId {
     type Id = Id::EdgeId;
 }
 

@@ -4,7 +4,7 @@ use arbitrary::{Arbitrary, Unstructured};
 
 use crate::core::{
     error::{AddEdgeError, AddVertexError},
-    id::{GraphIdTypes, IdType, IntegerIdType},
+    id::{IdPair, IdType, IntegerIdType},
     GraphFull,
 };
 
@@ -232,7 +232,7 @@ impl IntegerIdType for Index {}
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum ArbitraryId {}
 
-impl GraphIdTypes for ArbitraryId {
+impl IdPair for ArbitraryId {
     type VertexId = Index;
     type EdgeId = Index;
 }

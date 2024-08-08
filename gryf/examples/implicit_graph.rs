@@ -8,7 +8,7 @@ use gryf::{
         GraphBase, Neighbors,
     },
     prelude::*,
-    visit::Dfs,
+    visit::dfs::Dfs,
 };
 
 // https://stackoverflow.com/questions/58870416/can-you-explain-implicit-graphsin-graph-theory-with-a-simple-example/58887179#58887179

@@ -703,7 +703,7 @@ mod raw {
         }
     }
 
-    impl<E> MatrixResize<E> for FlaggedVec<E> {
+    impl<E> MatrixLinearStorage<E> for FlaggedVec<E> {
         fn with_capacity(capacity: usize) -> Self {
             Self::with_capacity(capacity)
         }
@@ -749,7 +749,7 @@ mod raw {
             }
 
             let capacity = capacity.next_power_of_two();
-            let len = size_of::<Ty>(capacity);
+            let len = linear_len::<Ty>(capacity);
             let mut data = FlaggedVec::with_capacity(len);
             data.resize(len);
 

@@ -1,9 +1,8 @@
 use crate::{
     adapt::transpose::TransposeRef,
-    common::CompactIdMap,
     core::{
         base::EdgeRef,
-        id::{IdType, IntegerIdType, Virtual},
+        id::{CompactIdMap, IdType, IntegerIdType, Virtual},
         weight::{GetWeight, Weight},
         GraphRef,
     },

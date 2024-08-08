@@ -51,7 +51,6 @@ mod tests {
     use proptest::prelude::*;
 
     use crate::{
-        common::VisitSet,
         core::{
             base::NeighborRef,
             id::VertexId,
@@ -60,6 +59,7 @@ mod tests {
         },
         infra::proptest::{graph_directed, graph_undirected},
         storage::AdjList,
+        visit::VisitSet,
     };
 
     use super::*;

@@ -1,6 +1,5 @@
 pub mod adapt;
 pub mod algo;
-pub mod common;
 pub mod core;
 pub mod graph;
 pub mod infra;

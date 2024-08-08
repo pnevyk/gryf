@@ -9,7 +9,6 @@ use rustc_hash::FxHashSet;
 use thiserror::Error;
 
 use crate::{
-    common::VisitSet,
     core::{
         base::NeighborRef,
         create::Create,
@@ -20,6 +19,7 @@ use crate::{
         EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Neighbors, VertexSet,
     },
     storage::{AdjList, Frozen, Stable},
+    visit::VisitSet,
 };
 
 use gryf_derive::{EdgeSet, GraphBase, GraphMut, GraphRef, Neighbors, VertexSet};

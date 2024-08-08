@@ -1,3 +1,7 @@
+mod compact_id_map;
+
+pub use compact_id_map::CompactIdMap;
+
 use std::{fmt::Debug, hash::Hash, marker::PhantomData};
 
 /// A unique identification of a vertex or edge in a graph.

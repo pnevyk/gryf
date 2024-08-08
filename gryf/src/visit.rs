@@ -1,4 +1,7 @@
 pub(crate) mod raw;
+mod visit_set;
+
+pub use visit_set::{TypedBitSet, VisitSet};
 
 use std::{
     collections::{HashSet, VecDeque},
@@ -9,10 +12,7 @@ use rustc_hash::FxHashSet;
 
 use raw::*;
 
-use crate::{
-    common::VisitSet,
-    core::{id::UseVertexId, GraphBase, Neighbors, VertexSet},
-};
+use crate::core::{id::UseVertexId, GraphBase, Neighbors, VertexSet};
 
 pub trait Visitor<G> {
     type Item;

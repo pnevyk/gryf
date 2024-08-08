@@ -1,17 +1,14 @@
 use std::collections::BTreeSet;
 
-use crate::{
-    common::CompactIdMap,
-    core::{
-        base::{EdgeRef, NeighborRef, VertexRef},
-        connect::ConnectVertices,
-        create::Create,
-        error::{AddEdgeError, AddEdgeErrorKind, AddVertexError},
-        id::{EdgeId, IntegerIdType, VertexId},
-        marker::Direction,
-        props::{NoReplace, StableId},
-        EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Neighbors, VertexSet,
-    },
+use crate::core::{
+    base::{EdgeRef, NeighborRef, VertexRef},
+    connect::ConnectVertices,
+    create::Create,
+    error::{AddEdgeError, AddEdgeErrorKind, AddVertexError},
+    id::{CompactIdMap, EdgeId, IntegerIdType, VertexId},
+    marker::Direction,
+    props::{NoReplace, StableId},
+    EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Neighbors, VertexSet,
 };
 
 use gryf_derive::{GraphBase, Guarantee};

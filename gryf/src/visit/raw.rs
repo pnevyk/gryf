@@ -6,15 +6,14 @@ use std::{
 
 use rustc_hash::FxHashSet;
 
-use crate::{
-    common::VisitSet,
-    core::{
-        base::NeighborRef,
-        id::{GraphIdTypes, IdType, UseId, UseVertexId},
-        marker::Direction,
-        GraphBase, Neighbors,
-    },
+use crate::core::{
+    base::NeighborRef,
+    id::{GraphIdTypes, IdType, UseId, UseVertexId},
+    marker::Direction,
+    GraphBase, Neighbors,
 };
+
+use super::VisitSet;
 
 pub trait TraversalCollection<T>: Default {
     fn push(&mut self, value: T);

@@ -1,8 +1,8 @@
 use rustc_hash::FxHashSet;
 
 use crate::{
-    common::VisitSet,
     core::{base::NeighborRef, marker::Direction, Neighbors, VertexSet},
+    visit::VisitSet,
 };
 
 use super::Connected;

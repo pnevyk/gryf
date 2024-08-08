@@ -1,16 +1,13 @@
 use std::marker::PhantomData;
 
-use crate::{
-    common::CompactIdMap,
-    core::{
-        connect::ConnectVertices,
-        create::Create,
-        error::{AddEdgeError, AddEdgeErrorKind, AddVertexError},
-        id::{DefaultId, GraphIdTypes, IdType, IntegerIdType},
-        marker::{Direction, EdgeType},
-        props::{Guarantee, MultiEdge},
-        EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Neighbors, VertexSet,
-    },
+use crate::core::{
+    connect::ConnectVertices,
+    create::Create,
+    error::{AddEdgeError, AddEdgeErrorKind, AddVertexError},
+    id::{CompactIdMap, DefaultId, GraphIdTypes, IdType, IntegerIdType},
+    marker::{Direction, EdgeType},
+    props::{Guarantee, MultiEdge},
+    EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Neighbors, VertexSet,
 };
 
 use super::shared;

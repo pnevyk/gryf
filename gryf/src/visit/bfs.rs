@@ -76,7 +76,7 @@ where
 {
     type Item = G::VertexId;
 
-    fn next(&mut self, graph: &G) -> Option<Self::Item> {
+    fn visit_next(&mut self, graph: &G) -> Option<Self::Item> {
         self.raw.next(graph, |_, _| true)
     }
 }
@@ -88,7 +88,7 @@ where
 {
     type Item = G::VertexId;
 
-    fn next(&mut self, graph: &G) -> Option<Self::Item> {
+    fn visit_next(&mut self, graph: &G) -> Option<Self::Item> {
         self.multi.next_multi(
             self.raw,
             |raw| raw.next(graph, |_, _| true),

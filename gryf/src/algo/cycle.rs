@@ -8,6 +8,8 @@ mod bfs;
 mod builder;
 mod dfs;
 
+pub use builder::CycleBuilder;
+
 pub struct Cycle<G: GraphBase> {
     pub edge: G::EdgeId,
     as_undirected: bool,

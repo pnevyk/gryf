@@ -14,11 +14,10 @@ pub trait Create<V, E>: GraphAdd<V, E> + Sized {
     }
 }
 
-pub trait ExtendWithEdges<T, V, E>
+pub trait ExtendWithEdges<T, V, E>: Create<V, E>
 where
     T: IntoEdge<Self, E>,
     V: Default,
-    Self: Create<V, E>,
 {
     fn extend_with_edges<I>(&mut self, iter: I)
     where
@@ -43,7 +42,7 @@ where
     T: IntoEdge<Self, E>,
     V: Default,
     G: Create<V, E>,
-    Self::VertexId: IntegerIdType,
+    G::VertexId: IntegerIdType,
 {
     fn extend_with_edges<I>(&mut self, iter: I)
     where
@@ -62,10 +61,7 @@ where
     }
 }
 
-pub trait ExtendWithVertices<V, E>
-where
-    Self: Create<V, E>,
-{
+pub trait ExtendWithVertices<V, E>: Create<V, E> {
     fn extend_with_vertices<I>(&mut self, iter: I)
     where
         I: IntoIterator<Item = V>;

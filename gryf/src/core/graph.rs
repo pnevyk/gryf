@@ -316,11 +316,11 @@ pub trait GraphFull<V, E>: GraphAdd<V, E> {
 }
 
 mod imp {
-    use crate::core::id::GraphIdTypes;
+    use crate::core::id::IdPair;
 
     use super::*;
 
-    impl<G> GraphIdTypes for G
+    impl<G> IdPair for G
     where
         G: GraphBase,
     {

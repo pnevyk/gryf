@@ -64,7 +64,7 @@ where
             self.visited += 1;
 
             for n in self.graph.neighbors_directed(&vertex, Direction::Outgoing) {
-                let i = self.map.virt(*n.id()).unwrap().as_usize();
+                let i = self.map.to_virt(*n.id()).unwrap().as_usize();
                 let deg = &mut self.in_deg[i];
                 *deg -= 1;
 
@@ -92,7 +92,7 @@ where
                     .copied()
                     .enumerate()
                     .find(|(_, deg)| *deg > 0)
-                    .map(|(i, _)| self.map.real(Virtual::new(i as u64)).unwrap())
+                    .map(|(i, _)| self.map.to_real(Virtual::new(i as u64)).unwrap())
                     .unwrap();
 
                 // Find an incoming edge to that vertex from a vertex that has
@@ -101,7 +101,7 @@ where
                     .graph
                     .neighbors_directed(&v, Direction::Incoming)
                     .find_map(|n| {
-                        let i = self.map.virt(*n.id()).unwrap().as_usize();
+                        let i = self.map.to_virt(*n.id()).unwrap().as_usize();
                         if self.in_deg[i] > 0 {
                             Some(n.edge().into_owned())
                         } else {

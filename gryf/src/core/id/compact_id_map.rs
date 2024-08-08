@@ -43,7 +43,7 @@ impl<I: IntegerIdType> CompactIdMap<I> {
         self.map.len() != self.len
     }
 
-    pub fn real<V: Into<Virtual<I>>>(&self, id: V) -> Option<I> {
+    pub fn to_real<V: Into<Virtual<I>>>(&self, id: V) -> Option<I> {
         // Into<Virtual<I>> is used instead of Virtual<I> because the algorithms
         // will usually work with numeric ids with their data structures and so
         // it is more convenient to use this.
@@ -56,7 +56,7 @@ impl<I: IntegerIdType> CompactIdMap<I> {
         }
     }
 
-    pub fn virt(&self, id: I) -> Option<Virtual<I>> {
+    pub fn to_virt(&self, id: I) -> Option<Virtual<I>> {
         if self.is_isomorphic() {
             (id.as_usize() < self.len()).then(|| Virtual::new(id.as_bits()))
         } else {
@@ -90,40 +90,40 @@ mod tests {
     fn no_holes() {
         let map = CompactIdMap::new((0..10u64).map(VertexId));
 
-        assert_eq!(map.virt(3.into()), Some(Virtual::new(3)));
-        assert_eq!(map.real(3u64), Some(VertexId(3)));
+        assert_eq!(map.to_virt(3.into()), Some(Virtual::new(3)));
+        assert_eq!(map.to_real(3u64), Some(VertexId(3)));
     }
 
     #[test]
     fn holes_matching() {
         let map = CompactIdMap::new((0..10u64).filter(|&i| i != 5).map(VertexId));
 
-        assert_eq!(map.virt(3.into()), Some(Virtual::new(3)));
-        assert_eq!(map.real(3u64), Some(VertexId(3)));
+        assert_eq!(map.to_virt(3.into()), Some(Virtual::new(3)));
+        assert_eq!(map.to_real(3u64), Some(VertexId(3)));
     }
 
     #[test]
     fn holes_close() {
         let map = CompactIdMap::new((0..20u64).filter(|&i| i != 15).map(VertexId));
 
-        assert_eq!(map.virt(18.into()), Some(Virtual::new(17)));
-        assert_eq!(map.real(17u64), Some(VertexId(18)));
+        assert_eq!(map.to_virt(18.into()), Some(Virtual::new(17)));
+        assert_eq!(map.to_real(17u64), Some(VertexId(18)));
     }
 
     #[test]
     fn holes_binary_search() {
         let map = CompactIdMap::new((0..20u64).filter(|i| !(5..15).contains(i)).map(VertexId));
 
-        assert_eq!(map.virt(15.into()), Some(Virtual::new(5)));
-        assert_eq!(map.real(5u64), Some(VertexId(15)));
+        assert_eq!(map.to_virt(15.into()), Some(Virtual::new(5)));
+        assert_eq!(map.to_real(5u64), Some(VertexId(15)));
     }
 
     #[test]
     fn isomorphic() {
         let map = CompactIdMap::<VertexId>::isomorphic(10);
 
-        assert_eq!(map.virt(3.into()), Some(Virtual::new(3)));
-        assert_eq!(map.real(3u64), Some(VertexId(3)));
+        assert_eq!(map.to_virt(3.into()), Some(Virtual::new(3)));
+        assert_eq!(map.to_real(3u64), Some(VertexId(3)));
     }
 
     // TODO: proptest, generate a random Vec of VertexId and create the mapping,

@@ -69,16 +69,16 @@ pub fn neighbors(tokens: TokenStream) -> TokenStream {
             where
                 Self: 'a;
 
-            fn neighbors(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_> {
-                <#field_type as #gryf::core::Neighbors>::neighbors(&self.#field_name, src)
+            fn neighbors_undirected(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_> {
+                <#field_type as #gryf::core::Neighbors>::neighbors_undirected(&self.#field_name, src)
             }
 
             fn neighbors_directed(&self, src: &Self::VertexId, dir: #gryf::core::marker::Direction) -> Self::NeighborsIter<'_> {
                 <#field_type as #gryf::core::Neighbors>::neighbors_directed(&self.#field_name, src, dir)
             }
 
-            fn degree(&self, id: &Self::VertexId) -> usize {
-                <#field_type as #gryf::core::Neighbors>::degree(&self.#field_name, id)
+            fn degree_undirected(&self, id: &Self::VertexId) -> usize {
+                <#field_type as #gryf::core::Neighbors>::degree_undirected(&self.#field_name, id)
             }
 
             fn degree_directed(&self, id: &Self::VertexId, dir: #gryf::core::marker::Direction) -> usize {

@@ -31,20 +31,20 @@ where
     where
         Self: 'a;
 
-    fn neighbors(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_> {
-        self.graph.neighbors(src)
+    fn neighbors_undirected(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_> {
+        self.graph.neighbors_undirected(src)
     }
 
     fn neighbors_directed(&self, src: &Self::VertexId, _dir: Direction) -> Self::NeighborsIter<'_> {
-        self.neighbors(src)
+        self.neighbors_undirected(src)
     }
 
-    fn degree(&self, id: &Self::VertexId) -> usize {
-        self.graph.degree(id)
+    fn degree_undirected(&self, id: &Self::VertexId) -> usize {
+        self.graph.degree_undirected(id)
     }
 
     fn degree_directed(&self, id: &Self::VertexId, _dir: Direction) -> usize {
-        self.graph.degree(id)
+        self.graph.degree_undirected(id)
     }
 }
 

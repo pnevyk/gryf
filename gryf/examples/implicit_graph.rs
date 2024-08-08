@@ -59,7 +59,7 @@ impl Neighbors for Collatz {
     where
         Self: 'a;
 
-    fn neighbors(&self, src: &VertexId) -> Self::NeighborsIter<'_> {
+    fn neighbors_undirected(&self, src: &VertexId) -> Self::NeighborsIter<'_> {
         iter::once(Neighbor { src: *src })
     }
 

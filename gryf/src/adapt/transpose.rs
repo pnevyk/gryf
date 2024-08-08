@@ -60,16 +60,16 @@ where
     where
         Self: 'a;
 
-    fn neighbors(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_> {
-        Iter(self.graph.neighbors(src))
+    fn neighbors_undirected(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_> {
+        Iter(self.graph.neighbors_undirected(src))
     }
 
     fn neighbors_directed(&self, src: &Self::VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
         Iter(self.graph.neighbors_directed(src, dir.opposite()))
     }
 
-    fn degree(&self, id: &Self::VertexId) -> usize {
-        self.graph.degree(id)
+    fn degree_undirected(&self, id: &Self::VertexId) -> usize {
+        self.graph.degree_undirected(id)
     }
 
     fn degree_directed(&self, id: &Self::VertexId, dir: Direction) -> usize {
@@ -270,7 +270,7 @@ mod tests {
     #[test]
     fn neighbors() {
         let graph = Transpose::new(create_graph());
-        let mut neighbors = graph.neighbors(&1.into()).map(|neighbor| {
+        let mut neighbors = graph.neighbors_undirected(&1.into()).map(|neighbor| {
             (
                 neighbor.id().into_owned(),
                 neighbor.src().into_owned(),

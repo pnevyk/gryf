@@ -77,13 +77,13 @@ where
     where
         Self: 'a;
 
-    fn neighbors(&self, src: &G::VertexId) -> Self::NeighborsIter<'_> {
+    fn neighbors_undirected(&self, src: &G::VertexId) -> Self::NeighborsIter<'_> {
         NeighborsIter {
             src: src.clone(),
             dir: Direction::Outgoing,
             neighbors: self
                 .graph
-                .neighbors(src)
+                .neighbors_undirected(src)
                 .map(|n| n.id().into_owned().into())
                 .collect(),
             vertices: self.graph.vertex_ids(),
@@ -207,22 +207,22 @@ mod tests {
 
         assert_eq!(
             complement
-                .neighbors(&v0)
+                .neighbors_undirected(&v0)
                 .map(|n| n.id().into_owned())
                 .collect::<HashSet<VertexId>>(),
             vec![v2, v3].into_iter().collect()
         );
-        assert_eq!(complement.neighbors(&v1).count(), 0);
+        assert_eq!(complement.neighbors_undirected(&v1).count(), 0);
         assert_eq!(
             complement
-                .neighbors(&v2)
+                .neighbors_undirected(&v2)
                 .map(|n| n.id().into_owned())
                 .collect::<HashSet<_>>(),
             vec![v0].into_iter().collect()
         );
         assert_eq!(
             complement
-                .neighbors(&v3)
+                .neighbors_undirected(&v3)
                 .map(|n| n.id().into_owned())
                 .collect::<HashSet<_>>(),
             vec![v0].into_iter().collect()

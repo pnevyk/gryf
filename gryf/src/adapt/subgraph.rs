@@ -89,13 +89,13 @@ where
     where
         Self: 'a;
 
-    fn neighbors(&self, src: &G::VertexId) -> Self::NeighborsIter<'_> {
+    fn neighbors_undirected(&self, src: &G::VertexId) -> Self::NeighborsIter<'_> {
         if !self.check_vertex(src) {
             panic!("vertex does not exist");
         }
 
         SubsetIter::<_, G::NeighborRef<'_>>::new(
-            self.graph.neighbors(src),
+            self.graph.neighbors_undirected(src),
             |neighbor| self.check_vertex(&neighbor.id()) && self.check_edge(&neighbor.edge()),
             true,
         )
@@ -477,7 +477,7 @@ mod tests {
         let subgraph = create_subgraph();
 
         let mut edge_ids = subgraph
-            .neighbors(&v(1))
+            .neighbors_undirected(&v(1))
             .map(|e| e.edge().into_owned())
             .collect::<Vec<_>>();
         edge_ids.sort_unstable();

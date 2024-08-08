@@ -115,7 +115,7 @@ mod tests {
 
                 while let Some(u) = stack.pop() {
                     if visited.visit(u.clone()) {
-                        for n in graph.neighbors(&u) {
+                        for n in graph.neighbors_undirected(&u) {
                             stack.push(n.id().into_owned());
                         }
                     }

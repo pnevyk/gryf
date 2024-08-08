@@ -49,7 +49,7 @@ impl Neighbors for Chessboard {
     where
         Self: 'a;
 
-    fn neighbors(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_> {
+    fn neighbors_undirected(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_> {
         ChessNeighborsIter {
             src: *src,
             index: 0,

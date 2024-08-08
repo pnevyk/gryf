@@ -130,7 +130,7 @@ where
         }
     }
 
-    pub fn with<V, E>(self, algo: Algo) -> ShortestPathsBuilder<'a, W, G, F, algo::SpecificAlgo>
+    pub fn using<V, E>(self, algo: Algo) -> ShortestPathsBuilder<'a, W, G, F, algo::SpecificAlgo>
     where
         G: Neighbors + GraphRef<V, E>,
         G::VertexId: IntegerIdType,
@@ -144,7 +144,7 @@ where
         }
     }
 
-    pub fn with_opt<V, E>(
+    pub fn using_opt<V, E>(
         self,
         algo: Option<Algo>,
     ) -> ShortestPathsBuilder<'a, W, G, F, algo::SpecificAlgo>

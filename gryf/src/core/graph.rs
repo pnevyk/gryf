@@ -3,8 +3,8 @@ use std::mem;
 use super::{
     base::{EdgeRef, NeighborRef, VertexRef},
     error::{
-        AddEdgeError, AddVertexError, ReplaceEdgeError, ReplaceEdgeErrorKind, ReplaceVertexError,
-        ReplaceVertexErrorKind,
+        AddEdgeConnectingError, AddEdgeError, AddVertexError, ReplaceEdgeError,
+        ReplaceEdgeErrorKind, ReplaceVertexError, ReplaceVertexErrorKind,
     },
     id::{CompactIdMap, IdType, IntegerIdType},
     marker::{Direction, EdgeType},
@@ -281,6 +281,31 @@ pub trait GraphAdd<V, E>: GraphMut<V, E> {
 
     fn add_edge(&mut self, src: &Self::VertexId, dst: &Self::VertexId, edge: E) -> Self::EdgeId {
         match self.try_add_edge(src, dst, edge) {
+            Ok(id) => id,
+            Err(error) => panic!("{error}"),
+        }
+    }
+
+    fn try_add_edge_connecting(
+        &mut self,
+        src: V,
+        dst: V,
+        edge: E,
+    ) -> Result<Self::EdgeId, AddEdgeConnectingError<V, E>>
+    where
+        V: Eq,
+    {
+        let src = self.try_get_or_add_vertex(src)?;
+        let dst = self.try_get_or_add_vertex(dst)?;
+        let edge = self.try_add_edge(&src, &dst, edge)?;
+        Ok(edge)
+    }
+
+    fn add_edge_connecting(&mut self, src: V, dst: V, edge: E) -> Self::EdgeId
+    where
+        V: Eq,
+    {
+        match self.try_add_edge_connecting(src, dst, edge) {
             Ok(id) => id,
             Err(error) => panic!("{error}"),
         }
@@ -639,6 +664,25 @@ mod imp {
             edge: E,
         ) -> Self::EdgeId {
             (**self).add_edge(src, dst, edge)
+        }
+
+        fn try_add_edge_connecting(
+            &mut self,
+            src: V,
+            dst: V,
+            edge: E,
+        ) -> Result<Self::EdgeId, AddEdgeConnectingError<V, E>>
+        where
+            V: Eq,
+        {
+            (**self).try_add_edge_connecting(src, dst, edge)
+        }
+
+        fn add_edge_connecting(&mut self, src: V, dst: V, edge: E) -> Self::EdgeId
+        where
+            V: Eq,
+        {
+            (**self).add_edge_connecting(src, dst, edge)
         }
     }
 

@@ -134,11 +134,11 @@ impl<V, E, Ty: EdgeType, Id: IdPair> VertexSet for EdgeList<V, E, Ty, Id>
 where
     Id::VertexId: IntegerIdType,
 {
-    type VertexIdsIter<'a> = VertexIds<Self::VertexId>
+    type VerticesByIdIter<'a> = VertexIds<Self::VertexId>
     where
         Self: 'a;
 
-    fn vertex_ids(&self) -> Self::VertexIdsIter<'_> {
+    fn vertices_by_id(&self) -> Self::VerticesByIdIter<'_> {
         (0..self.vertices.len()).into()
     }
 
@@ -170,7 +170,7 @@ where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
 {
-    type EdgeIdsIter<'a> = EdgeIds<Self::EdgeId>
+    type EdgesByIdIter<'a> = EdgeIds<Self::EdgeId>
     where
         Self: 'a;
 
@@ -178,7 +178,7 @@ where
     where
         Self: 'a;
 
-    fn edge_ids(&self) -> Self::EdgeIdsIter<'_> {
+    fn edges_by_id(&self) -> Self::EdgesByIdIter<'_> {
         (0..self.edges.len()).into()
     }
 

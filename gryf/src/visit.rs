@@ -82,7 +82,7 @@ where
     G: VertexSet,
 {
     graph: &'a G,
-    ids: G::VertexIdsIter<'a>,
+    ids: G::VerticesByIdIter<'a>,
 }
 
 impl<'a, G> VisitAll<'a, G>
@@ -92,7 +92,7 @@ where
     pub fn new(graph: &'a G) -> Self {
         Self {
             graph,
-            ids: graph.vertex_ids(),
+            ids: graph.vertices_by_id(),
         }
     }
 }

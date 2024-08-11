@@ -113,7 +113,7 @@ where
     where
         G: Neighbors + VertexSet,
     {
-        let v = match storage.vertex_ids().next() {
+        let v = match storage.vertices_by_id().next() {
             Some(v) => v,
             // Empty graph.
             None => return Ok(None),
@@ -233,11 +233,11 @@ where
         self.storage.vertex_bound()
     }
 
-    pub fn vertex_ids(&self) -> G::VertexIdsIter<'_>
+    pub fn vertices_by_id(&self) -> G::VerticesByIdIter<'_>
     where
         G: VertexSet,
     {
-        self.storage.vertex_ids()
+        self.storage.vertices_by_id()
     }
 
     pub fn vertex<VId>(&self, id: VId) -> Option<&V>
@@ -284,7 +284,7 @@ where
                     // should change the "second" end, not the "first".
                     [_, u] | [u, _] if u == end => u,
                     _ => {
-                        let error = if self.storage.vertex_ids().any(|v| &v == end) {
+                        let error = if self.storage.vertices_by_id().any(|v| &v == end) {
                             PathError::HigherDegree
                         } else {
                             PathError::Disconnected
@@ -495,11 +495,11 @@ where
         self.storage.edge_id_any(src.borrow(), dst.borrow())
     }
 
-    pub fn edge_ids(&self) -> G::EdgeIdsIter<'_>
+    pub fn edges_by_id(&self) -> G::EdgesByIdIter<'_>
     where
         G: EdgeSet,
     {
-        self.storage.edge_ids()
+        self.storage.edges_by_id()
     }
 
     pub fn contains_edge<EId>(&self, id: EId) -> bool

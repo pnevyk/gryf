@@ -177,7 +177,7 @@ mod tests {
                     .map(|(k, v)| (v, k))
                     .collect::<HashMap<_, _>>();
 
-                for (src, dst) in graph.edge_ids().map(|e| graph.endpoints(&e).unwrap()) {
+                for (src, dst) in graph.edges_by_id().map(|e| graph.endpoints(&e).unwrap()) {
                     let i = map
                         .get(&src)
                         .unwrap_or_else(|| panic!("algorithm omitted vertex {src:?}"));

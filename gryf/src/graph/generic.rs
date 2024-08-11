@@ -160,11 +160,11 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         self.storage.vertex_bound()
     }
 
-    pub fn vertex_ids(&self) -> G::VertexIdsIter<'_>
+    pub fn vertices_by_id(&self) -> G::VerticesByIdIter<'_>
     where
         G: VertexSet,
     {
-        self.storage.vertex_ids()
+        self.storage.vertices_by_id()
     }
 
     pub fn vertex<VId>(&self, id: VId) -> Option<&V>
@@ -302,11 +302,11 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         self.storage.edge_id_any(src.borrow(), dst.borrow())
     }
 
-    pub fn edge_ids(&self) -> G::EdgeIdsIter<'_>
+    pub fn edges_by_id(&self) -> G::EdgesByIdIter<'_>
     where
         G: EdgeSet,
     {
-        self.storage.edge_ids()
+        self.storage.edges_by_id()
     }
 
     pub fn contains_edge<EId>(&self, id: EId) -> bool

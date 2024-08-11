@@ -403,12 +403,22 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         self.storage.remove_edge(id.borrow())
     }
 
-    pub fn remove_edge_between<VId>(&mut self, src: VId, dst: VId) -> Option<E>
+    pub fn remove_edges_between<VId>(&mut self, src: VId, dst: VId)
     where
         G: GraphFull<V, E>,
         VId: Borrow<G::VertexId>,
     {
-        self.storage.remove_edge_between(src.borrow(), dst.borrow())
+        self.storage
+            .remove_edges_between(src.borrow(), dst.borrow())
+    }
+
+    pub fn remove_edge_any_between<VId>(&mut self, src: VId, dst: VId) -> Option<E>
+    where
+        G: GraphFull<V, E>,
+        VId: Borrow<G::VertexId>,
+    {
+        self.storage
+            .remove_edge_any_between(src.borrow(), dst.borrow())
     }
 
     pub fn replace_edge<EId>(&mut self, id: EId, edge: E) -> E

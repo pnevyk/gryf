@@ -28,9 +28,11 @@ proptest = { version = "1.1.0", optional = true }
 # Remove once https://github.com/rust-lang/rust/issues/82775 is stabilized
 assert_matches = "1.5.0"
 fastrand = "1.9.0"
+# https://github.com/rust-lang/cargo/issues/2911#issuecomment-749580481
+gryf = { path = ".", features = ["proptest", "arbitrary"] }
 
 [features]
-default = ["arbitrary", "proptest"]
+default = []
 arbitrary = ["dep:arbitrary"]
 proptest = ["dep:proptest"]
 derive = []

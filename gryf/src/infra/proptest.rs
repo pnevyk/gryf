@@ -46,6 +46,7 @@ pub struct GraphValueTree<V: ValueTree, E: ValueTree, Ty: EdgeType, G> {
     attr: Option<ShrinkAttrState>,
     ty: PhantomData<Ty>,
     graph: PhantomData<G>,
+    no_shrink: bool,
 }
 
 pub struct GraphStrategy<
@@ -253,6 +254,11 @@ where
             "generation of graphs in other models is not supported yet"
         );
 
+        // Some structural requirements (e.g., being connected) are difficult or
+        // unfeasible to uphold during shrinking. For such cases, we fal back to
+        // disable shrinking.
+        let no_shrink = false;
+
         let n = runner.rng().gen_range(0..=self.params.max_size);
         let p = runner.rng().gen::<f32>() * self.params.density;
 
@@ -346,6 +352,7 @@ where
             attr: None,
             ty: PhantomData,
             graph: PhantomData,
+            no_shrink,
         })
     }
 }
@@ -395,6 +402,10 @@ where
     }
 
     fn simplify(&mut self) -> bool {
+        if self.no_shrink {
+            return false;
+        }
+
         // The strategy is fundamentally the same as for example default
         // strategy for Vec. First, we try to simplify the structure as much as
         // possible, then we switch to simplifying the attributes of vertices

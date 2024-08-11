@@ -1,5 +1,3 @@
-use std::cmp::max;
-
 use super::{base::IntoEdge, graph::GraphAdd};
 
 pub trait Create<V, E>: GraphAdd<V, E> + Sized {
@@ -17,19 +15,6 @@ where
     fn extend_with_edges<I>(&mut self, iter: I)
     where
         I: IntoIterator<Item = T>;
-
-    fn from_edges<I>(iter: I) -> Self
-    where
-        I: IntoIterator<Item = T>,
-    {
-        let iter = iter.into_iter();
-        let edge_count = iter.size_hint().1.unwrap_or(32);
-        let vertex_count = max(edge_count / 4, 2);
-
-        let mut graph = Self::with_capacity(vertex_count, edge_count);
-        graph.extend_with_edges(iter);
-        graph
-    }
 }
 
 impl<T, V, E, G> ExtendWithEdges<T, V, E> for G

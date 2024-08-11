@@ -12,6 +12,7 @@ libfuzzer-sys = "0.4"
 
 [dependencies.gryf]
 path = "../gryf"
+features = ["arbitrary"]
 
 # Prevent this from interfering with workspaces
 [workspace]

@@ -1,10 +1,6 @@
 use std::cmp::max;
 
-use super::{
-    base::IntoEdge,
-    graph::GraphAdd,
-    id::{IdType, IntegerIdType},
-};
+use super::{base::IntoEdge, graph::GraphAdd};
 
 pub trait Create<V, E>: GraphAdd<V, E> + Sized {
     fn with_capacity(vertex_count: usize, edge_count: usize) -> Self;
@@ -17,7 +13,6 @@ pub trait Create<V, E>: GraphAdd<V, E> + Sized {
 pub trait ExtendWithEdges<T, V, E>: Create<V, E>
 where
     T: IntoEdge<Self, E>,
-    V: Default,
 {
     fn extend_with_edges<I>(&mut self, iter: I)
     where
@@ -40,9 +35,7 @@ where
 impl<T, V, E, G> ExtendWithEdges<T, V, E> for G
 where
     T: IntoEdge<Self, E>,
-    V: Default,
     G: Create<V, E>,
-    G::VertexId: IntegerIdType,
 {
     fn extend_with_edges<I>(&mut self, iter: I)
     where
@@ -50,12 +43,6 @@ where
     {
         for edge in iter {
             let (src, dst, edge) = edge.unpack();
-            let vertex_bound = max(&src, &dst).as_usize();
-
-            while self.vertex_count() <= vertex_bound {
-                self.add_vertex(V::default());
-            }
-
             self.add_edge(&src, &dst, edge);
         }
     }

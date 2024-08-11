@@ -408,7 +408,7 @@ mod tests {
             let mut raw = vec![0; size];
 
             for seed in [0, 3, 7, 13, 23, 42, 69, 123, 666, 1024] {
-                let rng = Rng::with_seed(seed);
+                let mut rng = Rng::with_seed(seed);
                 rng.fill(&mut raw);
 
                 let mut u = Unstructured::new(&raw);

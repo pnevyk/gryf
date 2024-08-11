@@ -27,12 +27,26 @@ proptest = { version = "1.1.0", optional = true }
 [dev-dependencies]
 # Remove once https://github.com/rust-lang/rust/issues/82775 is stabilized
 assert_matches = "1.5.0"
+divan = "0.1.14"
 fastrand = "2.1.0"
 # https://github.com/rust-lang/cargo/issues/2911#issuecomment-749580481
 gryf = { path = ".", features = ["proptest", "arbitrary"] }
+petgraph = "0.6.5"
 
 [features]
 default = []
 arbitrary = ["dep:arbitrary"]
 proptest = ["dep:proptest"]
 derive = []
+
+[[bench]]
+name = "basic_ops"
+harness = false
+
+[[bench]]
+name = "shortest_paths"
+harness = false
+
+[[bench]]
+name = "toposort"
+harness = false

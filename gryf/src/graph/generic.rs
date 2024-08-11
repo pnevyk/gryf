@@ -378,10 +378,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         G: GraphAdd<V, E>,
         V: Eq,
     {
-        let src = self.storage.try_get_or_add_vertex(src)?;
-        let dst = self.storage.try_get_or_add_vertex(dst)?;
-        let edge = self.storage.try_add_edge(&src, &dst, edge)?;
-        Ok(edge)
+        self.storage.try_add_edge_connecting(src, dst, edge)
     }
 
     pub fn add_edge_connecting(&mut self, src: V, dst: V, edge: E) -> G::EdgeId
@@ -389,10 +386,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         G: GraphAdd<V, E>,
         V: Eq,
     {
-        match self.try_add_edge_connecting(src, dst, edge) {
-            Ok(id) => id,
-            Err(error) => panic!("{error}"),
-        }
+        self.storage.add_edge_connecting(src, dst, edge)
     }
 
     pub fn remove_edge<EId>(&mut self, id: EId) -> Option<E>

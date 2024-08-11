@@ -394,6 +394,25 @@ pub fn graph_add(tokens: TokenStream) -> TokenStream {
             fn add_edge(&mut self, src: &Self::VertexId, dst: &Self::VertexId, edge: E) -> Self::EdgeId {
                 <#field_type as #gryf::core::GraphAdd<V, E>>::add_edge(&mut self.#field_name, src, dst, edge)
             }
+
+            fn try_add_edge_connecting(
+                &mut self,
+                src: V,
+                dst: V,
+                edge: E,
+            ) -> Result<Self::EdgeId, #gryf::core::error::AddEdgeConnectingError<V, E>>
+            where
+                V: Eq,
+            {
+                <#field_type as #gryf::core::GraphAdd<V, E>>::try_add_edge_connecting(&mut self.#field_name, src, dst, edge)
+            }
+
+            fn add_edge_connecting(&mut self, src: V, dst: V, edge: E) -> Self::EdgeId
+            where
+                V: Eq,
+            {
+                <#field_type as #gryf::core::GraphAdd<V, E>>::add_edge_connecting(&mut self.#field_name, src, dst, edge)
+            }
         }
     };
 

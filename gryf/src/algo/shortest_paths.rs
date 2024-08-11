@@ -370,24 +370,122 @@ mod tests {
     proptest! {
         #[test]
         #[ignore = "run property-based tests with `cargo test proptest_ -- --ignored`"]
-        fn proptest_dijkstra_any(graph in graph_undirected(any::<()>(), any::<u16>().prop_map(|e| e as u32)), start: u64) {
+        fn proptest_dijkstra_connected_all_reachable(graph in graph_undirected(any::<()>(), any::<u16>().prop_map(|e| e as u32)).connected(), start: u64) {
             let n = graph.vertex_count() as u64;
             prop_assume!(n > 0);
 
             let start = VertexId(start % n);
-            let _ = ShortestPaths::on(&graph).using(Algo::Dijkstra).run(start);
-            // Check for panics only for now.
+            let paths = ShortestPaths::on(&graph).using(Algo::Dijkstra).run(start).unwrap();
+
+            for v in graph.vertices_by_id() {
+                prop_assert_ne!(paths.dist(v), None);
+
+                let u = paths.reconstruct(v).last();
+                if v != start {
+                    prop_assert_eq!(u, Some(start));
+                } else {
+                    prop_assert_eq!(u, None);
+                }
+            }
         }
 
         #[test]
         #[ignore = "run property-based tests with `cargo test proptest_ -- --ignored`"]
-        fn proptest_bellman_ford_any(graph in graph_directed(any::<()>(), any::<i16>().prop_map(|e| e as i32)).max_size(128), start: u64) {
+        fn proptest_bellman_ford_any_directed_negative_weight_no_panic(graph in graph_directed(any::<()>(), any::<i16>().prop_map(|e| e as i32)).max_size(128), start: u64) {
             let n = graph.vertex_count() as u64;
             prop_assume!(n > 0);
 
             let start = VertexId(start % n);
             let _ = ShortestPaths::on(&graph).using(Algo::BellmanFord).run(start);
-            // Check for panics only for now.
+        }
+
+        #[test]
+        #[ignore = "run property-based tests with `cargo test proptest_ -- --ignored`"]
+        fn proptest_bellman_ford_all_reachable(graph in graph_undirected(any::<()>(), any::<u16>().prop_map(|e| e as u32)).max_size(128).connected(), start: u64) {
+            let n = graph.vertex_count() as u64;
+            prop_assume!(n > 0);
+
+            let start = VertexId(start % n);
+            let paths = ShortestPaths::on(&graph).using(Algo::BellmanFord).run(start).unwrap();
+
+            for v in graph.vertices_by_id() {
+                prop_assert_ne!(paths.dist(v), None);
+
+                let u = paths.reconstruct(v).last();
+                if v != start {
+                    prop_assert_eq!(u, Some(start));
+                } else {
+                    prop_assert_eq!(u, None);
+                }
+            }
+        }
+
+        #[test]
+        #[ignore = "run property-based tests with `cargo test proptest_ -- --ignored`"]
+        fn proptest_dijkstra_bellman_ford_agree_any_directed(graph in graph_directed(any::<()>(), any::<u16>().prop_map(|e| e as u32)).max_size(128), start: u64) {
+            let n = graph.vertex_count() as u64;
+            prop_assume!(n > 0);
+
+            let start = VertexId(start % n);
+            let paths_d = ShortestPaths::on(&graph).using(Algo::Dijkstra).run(start).unwrap();
+            let paths_bf = ShortestPaths::on(&graph).using(Algo::BellmanFord).run(start).unwrap();
+
+            for v in graph.vertices_by_id() {
+                prop_assert_eq!(paths_d.dist(v), paths_bf.dist(v));
+                // Check only the distances. Paths as found by the two
+                // algorithms can be different in general.
+            }
+        }
+
+        #[test]
+        #[ignore = "run property-based tests with `cargo test proptest_ -- --ignored`"]
+        fn proptest_dijkstra_bellman_ford_agree_any_undirected(graph in graph_undirected(any::<()>(), any::<u16>().prop_map(|e| e as u32)).max_size(128), start: u64) {
+            let n = graph.vertex_count() as u64;
+            prop_assume!(n > 0);
+
+            let start = VertexId(start % n);
+            let paths_d = ShortestPaths::on(&graph).using(Algo::Dijkstra).run(start).unwrap();
+            let paths_bf = ShortestPaths::on(&graph).using(Algo::BellmanFord).run(start).unwrap();
+
+            for v in graph.vertices_by_id() {
+                prop_assert_eq!(paths_d.dist(v), paths_bf.dist(v));
+                // Check only the distances. Paths as found by the two
+                // algorithms can be different in general.
+            }
+        }
+
+        #[test]
+        #[ignore = "run property-based tests with `cargo test proptest_ -- --ignored`"]
+        fn proptest_dijkstra_bfs_agree_any_directed(graph in graph_directed(any::<()>(), any::<()>()).max_size(128), start: u64) {
+            let n = graph.vertex_count() as u64;
+            prop_assume!(n > 0);
+
+            let start = VertexId(start % n);
+            let paths_d = ShortestPaths::on(&graph).unit_weight().dijkstra().run(start).unwrap();
+            let paths_bfs = ShortestPaths::on(&graph).unit_weight().bfs().run(start).unwrap();
+
+            for v in graph.vertices_by_id() {
+                prop_assert_eq!(paths_d.dist(v), paths_bfs.dist(v));
+                // Check only the distances. Paths as found by the two
+                // algorithms can be different in general.
+            }
+        }
+
+        #[test]
+        #[ignore = "run property-based tests with `cargo test proptest_ -- --ignored`"]
+        fn proptest_dijkstra_bfs_agree_any_undirected(graph in graph_undirected(any::<()>(), any::<()>()).max_size(128), start: u64) {
+            let n = graph.vertex_count() as u64;
+            prop_assume!(n > 0);
+
+            let start = VertexId(start % n);
+            let paths_d = ShortestPaths::on(&graph).unit_weight().dijkstra().run(start).unwrap();
+            let paths_bfs = ShortestPaths::on(&graph).unit_weight().bfs().run(start).unwrap();
+
+            for v in graph.vertices_by_id() {
+                prop_assert_eq!(paths_d.dist(v), paths_bfs.dist(v));
+                // Check only the distances. Paths as found by the two
+                // algorithms can be different in general.
+            }
         }
     }
 }

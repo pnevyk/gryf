@@ -113,7 +113,6 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
     where
         T: IntoEdge<G, E>,
         I: IntoIterator<Item = T>,
-        V: Default,
         G: ExtendWithEdges<T, V, E>,
     {
         self.storage.extend_with_edges(iter)
@@ -123,7 +122,6 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
     where
         T: IntoEdge<G, E>,
         I: IntoIterator<Item = T>,
-        V: Default,
         G: ExtendWithEdges<T, V, E>,
     {
         Self::new_in(G::from_edges(iter))

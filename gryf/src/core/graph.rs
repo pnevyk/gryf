@@ -300,7 +300,11 @@ pub trait GraphFull<V, E>: GraphAdd<V, E> {
         }
     }
 
-    fn remove_edge_between(&mut self, src: &Self::VertexId, dst: &Self::VertexId) -> Option<E> {
+    fn remove_edges_between(&mut self, src: &Self::VertexId, dst: &Self::VertexId) {
+        while self.remove_edge_any_between(src, dst).is_some() {}
+    }
+
+    fn remove_edge_any_between(&mut self, src: &Self::VertexId, dst: &Self::VertexId) -> Option<E> {
         let id = self.edge_id_any(src, dst)?;
         self.remove_edge(&id)
     }
@@ -654,8 +658,16 @@ mod imp {
             (**self).clear()
         }
 
-        fn remove_edge_between(&mut self, src: &Self::VertexId, dst: &Self::VertexId) -> Option<E> {
-            (**self).remove_edge_between(src, dst)
+        fn remove_edges_between(&mut self, src: &Self::VertexId, dst: &Self::VertexId) {
+            (**self).remove_edges_between(src, dst)
+        }
+
+        fn remove_edge_any_between(
+            &mut self,
+            src: &Self::VertexId,
+            dst: &Self::VertexId,
+        ) -> Option<E> {
+            (**self).remove_edge_any_between(src, dst)
         }
 
         fn clear_edges(&mut self) {

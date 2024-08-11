@@ -655,7 +655,7 @@ mod tests {
         graph.add_vertex(0);
         graph.add_edge(&Index(0), &Index(0), -68);
         graph.clear_edges();
-        graph.remove_edge_between(&Index(0), &Index(0));
+        graph.remove_edge_any_between(&Index(0), &Index(0));
     }
 
     #[test]

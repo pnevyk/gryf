@@ -433,8 +433,12 @@ pub fn graph_full(tokens: TokenStream) -> TokenStream {
                 <#field_type as #gryf::core::GraphFull<V, E>>::clear(&mut self.#field_name)
             }
 
-            fn remove_edge_between(&mut self, src: &Self::VertexId, dst: &Self::VertexId) -> Option<E> {
-                <#field_type as #gryf::core::GraphFull<V, E>>::remove_edge_between(&mut self.#field_name, src, dst)
+            fn remove_edges_between(&mut self, src: &Self::VertexId, dst: &Self::VertexId) {
+                <#field_type as #gryf::core::GraphFull<V, E>>::remove_edges_between(&mut self.#field_name, src, dst)
+            }
+
+            fn remove_edge_any_between(&mut self, src: &Self::VertexId, dst: &Self::VertexId) -> Option<E> {
+                <#field_type as #gryf::core::GraphFull<V, E>>::remove_edge_any_between(&mut self.#field_name, src, dst)
             }
 
             fn clear_edges(&mut self) {

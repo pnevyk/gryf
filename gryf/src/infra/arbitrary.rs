@@ -169,7 +169,7 @@ impl<V, E> MutOpsSeq<V, E> {
                     println!("graph.add_edge(&{src:?}, &{dst:?}, {edge:?});")
                 }
                 MutOp::RemoveEdge(src, dst) => {
-                    println!("graph.remove_edge_between(&{src:?}, &{dst:?});")
+                    println!("graph.remove_edge_any_between(&{src:?}, &{dst:?});")
                 }
                 MutOp::ClearEdges => println!("graph.clear_edges();"),
             }

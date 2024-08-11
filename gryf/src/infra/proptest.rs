@@ -13,6 +13,7 @@ use crate::{
         GraphAdd,
     },
     graph::Graph,
+    visit::{Dfs, VisitSet, Visitor},
 };
 
 use super::testing::AsDot;
@@ -257,7 +258,7 @@ where
         // Some structural requirements (e.g., being connected) are difficult or
         // unfeasible to uphold during shrinking. For such cases, we fal back to
         // disable shrinking.
-        let no_shrink = false;
+        let mut no_shrink = false;
 
         let n = runner.rng().gen_range(0..=self.params.max_size);
         let p = runner.rng().gen::<f32>() * self.params.density;
@@ -330,10 +331,33 @@ where
         }
 
         if self.params.connected {
-            panic!("connected graphs are not supported yet");
+            // Difficult to uphold this requirement during shrinking.
+            no_shrink = true;
 
-            // TODO: Identify all connected components and connect these
-            // components with new edges.
+            // Identify all connected components and connect these components
+            // with new edges.
+            let mut graph = Graph::<_, _, Ty>::new();
+
+            graph.extend_with_vertices(vertices.iter());
+            graph.extend_with_edges(edges.iter());
+
+            let mut dfs = Dfs::new(&graph);
+            let mut component_roots = Vec::new();
+
+            while dfs.visited().visited_count() != vertices.len() {
+                let start = graph
+                    .vertices_by_id()
+                    .find(|v| !dfs.visited().is_visited(v))
+                    .unwrap();
+
+                component_roots.push(start);
+                dfs.start(start).iter(&graph).for_each(drop);
+            }
+
+            for pair in component_roots.windows(2) {
+                let e = self.edge.new_tree(runner)?;
+                edges.push((pair[0].into(), pair[1].into(), e));
+            }
         }
 
         if (!Ty::is_directed() && self.params.acyclic)
@@ -690,9 +714,12 @@ impl ShrinkAttrState {
 mod tests {
     use proptest::{strategy::check_strategy_sanity, test_runner::TestRunner};
 
-    use crate::core::{
-        base::{EdgeRef, VertexRef},
-        EdgeSet, GraphRef, VertexSet,
+    use crate::{
+        algo::is_connected,
+        core::{
+            base::{EdgeRef, VertexRef},
+            EdgeSet, GraphRef, VertexSet,
+        },
     };
 
     use super::*;
@@ -733,6 +760,27 @@ mod tests {
 
         for edge in graph.edges() {
             assert_eq!(*edge.attr(), 0);
+        }
+    }
+
+    #[test]
+    fn connected_graph_is_indeed_connected() {
+        let mut runner = TestRunner::deterministic();
+        let strategy = graph_undirected(0..100, 0..100)
+            .max_size(64)
+            .sparse()
+            .connected();
+
+        for _ in 0..1000 {
+            let tree = strategy.new_tree(&mut runner).unwrap();
+            let graph = tree.current();
+
+            if graph.vertex_count() <= 10 {
+                // No much sense to test almost trivial graphs.
+                continue;
+            }
+
+            assert!(is_connected(&graph));
         }
     }
 }

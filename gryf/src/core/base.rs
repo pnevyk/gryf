@@ -82,9 +82,9 @@ mod imp {
         }
     }
 
-    impl<Id: IdPair, E: Clone, I: Into<Id::VertexId> + Clone> IntoEdge<Id, E> for &(I, I, E) {
-        fn unpack(self) -> (Id::VertexId, Id::VertexId, E) {
-            (self.0.clone().into(), self.1.clone().into(), self.2.clone())
+    impl<'e, Id: IdPair, E, I: Into<Id::VertexId> + Clone> IntoEdge<Id, &'e E> for &'e (I, I, E) {
+        fn unpack(self) -> (Id::VertexId, Id::VertexId, &'e E) {
+            (self.0.clone().into(), self.1.clone().into(), &self.2)
         }
     }
 

@@ -43,31 +43,31 @@ mod tests {
         graph.remove_vertex(&v1);
 
         assert_eq!(graph.vertex_count(), 3);
-        assert_eq!(graph.vertex_ids().count(), graph.vertex_count());
+        assert_eq!(graph.vertices_by_id().count(), graph.vertex_count());
         assert_eq!(graph.vertices().count(), graph.vertex_count());
 
         assert_eq!(graph.edge_count(), 2);
-        assert_eq!(graph.edge_ids().count(), graph.edge_count());
+        assert_eq!(graph.edges_by_id().count(), graph.edge_count());
         assert_eq!(graph.edges().count(), graph.edge_count());
 
-        let valid_edge_ids = graph.edge_ids().all(|edge_id| {
+        let valid_edges_by_id = graph.edges_by_id().all(|edge_id| {
             let (src, dst) = graph.endpoints(&edge_id).unwrap();
             graph.edge_id_any(&src, &dst) == Some(edge_id)
         });
-        assert!(valid_edge_ids);
+        assert!(valid_edges_by_id);
 
         let mut deg = graph
-            .vertex_ids()
+            .vertices_by_id()
             .map(|id| graph.degree_undirected(&id))
             .collect::<Vec<_>>();
 
         let mut out_deg = graph
-            .vertex_ids()
+            .vertices_by_id()
             .map(|id| graph.degree_directed(&id, Direction::Outgoing))
             .collect::<Vec<_>>();
 
         let mut in_deg = graph
-            .vertex_ids()
+            .vertices_by_id()
             .map(|id| graph.degree_directed(&id, Direction::Incoming))
             .collect::<Vec<_>>();
 

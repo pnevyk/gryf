@@ -28,13 +28,13 @@ where
             }
         }
         None if graph.is_directed() && !as_undirected => match graph
-            .vertex_ids()
+            .vertices_by_id()
             // For directed graph, we can't start in any vertex, because then we
             // might miss the predecessors of such vertex and incorrectly mark
             // the graph as disconnected. Only if there is no vertex with in
             // degree 0, it is safe to start in any vertex.
             .find(|v| graph.degree_directed(v, Direction::Incoming) == 0)
-            .or_else(|| graph.vertex_ids().next())
+            .or_else(|| graph.vertices_by_id().next())
         {
             Some(v) => (v, None),
             None => {
@@ -45,7 +45,7 @@ where
                 };
             }
         },
-        None => match graph.vertex_ids().next() {
+        None => match graph.vertices_by_id().next() {
             Some(v) => (v, None),
             None => {
                 // Empty graph is trivially "connected".
@@ -133,7 +133,7 @@ where
         }
 
         let v = graph
-            .vertex_ids()
+            .vertices_by_id()
             .find(|v| !visited.is_visited(v))
             .expect("unvisited vertex");
 

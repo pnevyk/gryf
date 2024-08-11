@@ -178,7 +178,7 @@ where
     let vertex_count = graph.vertex_count();
 
     cmp(
-        graph.vertex_ids().count(),
+        graph.vertices_by_id().count(),
         vertex_count,
         Equal,
         ConsistencyCheckError::VertexIdsVertexCountMismatch,
@@ -199,7 +199,7 @@ where
     let edge_count = graph.edge_count();
 
     cmp(
-        graph.edge_ids().count(),
+        graph.edges_by_id().count(),
         edge_count,
         Equal,
         ConsistencyCheckError::EdgeIdsEdgeCountMismatch,
@@ -217,7 +217,7 @@ where
         ConsistencyCheckError::EdgeBoundInvalid,
     )?;
 
-    let invalid_edge_id = graph.edge_ids().enumerate().find_map(|(i, id)| {
+    let invalid_edge_id = graph.edges_by_id().enumerate().find_map(|(i, id)| {
         graph
             .endpoints(&id)
             // Ideally we would check `== Some(id)` but for that we would
@@ -233,17 +233,17 @@ where
     }
 
     let deg_sum = graph
-        .vertex_ids()
+        .vertices_by_id()
         .map(|id| graph.degree_undirected(&id))
         .sum::<usize>();
 
     let out_deg_sum = graph
-        .vertex_ids()
+        .vertices_by_id()
         .map(|id| graph.degree_directed(&id, Direction::Outgoing))
         .sum::<usize>();
 
     let in_deg_sum = graph
-        .vertex_ids()
+        .vertices_by_id()
         .map(|id| graph.degree_directed(&id, Direction::Incoming))
         .sum::<usize>();
 
@@ -311,12 +311,12 @@ where
     }
 
     let mut deg_seq_lhs = lhs
-        .vertex_ids()
+        .vertices_by_id()
         .map(|id| lhs.degree_directed(&id, Direction::Outgoing))
         .collect::<Vec<_>>();
 
     let mut deg_seq_rhs = rhs
-        .vertex_ids()
+        .vertices_by_id()
         .map(|id| rhs.degree_directed(&id, Direction::Outgoing))
         .collect::<Vec<_>>();
 

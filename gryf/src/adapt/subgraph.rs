@@ -118,12 +118,16 @@ impl<G, S> VertexSet for Subgraph<G, S>
 where
     G: VertexSet,
 {
-    type VertexIdsIter<'a> = SubsetIter<'a, G::VertexIdsIter<'a>, G::VertexId>
+    type VerticesByIdIter<'a> = SubsetIter<'a, G::VerticesByIdIter<'a>, G::VertexId>
     where
         Self: 'a;
 
-    fn vertex_ids(&self) -> Self::VertexIdsIter<'_> {
-        SubsetIter::new(self.graph.vertex_ids(), |id| self.check_vertex(id), true)
+    fn vertices_by_id(&self) -> Self::VerticesByIdIter<'_> {
+        SubsetIter::new(
+            self.graph.vertices_by_id(),
+            |id| self.check_vertex(id),
+            true,
+        )
     }
 
     fn vertex_bound(&self) -> usize
@@ -142,7 +146,7 @@ impl<G, S> EdgeSet for Subgraph<G, S>
 where
     G: EdgeSet,
 {
-    type EdgeIdsIter<'a> = SubsetIter<'a, G::EdgeIdsIter<'a>, G::EdgeId>
+    type EdgesByIdIter<'a> = SubsetIter<'a, G::EdgesByIdIter<'a>, G::EdgeId>
     where
         Self: 'a;
 
@@ -150,8 +154,8 @@ where
     where
         Self: 'a;
 
-    fn edge_ids(&self) -> Self::EdgeIdsIter<'_> {
-        SubsetIter::new(self.graph.edge_ids(), |id| self.contains_edge(id), true)
+    fn edges_by_id(&self) -> Self::EdgesByIdIter<'_> {
+        SubsetIter::new(self.graph.edges_by_id(), |id| self.contains_edge(id), true)
     }
 
     fn edge_id(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Self::EdgeIdIter<'_> {
@@ -365,12 +369,12 @@ mod tests {
     }
 
     #[test]
-    fn subgraph_vertex_ids() {
+    fn subgraph_vertices_by_id() {
         let subgraph = create_subgraph();
 
-        let mut vertex_ids = subgraph.vertex_ids().collect::<Vec<_>>();
-        vertex_ids.sort_unstable();
-        assert_eq!(&vertex_ids, &[v(0), v(1), v(2), v(3)]);
+        let mut vertices_by_id = subgraph.vertices_by_id().collect::<Vec<_>>();
+        vertices_by_id.sort_unstable();
+        assert_eq!(&vertices_by_id, &[v(0), v(1), v(2), v(3)]);
     }
 
     #[test]
@@ -393,9 +397,9 @@ mod tests {
     fn subgraph_vertices() {
         let subgraph = create_subgraph();
 
-        let mut vertex_ids = subgraph.vertices().map(|v| *v.id()).collect::<Vec<_>>();
-        vertex_ids.sort_unstable();
-        assert_eq!(&vertex_ids, &[v(0), v(1), v(2), v(3)]);
+        let mut vertices_by_id = subgraph.vertices().map(|v| *v.id()).collect::<Vec<_>>();
+        vertices_by_id.sort_unstable();
+        assert_eq!(&vertices_by_id, &[v(0), v(1), v(2), v(3)]);
     }
 
     #[test]
@@ -437,12 +441,12 @@ mod tests {
     }
 
     #[test]
-    fn subgraph_edge_ids() {
+    fn subgraph_edges_by_id() {
         let subgraph = create_subgraph();
 
-        let mut edge_ids = subgraph.edge_ids().collect::<Vec<_>>();
-        edge_ids.sort_unstable();
-        assert_eq!(&edge_ids, &[e(0), e(1), e(2), e(3)]);
+        let mut edges_by_id = subgraph.edges_by_id().collect::<Vec<_>>();
+        edges_by_id.sort_unstable();
+        assert_eq!(&edges_by_id, &[e(0), e(1), e(2), e(3)]);
     }
 
     #[test]
@@ -467,39 +471,39 @@ mod tests {
     fn subgraph_edges() {
         let subgraph = create_subgraph();
 
-        let mut edge_ids = subgraph.edges().map(|e| *e.id()).collect::<Vec<_>>();
-        edge_ids.sort_unstable();
-        assert_eq!(&edge_ids, &[e(0), e(1), e(2), e(3)]);
+        let mut edges_by_id = subgraph.edges().map(|e| *e.id()).collect::<Vec<_>>();
+        edges_by_id.sort_unstable();
+        assert_eq!(&edges_by_id, &[e(0), e(1), e(2), e(3)]);
     }
 
     #[test]
     fn subgraph_neighbors() {
         let subgraph = create_subgraph();
 
-        let mut edge_ids = subgraph
+        let mut edges_by_id = subgraph
             .neighbors_undirected(&v(1))
             .map(|e| e.edge().into_owned())
             .collect::<Vec<_>>();
-        edge_ids.sort_unstable();
-        assert_eq!(&edge_ids, &[e(0), e(3)]);
+        edges_by_id.sort_unstable();
+        assert_eq!(&edges_by_id, &[e(0), e(3)]);
     }
 
     #[test]
     fn subgraph_neighbors_directed() {
         let subgraph = create_subgraph();
 
-        let mut edge_ids = subgraph
+        let mut edges_by_id = subgraph
             .neighbors_directed(&v(3), Direction::Incoming)
             .map(|e| e.edge().into_owned())
             .collect::<Vec<_>>();
-        edge_ids.sort_unstable();
-        assert_eq!(&edge_ids, &[e(2)]);
+        edges_by_id.sort_unstable();
+        assert_eq!(&edges_by_id, &[e(2)]);
 
-        let mut edge_ids = subgraph
+        let mut edges_by_id = subgraph
             .neighbors_directed(&v(1), Direction::Outgoing)
             .map(|e| e.edge().into_owned())
             .collect::<Vec<_>>();
-        edge_ids.sort_unstable();
-        assert_eq!(&edge_ids, &[e(3)]);
+        edges_by_id.sort_unstable();
+        assert_eq!(&edges_by_id, &[e(3)]);
     }
 }

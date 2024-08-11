@@ -110,11 +110,11 @@ impl<V, E, Ty: EdgeType, Id: IdPair> VertexSet for AdjMatrix<V, E, Ty, Id>
 where
     Id::VertexId: IntegerIdType,
 {
-    type VertexIdsIter<'a> = VertexIds<Self::VertexId>
+    type VerticesByIdIter<'a> = VertexIds<Self::VertexId>
     where
         Self: 'a;
 
-    fn vertex_ids(&self) -> Self::VertexIdsIter<'_> {
+    fn vertices_by_id(&self) -> Self::VerticesByIdIter<'_> {
         (0..self.vertices.len()).into()
     }
 
@@ -146,7 +146,7 @@ where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
 {
-    type EdgeIdsIter<'a> = EdgeIdsIter<'a, Ty, Id>
+    type EdgesByIdIter<'a> = EdgesByIdIter<'a, Ty, Id>
     where
         Self: 'a;
 
@@ -154,8 +154,8 @@ where
     where
         Self: 'a;
 
-    fn edge_ids(&self) -> Self::EdgeIdsIter<'_> {
-        EdgeIdsIter {
+    fn edges_by_id(&self) -> Self::EdgesByIdIter<'_> {
+        EdgesByIdIter {
             matrix: self.matrix.detach(),
             index: 0,
             edge_bound: self.edge_bound(),
@@ -414,14 +414,14 @@ where
 
 impl<V, E, Ty: EdgeType, Id: IdPair> Guarantee for AdjMatrix<V, E, Ty, Id> {}
 
-pub struct EdgeIdsIter<'a, Ty, Id> {
+pub struct EdgesByIdIter<'a, Ty, Id> {
     matrix: raw::DetachedMatrix<'a, Ty, Id>,
     index: usize,
     edge_bound: usize,
     ty: PhantomData<fn() -> Id>,
 }
 
-impl<'a, Ty: EdgeType, Id: IdPair> Iterator for EdgeIdsIter<'a, Ty, Id>
+impl<'a, Ty: EdgeType, Id: IdPair> Iterator for EdgesByIdIter<'a, Ty, Id>
 where
     Id::EdgeId: IntegerIdType,
 {

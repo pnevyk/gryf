@@ -81,7 +81,7 @@ impl<G> EdgeSet for Transpose<G>
 where
     G: EdgeSet,
 {
-    type EdgeIdsIter<'a> = G::EdgeIdsIter<'a>
+    type EdgesByIdIter<'a> = G::EdgesByIdIter<'a>
     where
         Self: 'a;
 
@@ -89,8 +89,8 @@ where
     where
         Self: 'a;
 
-    fn edge_ids(&self) -> Self::EdgeIdsIter<'_> {
-        self.graph.edge_ids()
+    fn edges_by_id(&self) -> Self::EdgesByIdIter<'_> {
+        self.graph.edges_by_id()
     }
 
     fn edge_id(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Self::EdgeIdIter<'_> {

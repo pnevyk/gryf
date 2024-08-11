@@ -19,7 +19,7 @@ where
     let mut in_deg = Vec::with_capacity(map.len());
     let mut queue = Vec::new();
 
-    for v in graph.vertex_ids() {
+    for v in graph.vertices_by_id() {
         let deg = graph.degree_directed(&v, Direction::Incoming);
         in_deg.push(deg);
 

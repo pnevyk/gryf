@@ -110,12 +110,12 @@ pub fn vertex_set(tokens: TokenStream) -> TokenStream {
 
     let implemented = quote! {
         impl #impl_generics #gryf::core::VertexSet for #name #ty_generics #where_clause {
-            type VertexIdsIter<'a> = <#field_type as #gryf::core::VertexSet>::VertexIdsIter<'a>
+            type VerticesByIdIter<'a> = <#field_type as #gryf::core::VertexSet>::VerticesByIdIter<'a>
             where
                 Self: 'a;
 
-            fn vertex_ids(&self) -> Self::VertexIdsIter<'_> {
-                <#field_type as #gryf::core::VertexSet>::vertex_ids(&self.#field_name)
+            fn vertices_by_id(&self) -> Self::VerticesByIdIter<'_> {
+                <#field_type as #gryf::core::VertexSet>::vertices_by_id(&self.#field_name)
             }
 
             fn vertex_count(&self) -> usize {
@@ -165,7 +165,7 @@ pub fn edge_set(tokens: TokenStream) -> TokenStream {
 
     let implemented = quote! {
         impl #impl_generics #gryf::core::EdgeSet for #name #ty_generics #where_clause {
-            type EdgeIdsIter<'a> = <#field_type as #gryf::core::EdgeSet>::EdgeIdsIter<'a>
+            type EdgesByIdIter<'a> = <#field_type as #gryf::core::EdgeSet>::EdgesByIdIter<'a>
             where
                 Self: 'a;
 
@@ -173,8 +173,8 @@ pub fn edge_set(tokens: TokenStream) -> TokenStream {
             where
                 Self: 'a;
 
-            fn edge_ids(&self) -> Self::EdgeIdsIter<'_> {
-                <#field_type as #gryf::core::EdgeSet>::edge_ids(&self.#field_name)
+            fn edges_by_id(&self) -> Self::EdgesByIdIter<'_> {
+                <#field_type as #gryf::core::EdgeSet>::edges_by_id(&self.#field_name)
             }
 
             fn edge_id(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Self::EdgeIdIter<'_> {

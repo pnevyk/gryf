@@ -75,28 +75,28 @@ pub trait Neighbors: GraphBase {
 }
 
 pub trait VertexSet: GraphBase {
-    type VertexIdsIter<'a>: Iterator<Item = Self::VertexId>
+    type VerticesByIdIter<'a>: Iterator<Item = Self::VertexId>
     where
         Self: 'a;
 
-    fn vertex_ids(&self) -> Self::VertexIdsIter<'_>;
+    fn vertices_by_id(&self) -> Self::VerticesByIdIter<'_>;
 
     fn vertex_count(&self) -> usize {
-        self.vertex_ids().count()
+        self.vertices_by_id().count()
     }
 
     fn vertex_bound(&self) -> usize
     where
         Self::VertexId: IntegerIdType,
     {
-        self.vertex_ids()
+        self.vertices_by_id()
             .map(|v| v.as_usize())
             .max()
             .unwrap_or_default()
     }
 
     fn contains_vertex(&self, id: &Self::VertexId) -> bool {
-        self.vertex_ids().any(|v| &v == id)
+        self.vertices_by_id().any(|v| &v == id)
     }
 
     fn vertex_id_map(&self) -> CompactIdMap<Self::VertexId>
@@ -104,12 +104,12 @@ pub trait VertexSet: GraphBase {
         Self::VertexId: IntegerIdType,
     {
         // Should be overridden to use `isomorphic` whenever possible.
-        CompactIdMap::new(self.vertex_ids())
+        CompactIdMap::new(self.vertices_by_id())
     }
 }
 
 pub trait EdgeSet: GraphBase {
-    type EdgeIdsIter<'a>: Iterator<Item = Self::EdgeId>
+    type EdgesByIdIter<'a>: Iterator<Item = Self::EdgeId>
     where
         Self: 'a;
 
@@ -117,28 +117,28 @@ pub trait EdgeSet: GraphBase {
     where
         Self: 'a;
 
-    fn edge_ids(&self) -> Self::EdgeIdsIter<'_>;
+    fn edges_by_id(&self) -> Self::EdgesByIdIter<'_>;
 
     fn edge_id(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Self::EdgeIdIter<'_>;
 
     fn endpoints(&self, id: &Self::EdgeId) -> Option<(Self::VertexId, Self::VertexId)>;
 
     fn edge_count(&self) -> usize {
-        self.edge_ids().count()
+        self.edges_by_id().count()
     }
 
     fn edge_bound(&self) -> usize
     where
         Self::EdgeId: IntegerIdType,
     {
-        self.edge_ids()
+        self.edges_by_id()
             .map(|e| e.as_usize())
             .max()
             .unwrap_or_default()
     }
 
     fn contains_edge(&self, id: &Self::EdgeId) -> bool {
-        self.edge_ids().any(|e| &e == id)
+        self.edges_by_id().any(|e| &e == id)
     }
 
     fn edge_id_any(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Option<Self::EdgeId> {
@@ -150,7 +150,7 @@ pub trait EdgeSet: GraphBase {
         Self::EdgeId: IntegerIdType,
     {
         // Should be overridden to use `isomorphic` whenever possible.
-        CompactIdMap::new(self.edge_ids())
+        CompactIdMap::new(self.edges_by_id())
     }
 }
 
@@ -317,7 +317,7 @@ pub trait GraphFull<V, E>: GraphAdd<V, E> {
     fn remove_edge(&mut self, id: &Self::EdgeId) -> Option<E>;
 
     fn clear(&mut self) {
-        let mut vertices = self.vertex_ids().collect::<Vec<_>>();
+        let mut vertices = self.vertices_by_id().collect::<Vec<_>>();
         vertices.reverse();
 
         for v in vertices {
@@ -335,7 +335,7 @@ pub trait GraphFull<V, E>: GraphAdd<V, E> {
     }
 
     fn clear_edges(&mut self) {
-        let mut edges = self.edge_ids().collect::<Vec<_>>();
+        let mut edges = self.edges_by_id().collect::<Vec<_>>();
         edges.reverse();
 
         for e in edges {
@@ -436,12 +436,12 @@ mod imp {
             where
                 G: VertexSet,
             {
-                type VertexIdsIter<'a> = G::VertexIdsIter<'a>
+                type VerticesByIdIter<'a> = G::VerticesByIdIter<'a>
                 where
                     Self: 'a;
 
-                fn vertex_ids(&self) -> Self::VertexIdsIter<'_> {
-                    (**self).vertex_ids()
+                fn vertices_by_id(&self) -> Self::VerticesByIdIter<'_> {
+                    (**self).vertices_by_id()
                 }
 
                 fn vertex_count(&self) -> usize {
@@ -478,7 +478,7 @@ mod imp {
             where
                 G: EdgeSet,
             {
-                type EdgeIdsIter<'a> = G::EdgeIdsIter<'a>
+                type EdgesByIdIter<'a> = G::EdgesByIdIter<'a>
                 where
                     Self: 'a;
 
@@ -486,8 +486,8 @@ mod imp {
                 where
                     Self: 'a;
 
-                fn edge_ids(&self) -> Self::EdgeIdsIter<'_> {
-                    (**self).edge_ids()
+                fn edges_by_id(&self) -> Self::EdgesByIdIter<'_> {
+                    (**self).edges_by_id()
                 }
 
                 fn edge_id(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Self::EdgeIdIter<'_> {

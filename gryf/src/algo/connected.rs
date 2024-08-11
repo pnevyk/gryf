@@ -106,7 +106,7 @@ mod tests {
                 let mut visited = HashSet::with_capacity(graph.vertex_count());
                 let start = match between {
                     Some((ref start, _)) => start.clone(),
-                    None => match graph.vertex_ids().next() {
+                    None => match graph.vertices_by_id().next() {
                         Some(start) => start,
                         None => return,
                     },

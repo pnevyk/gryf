@@ -43,10 +43,10 @@ where
     {
         let mut graph = self.graph;
         let original_edges = graph
-            .edge_ids()
+            .edges_by_id()
             .map(|e| graph.endpoints(&e).unwrap())
             .collect::<FxHashSet<_>>();
-        let vertices = graph.vertex_ids().collect::<Vec<_>>();
+        let vertices = graph.vertices_by_id().collect::<Vec<_>>();
 
         graph.clear_edges();
 
@@ -86,7 +86,7 @@ where
                 .neighbors_undirected(src)
                 .map(|n| n.id().into_owned().into())
                 .collect(),
-            vertices: self.graph.vertex_ids(),
+            vertices: self.graph.vertices_by_id(),
         }
     }
 
@@ -99,7 +99,7 @@ where
                 .neighbors_directed(src, dir)
                 .map(|n| n.id().into_owned().into())
                 .collect(),
-            vertices: self.graph.vertex_ids(),
+            vertices: self.graph.vertices_by_id(),
         }
     }
 }
@@ -111,7 +111,7 @@ where
     src: G::VertexId,
     dir: Direction,
     neighbors: FxHashSet<WeakRef<'a, G::VertexId>>,
-    vertices: G::VertexIdsIter<'a>,
+    vertices: G::VerticesByIdIter<'a>,
 }
 
 impl<'a, G> Iterator for NeighborsIter<'a, G>

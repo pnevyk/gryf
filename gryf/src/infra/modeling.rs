@@ -191,11 +191,11 @@ impl<V, E, Ty: EdgeType> GraphBase for Model<V, E, Ty> {
 }
 
 impl<V, E, Ty: EdgeType> VertexSet for Model<V, E, Ty> {
-    type VertexIdsIter<'a> = IdIter<'a, VertexId, V>
+    type VerticesByIdIter<'a> = IdIter<'a, VertexId, V>
     where
         Self: 'a;
 
-    fn vertex_ids(&self) -> Self::VertexIdsIter<'_> {
+    fn vertices_by_id(&self) -> Self::VerticesByIdIter<'_> {
         IdIter::new(&self.vertices)
     }
 
@@ -213,7 +213,7 @@ impl<V, E, Ty: EdgeType> VertexSet for Model<V, E, Ty> {
 }
 
 impl<V, E, Ty: EdgeType> EdgeSet for Model<V, E, Ty> {
-    type EdgeIdsIter<'a> = IdIter<'a, EdgeId, E>
+    type EdgesByIdIter<'a> = IdIter<'a, EdgeId, E>
     where
         Self: 'a;
 
@@ -221,7 +221,7 @@ impl<V, E, Ty: EdgeType> EdgeSet for Model<V, E, Ty> {
     where
         Self: 'a;
 
-    fn edge_ids(&self) -> Self::EdgeIdsIter<'_> {
+    fn edges_by_id(&self) -> Self::EdgesByIdIter<'_> {
         IdIter::new(&self.edges)
     }
 

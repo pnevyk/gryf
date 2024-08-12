@@ -4,6 +4,8 @@ pub use compact_id_map::CompactIdMap;
 
 use std::{fmt::Debug, hash::Hash, marker::PhantomData};
 
+use super::borrow::OwnableRef;
+
 /// A unique identification of a vertex or edge in a graph.
 ///
 /// In standard graph representations, the id type is an integer. Conceptually,
@@ -82,6 +84,10 @@ impl<T: IdType, U: IdType> IdType for (T, U) {
     fn from_bits(_: u64) -> Self {
         panic!("unsupported")
     }
+}
+
+pub trait AsIdRef<I: IdType> {
+    fn as_id(&self) -> OwnableRef<'_, I>;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -254,5 +260,54 @@ impl IdType for () {
 
     fn from_bits(_: u64) -> Self {
         panic!("unsupported")
+    }
+}
+
+impl<I> AsIdRef<I> for I
+where
+    I: IdType,
+{
+    fn as_id(&self) -> OwnableRef<'_, I> {
+        OwnableRef::Borrowed(self)
+    }
+}
+
+impl<I> AsIdRef<I> for &I
+where
+    I: IdType,
+{
+    fn as_id(&self) -> OwnableRef<'_, I> {
+        OwnableRef::Borrowed(self)
+    }
+}
+
+impl<I> AsIdRef<I> for usize
+where
+    I: IntegerIdType,
+{
+    fn as_id(&self) -> OwnableRef<'_, I> {
+        OwnableRef::Owned(I::from(*self))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn supports_different_id_variants() {
+        fn inner(_id: &VertexId) {}
+
+        fn outer<I>(id: I)
+        where
+            I: AsIdRef<VertexId>,
+        {
+            inner(id.as_id().as_ref())
+        }
+
+        outer(VertexId::from_usize(3));
+        #[allow(clippy::needless_borrows_for_generic_args)]
+        outer(&VertexId::from_usize(3));
+        outer(3);
     }
 }

@@ -37,10 +37,27 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo clippy --tests
 
+  check:
+    name: Cargo check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            .
+            fuzz
+      - name: Cargo check (gryf)
+        run: cargo check --all-targets
+      - name: Cargo check (fuzz)
+        run: cargo check
+        working-directory: fuzz
+
   test:
     name: Test (${{ matrix.rust }})
     runs-on: ubuntu-latest
-    needs: [format, lint]
+    needs: [format, lint, check]
     strategy:
       fail-fast: false
       matrix:
@@ -54,18 +71,3 @@ jobs:
       - run: cargo test
       - run: cargo test proptest_ -- --ignored
         if: matrix.rust == 'stable'
-
-  fuzz-check:
-    name: Fuzz check
-    runs-on: ubuntu-latest
-    needs: [format, lint]
-    defaults:
-      run:
-        working-directory: fuzz
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: fuzz
-      - run: cargo check

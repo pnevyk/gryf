@@ -306,6 +306,15 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         self.storage.contains_edge(id.borrow())
     }
 
+    pub fn contains_edge_between<VId>(&self, src: VId, dst: VId) -> bool
+    where
+        G: EdgeSet,
+        VId: Borrow<G::VertexId>,
+    {
+        self.storage
+            .contains_edge_between(src.borrow(), dst.borrow())
+    }
+
     pub fn is_directed(&self) -> bool
     where
         G: GraphBase,

@@ -200,6 +200,10 @@ pub fn edge_set(tokens: TokenStream) -> TokenStream {
                 <#field_type as #gryf::core::EdgeSet>::contains_edge(&self.#field_name, id)
             }
 
+            fn contains_edge_between(&self, src: &Self::VertexId, dst: &Self::VertexId) -> bool {
+                <#field_type as #gryf::core::EdgeSet>::contains_edge_between(&self.#field_name, src, dst)
+            }
+
             fn edge_id_any(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Option<Self::EdgeId> {
                 <#field_type as #gryf::core::EdgeSet>::edge_id_any(&self.#field_name, src, dst)
             }

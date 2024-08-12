@@ -141,6 +141,10 @@ pub trait EdgeSet: GraphBase {
         self.edges_by_id().any(|e| &e == id)
     }
 
+    fn contains_edge_between(&self, src: &Self::VertexId, dst: &Self::VertexId) -> bool {
+        self.edge_id_any(src, dst).is_some()
+    }
+
     fn edge_id_any(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Option<Self::EdgeId> {
         self.edge_id(src, dst).next()
     }
@@ -511,6 +515,10 @@ mod imp {
 
                 fn contains_edge(&self, id: &Self::EdgeId) -> bool {
                     (**self).contains_edge(id)
+                }
+
+                fn contains_edge_between(&self, src: &Self::VertexId, dst: &Self::VertexId) -> bool {
+                    (**self).contains_edge_between(src, dst)
                 }
 
                 fn edge_id_any(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Option<Self::EdgeId> {

@@ -32,13 +32,15 @@ fn main() {
     let florence = graph.add_vertex("Florence");
     let rome = graph.add_vertex("Rome");
 
-    graph.add_edge(prague, bratislava, 328u32);
-    graph.add_edge(prague, nuremberg, 293);
-    graph.add_edge(bratislava, vienna, 79);
-    graph.add_edge(nuremberg, munich, 170);
-    graph.add_edge(vienna, munich, 402);
-    graph.add_edge(munich, florence, 646);
-    graph.add_edge(florence, rome, 278);
+    graph.extend_with_edges([
+        (prague, bratislava, 328u32),
+        (prague, nuremberg, 293),
+        (bratislava, vienna, 79),
+        (nuremberg, munich, 170),
+        (vienna, munich, 402),
+        (munich, florence, 646),
+        (florence, rome, 278),
+    ]);
 
     // As the edge weights are unsigned and there is a specific goal, Dijktra's
     // algorithm is applied. For signed edges, Bellman-Ford would be used.

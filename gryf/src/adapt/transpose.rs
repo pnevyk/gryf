@@ -1,9 +1,9 @@
 use crate::core::{
     base::{EdgeRef, NeighborRef},
+    borrow::OwnableRef,
     id::IdType,
     marker::{Directed, Direction},
     props::{Stability, StableId},
-    weak::WeakRef,
     EdgeSet, GraphBase, GraphFull, GraphRef, Neighbors,
 };
 
@@ -184,15 +184,15 @@ where
     EId: IdType,
     R: NeighborRef<VId, EId>,
 {
-    fn id(&self) -> WeakRef<'_, VId> {
+    fn id(&self) -> OwnableRef<'_, VId> {
         self.0.id()
     }
 
-    fn edge(&self) -> WeakRef<'_, EId> {
+    fn edge(&self) -> OwnableRef<'_, EId> {
         self.0.edge()
     }
 
-    fn src(&self) -> WeakRef<'_, VId> {
+    fn src(&self) -> OwnableRef<'_, VId> {
         self.0.src()
     }
 

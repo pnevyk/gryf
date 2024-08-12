@@ -2,9 +2,9 @@ use std::iter;
 
 use gryf::{
     core::{
+        borrow::OwnableRef,
         id::{EdgeId, IdType, VertexId},
         marker::{Directed, Direction},
-        weak::WeakRef,
         GraphBase, Neighbors,
     },
     prelude::*,
@@ -27,17 +27,17 @@ struct Neighbor {
 }
 
 impl NeighborRef<VertexId, EdgeId> for Neighbor {
-    fn id(&self) -> WeakRef<'_, VertexId> {
+    fn id(&self) -> OwnableRef<'_, VertexId> {
         let n = self.src.as_bits();
         let c = if n % 2 == 0 { n / 2 } else { 3 * n + 1 };
-        WeakRef::Owned(to_vertex(c))
+        OwnableRef::Owned(to_vertex(c))
     }
 
-    fn edge(&self) -> WeakRef<'_, EdgeId> {
-        WeakRef::Owned(EdgeId::from_bits(self.src.as_bits()))
+    fn edge(&self) -> OwnableRef<'_, EdgeId> {
+        OwnableRef::Owned(EdgeId::from_bits(self.src.as_bits()))
     }
 
-    fn src(&self) -> WeakRef<'_, VertexId> {
+    fn src(&self) -> OwnableRef<'_, VertexId> {
         self.src.into()
     }
 

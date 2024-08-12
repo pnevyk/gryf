@@ -2,13 +2,13 @@ use std::mem;
 
 use super::{
     base::{EdgeRef, NeighborRef, VertexRef},
+    borrow::OwnableRef,
     error::{
         AddEdgeConnectingError, AddEdgeError, AddVertexError, ReplaceEdgeError,
         ReplaceEdgeErrorKind, ReplaceVertexError, ReplaceVertexErrorKind,
     },
     id::{CompactIdMap, IdType, IntegerIdType},
     marker::{Direction, EdgeType},
-    weak::WeakRef,
 };
 
 pub trait GraphBase {
@@ -200,8 +200,8 @@ pub trait GraphRef<V, E>: VertexSet + EdgeSet {
 }
 
 pub trait GraphWeak<V, E>: GraphBase {
-    fn vertex_weak(&self, id: &Self::VertexId) -> Option<WeakRef<'_, V>>;
-    fn edge_weak(&self, id: &Self::EdgeId) -> Option<WeakRef<'_, E>>;
+    fn vertex_weak(&self, id: &Self::VertexId) -> Option<OwnableRef<'_, V>>;
+    fn edge_weak(&self, id: &Self::EdgeId) -> Option<OwnableRef<'_, E>>;
 }
 
 pub trait GraphMut<V, E>: GraphRef<V, E> {
@@ -365,12 +365,12 @@ mod imp {
     where
         G: GraphRef<V, E>,
     {
-        fn vertex_weak(&self, id: &Self::VertexId) -> Option<WeakRef<'_, V>> {
-            self.vertex(id).map(WeakRef::Borrowed)
+        fn vertex_weak(&self, id: &Self::VertexId) -> Option<OwnableRef<'_, V>> {
+            self.vertex(id).map(OwnableRef::Borrowed)
         }
 
-        fn edge_weak(&self, id: &Self::EdgeId) -> Option<WeakRef<'_, E>> {
-            self.edge(id).map(WeakRef::Borrowed)
+        fn edge_weak(&self, id: &Self::EdgeId) -> Option<OwnableRef<'_, E>> {
+            self.edge(id).map(OwnableRef::Borrowed)
         }
     }
 

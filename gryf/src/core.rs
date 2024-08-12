@@ -1,4 +1,5 @@
 pub mod base;
+pub mod borrow;
 pub mod connect;
 pub mod create;
 pub mod error;
@@ -7,7 +8,6 @@ pub mod id;
 pub mod marker;
 pub mod matrix;
 pub mod props;
-pub mod weak;
 pub mod weight;
 
 mod graph;

@@ -2,10 +2,10 @@ use rustc_hash::FxHashSet;
 
 use crate::core::{
     base::NeighborRef,
+    borrow::OwnableRef,
     facts,
     id::{IdType, IntegerIdType},
     marker::{Direction, Undirected},
-    weak::WeakRef,
     EdgeSet, GraphBase, GraphFull, Neighbors, VertexSet,
 };
 
@@ -110,7 +110,7 @@ where
 {
     src: G::VertexId,
     dir: Direction,
-    neighbors: FxHashSet<WeakRef<'a, G::VertexId>>,
+    neighbors: FxHashSet<OwnableRef<'a, G::VertexId>>,
     vertices: G::VerticesByIdIter<'a>,
 }
 

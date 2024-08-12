@@ -224,6 +224,13 @@ where
         self.storage.vertex_count()
     }
 
+    pub fn vertex_count_hint(&self) -> Option<usize>
+    where
+        G: GraphBase,
+    {
+        self.storage.vertex_count_hint()
+    }
+
     pub fn vertex_bound(&self) -> usize
     where
         G: VertexSet,
@@ -239,6 +246,14 @@ where
         self.storage.vertices_by_id()
     }
 
+    pub fn contains_vertex<VId>(&self, id: VId) -> bool
+    where
+        G: GraphRef<V, E>,
+        VId: AsIdRef<G::VertexId>,
+    {
+        self.storage.contains_vertex(id.as_id().as_ref())
+    }
+
     pub fn vertex<VId>(&self, id: VId) -> Option<&V>
     where
         G: GraphRef<V, E>,
@@ -252,6 +267,14 @@ where
         G: GraphRef<V, E>,
     {
         self.storage.vertices()
+    }
+
+    pub fn find_vertex(&self, vertex: &V) -> Option<G::VertexId>
+    where
+        G: GraphRef<V, E>,
+        V: Eq,
+    {
+        self.storage.find_vertex(vertex)
     }
 
     pub fn vertex_mut<VId>(&mut self, id: VId) -> Option<&mut V>
@@ -463,6 +486,13 @@ where
         G: EdgeSet,
     {
         self.storage.edge_count()
+    }
+
+    pub fn edge_count_hint(&self) -> Option<usize>
+    where
+        G: GraphBase,
+    {
+        self.storage.edge_count_hint()
     }
 
     pub fn edge_bound(&self) -> usize

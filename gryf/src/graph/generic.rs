@@ -140,6 +140,13 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         self.storage.vertex_count()
     }
 
+    pub fn vertex_count_hint(&self) -> Option<usize>
+    where
+        G: GraphBase,
+    {
+        self.storage.vertex_count_hint()
+    }
+
     pub fn vertex_bound(&self) -> usize
     where
         G: VertexSet,
@@ -153,6 +160,14 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         G: VertexSet,
     {
         self.storage.vertices_by_id()
+    }
+
+    pub fn contains_vertex<VId>(&self, id: VId) -> bool
+    where
+        G: GraphRef<V, E>,
+        VId: AsIdRef<G::VertexId>,
+    {
+        self.storage.contains_vertex(id.as_id().as_ref())
     }
 
     pub fn vertex<VId>(&self, id: VId) -> Option<&V>
@@ -256,6 +271,13 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         G: EdgeSet,
     {
         self.storage.edge_count()
+    }
+
+    pub fn edge_count_hint(&self) -> Option<usize>
+    where
+        G: GraphBase,
+    {
+        self.storage.edge_count_hint()
     }
 
     pub fn edge_bound(&self) -> usize

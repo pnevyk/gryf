@@ -1,5 +1,4 @@
 use std::{
-    borrow::Borrow,
     hash::BuildHasherDefault,
     marker::PhantomData,
     ops::{Deref, Index, IndexMut},
@@ -13,7 +12,7 @@ use crate::{
         base::NeighborRef,
         create::Create,
         error::{AddEdgeError, AddVertexError, ReplaceEdgeError, ReplaceVertexError},
-        id::{DefaultId, IntegerIdType},
+        id::{AsIdRef, DefaultId, IntegerIdType},
         marker::{Directed, Direction, EdgeType, Undirected},
         props::{Constrained, Guarantee},
         EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Neighbors, VertexSet,
@@ -243,9 +242,9 @@ where
     pub fn vertex<VId>(&self, id: VId) -> Option<&V>
     where
         G: GraphRef<V, E>,
-        VId: Borrow<G::VertexId>,
+        VId: AsIdRef<G::VertexId>,
     {
-        self.storage.vertex(id.borrow())
+        self.storage.vertex(id.as_id().as_ref())
     }
 
     pub fn vertices(&self) -> G::VerticesIter<'_>
@@ -258,9 +257,9 @@ where
     pub fn vertex_mut<VId>(&mut self, id: VId) -> Option<&mut V>
     where
         G: GraphMut<V, E>,
-        VId: Borrow<G::VertexId>,
+        VId: AsIdRef<G::VertexId>,
     {
-        self.storage.vertex_mut(id.borrow())
+        self.storage.vertex_mut(id.as_id().as_ref())
     }
 
     pub fn try_add_vertex<VId>(
@@ -271,9 +270,10 @@ where
     ) -> Result<G::VertexId, PathError<V, E>>
     where
         G: Neighbors + GraphAdd<V, E>,
-        VId: Borrow<G::VertexId>,
+        VId: AsIdRef<G::VertexId>,
     {
-        let end = end.borrow();
+        let end = end.as_id();
+        let end = end.as_ref();
 
         match self.ends.as_mut() {
             Some(ends) => {
@@ -327,9 +327,10 @@ where
     where
         E: Default,
         G: Neighbors + GraphAdd<V, E>,
-        VId: Borrow<G::VertexId>,
+        VId: AsIdRef<G::VertexId>,
     {
-        let end = end.borrow();
+        let end = end.as_id();
+        let end = end.as_ref();
 
         // Check if end is valid. If not, ignore the passed value and pick an
         // arbitrary real end.
@@ -354,9 +355,10 @@ where
     pub fn remove_vertex<VId>(&mut self, id: VId, edge: Option<E>) -> Option<V>
     where
         G: Neighbors + GraphFull<V, E>,
-        VId: Borrow<G::VertexId>,
+        VId: AsIdRef<G::VertexId>,
     {
-        let id = id.borrow();
+        let id = id.as_id();
+        let id = id.as_ref();
 
         match self.ends.as_mut() {
             Some(ends) if ends[0] == ends[1] => {
@@ -431,9 +433,9 @@ where
     pub fn replace_vertex<VId>(&mut self, id: VId, vertex: V) -> V
     where
         G: GraphMut<V, E>,
-        VId: Borrow<G::VertexId>,
+        VId: AsIdRef<G::VertexId>,
     {
-        self.storage.replace_vertex(id.borrow(), vertex)
+        self.storage.replace_vertex(id.as_id().as_ref(), vertex)
     }
 
     pub fn try_replace_vertex<VId>(
@@ -443,9 +445,9 @@ where
     ) -> Result<V, ReplaceVertexError<V>>
     where
         G: GraphMut<V, E>,
-        VId: Borrow<G::VertexId>,
+        VId: AsIdRef<G::VertexId>,
     {
-        self.storage.try_replace_vertex(id.borrow(), vertex)
+        self.storage.try_replace_vertex(id.as_id().as_ref(), vertex)
     }
 
     pub fn clear(&mut self)
@@ -474,25 +476,27 @@ where
     pub fn endpoints<EId>(&self, id: EId) -> Option<(G::VertexId, G::VertexId)>
     where
         G: EdgeSet,
-        EId: Borrow<G::EdgeId>,
+        EId: AsIdRef<G::EdgeId>,
     {
-        self.storage.endpoints(id.borrow())
+        self.storage.endpoints(id.as_id().as_ref())
     }
 
     pub fn edge_id<VId>(&self, src: VId, dst: VId) -> G::EdgeIdIter<'_>
     where
         G: EdgeSet,
-        VId: Borrow<G::VertexId>,
+        VId: AsIdRef<G::VertexId>,
     {
-        self.storage.edge_id(src.borrow(), dst.borrow())
+        self.storage
+            .edge_id(src.as_id().as_ref(), dst.as_id().as_ref())
     }
 
     pub fn edge_id_any<VId>(&self, src: VId, dst: VId) -> Option<G::EdgeId>
     where
         G: EdgeSet,
-        VId: Borrow<G::VertexId>,
+        VId: AsIdRef<G::VertexId>,
     {
-        self.storage.edge_id_any(src.borrow(), dst.borrow())
+        self.storage
+            .edge_id_any(src.as_id().as_ref(), dst.as_id().as_ref())
     }
 
     pub fn edges_by_id(&self) -> G::EdgesByIdIter<'_>
@@ -505,18 +509,18 @@ where
     pub fn contains_edge<EId>(&self, id: EId) -> bool
     where
         G: EdgeSet,
-        EId: Borrow<G::EdgeId>,
+        EId: AsIdRef<G::EdgeId>,
     {
-        self.storage.contains_edge(id.borrow())
+        self.storage.contains_edge(id.as_id().as_ref())
     }
 
     pub fn contains_edge_between<VId>(&self, src: VId, dst: VId) -> bool
     where
         G: EdgeSet,
-        VId: Borrow<G::VertexId>,
+        VId: AsIdRef<G::VertexId>,
     {
         self.storage
-            .contains_edge_between(src.borrow(), dst.borrow())
+            .contains_edge_between(src.as_id().as_ref(), dst.as_id().as_ref())
     }
 
     pub fn is_directed(&self) -> bool
@@ -529,9 +533,9 @@ where
     pub fn edge<EId>(&self, id: EId) -> Option<&E>
     where
         G: GraphRef<V, E>,
-        EId: Borrow<G::EdgeId>,
+        EId: AsIdRef<G::EdgeId>,
     {
-        self.storage.edge(id.borrow())
+        self.storage.edge(id.as_id().as_ref())
     }
 
     pub fn edges(&self) -> G::EdgesIter<'_>
@@ -544,57 +548,57 @@ where
     pub fn edge_mut<EId>(&mut self, id: EId) -> Option<&mut E>
     where
         G: GraphMut<V, E>,
-        EId: Borrow<G::EdgeId>,
+        EId: AsIdRef<G::EdgeId>,
     {
-        self.storage.edge_mut(id.borrow())
+        self.storage.edge_mut(id.as_id().as_ref())
     }
 
     pub fn replace_edge<EId>(&mut self, id: EId, edge: E) -> E
     where
         G: GraphMut<V, E>,
-        EId: Borrow<G::EdgeId>,
+        EId: AsIdRef<G::EdgeId>,
     {
-        self.storage.replace_edge(id.borrow(), edge)
+        self.storage.replace_edge(id.as_id().as_ref(), edge)
     }
 
     pub fn try_replace_edge<EId>(&mut self, id: EId, edge: E) -> Result<E, ReplaceEdgeError<E>>
     where
         G: GraphMut<V, E>,
-        EId: Borrow<G::EdgeId>,
+        EId: AsIdRef<G::EdgeId>,
     {
-        self.storage.try_replace_edge(id.borrow(), edge)
+        self.storage.try_replace_edge(id.as_id().as_ref(), edge)
     }
 
     pub fn neighbors_undirected<VId>(&self, src: VId) -> G::NeighborsIter<'_>
     where
         G: Neighbors,
-        VId: Borrow<G::VertexId>,
+        VId: AsIdRef<G::VertexId>,
     {
-        self.storage.neighbors_undirected(src.borrow())
+        self.storage.neighbors_undirected(src.as_id().as_ref())
     }
 
     pub fn neighbors_directed<VId>(&self, src: VId, dir: Direction) -> G::NeighborsIter<'_>
     where
         G: Neighbors,
-        VId: Borrow<G::VertexId>,
+        VId: AsIdRef<G::VertexId>,
     {
-        self.storage.neighbors_directed(src.borrow(), dir)
+        self.storage.neighbors_directed(src.as_id().as_ref(), dir)
     }
 
     pub fn degree_undirected<VId>(&self, src: VId) -> usize
     where
         G: Neighbors,
-        VId: Borrow<G::VertexId>,
+        VId: AsIdRef<G::VertexId>,
     {
-        self.storage.degree_undirected(src.borrow())
+        self.storage.degree_undirected(src.as_id().as_ref())
     }
 
     pub fn degree_directed<VId>(&self, src: VId, dir: Direction) -> usize
     where
         G: Neighbors,
-        VId: Borrow<G::VertexId>,
+        VId: AsIdRef<G::VertexId>,
     {
-        self.storage.degree_directed(src.borrow(), dir)
+        self.storage.degree_directed(src.as_id().as_ref(), dir)
     }
 
     pub fn ends(&self) -> Option<&[G::VertexId; 2]> {
@@ -657,7 +661,7 @@ where
 impl<V, E, Ty: EdgeType, G, VId> Index<VId> for Path<V, E, Ty, G>
 where
     G: GraphRef<V, E>,
-    VId: Borrow<G::VertexId>,
+    VId: AsIdRef<G::VertexId>,
 {
     type Output = V;
 
@@ -669,7 +673,7 @@ where
 impl<V, E, Ty: EdgeType, G, VId> IndexMut<VId> for Path<V, E, Ty, G>
 where
     G: GraphMut<V, E>,
-    VId: Borrow<G::VertexId>,
+    VId: AsIdRef<G::VertexId>,
 {
     fn index_mut(&mut self, id: VId) -> &mut Self::Output {
         self.vertex_mut(id).expect("vertex does not exist")

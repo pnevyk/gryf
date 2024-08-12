@@ -6,21 +6,21 @@ use core::{
 };
 
 #[derive(Debug, Clone)]
-pub enum WeakRef<'a, T> {
+pub enum OwnableRef<'a, T> {
     Borrowed(&'a T),
     Owned(T),
 }
 
-impl<T: Clone> WeakRef<'_, T> {
+impl<T: Clone> OwnableRef<'_, T> {
     pub fn into_owned(self) -> T {
         match self {
-            WeakRef::Borrowed(attr) => attr.clone(),
-            WeakRef::Owned(attr) => attr,
+            OwnableRef::Borrowed(attr) => attr.clone(),
+            OwnableRef::Owned(attr) => attr,
         }
     }
 }
 
-impl<T> PartialEq for WeakRef<'_, T>
+impl<T> PartialEq for OwnableRef<'_, T>
 where
     T: PartialEq,
 {
@@ -29,9 +29,9 @@ where
     }
 }
 
-impl<T> Eq for WeakRef<'_, T> where T: Eq {}
+impl<T> Eq for OwnableRef<'_, T> where T: Eq {}
 
-impl<T> Hash for WeakRef<'_, T>
+impl<T> Hash for OwnableRef<'_, T>
 where
     T: Hash,
 {
@@ -40,7 +40,7 @@ where
     }
 }
 
-impl<T> PartialOrd for WeakRef<'_, T>
+impl<T> PartialOrd for OwnableRef<'_, T>
 where
     T: PartialOrd,
 {
@@ -49,7 +49,7 @@ where
     }
 }
 
-impl<T> Ord for WeakRef<'_, T>
+impl<T> Ord for OwnableRef<'_, T>
 where
     T: Ord,
 {
@@ -58,39 +58,39 @@ where
     }
 }
 
-impl<'a, T> From<&'a T> for WeakRef<'a, T> {
+impl<'a, T> From<&'a T> for OwnableRef<'a, T> {
     fn from(value: &'a T) -> Self {
-        WeakRef::Borrowed(value)
+        OwnableRef::Borrowed(value)
     }
 }
 
-impl<T> From<T> for WeakRef<'_, T> {
+impl<T> From<T> for OwnableRef<'_, T> {
     fn from(value: T) -> Self {
-        WeakRef::Owned(value)
+        OwnableRef::Owned(value)
     }
 }
 
-impl<T> Deref for WeakRef<'_, T> {
+impl<T> Deref for OwnableRef<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
         match self {
-            WeakRef::Borrowed(attr) => attr,
-            WeakRef::Owned(ref attr) => attr,
+            OwnableRef::Borrowed(attr) => attr,
+            OwnableRef::Owned(ref attr) => attr,
         }
     }
 }
 
-impl<T> AsRef<T> for WeakRef<'_, T> {
+impl<T> AsRef<T> for OwnableRef<'_, T> {
     fn as_ref(&self) -> &T {
         match self {
-            WeakRef::Borrowed(attr) => attr,
-            WeakRef::Owned(ref attr) => attr,
+            OwnableRef::Borrowed(attr) => attr,
+            OwnableRef::Owned(ref attr) => attr,
         }
     }
 }
 
-impl<T> Borrow<T> for WeakRef<'_, T> {
+impl<T> Borrow<T> for OwnableRef<'_, T> {
     fn borrow(&self) -> &T {
         self
     }

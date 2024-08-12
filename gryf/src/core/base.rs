@@ -1,7 +1,7 @@
 use super::{
+    borrow::OwnableRef,
     id::{IdPair, IdType},
     marker::Direction,
-    weak::WeakRef,
 };
 
 pub trait VertexRef<VId: IdType, V> {
@@ -17,9 +17,9 @@ pub trait EdgeRef<VId: IdType, EId: IdType, E> {
 }
 
 pub trait NeighborRef<VId: IdType, EId: IdType> {
-    fn id(&self) -> WeakRef<'_, VId>;
-    fn edge(&self) -> WeakRef<'_, EId>;
-    fn src(&self) -> WeakRef<'_, VId>;
+    fn id(&self) -> OwnableRef<'_, VId>;
+    fn edge(&self) -> OwnableRef<'_, EId>;
+    fn src(&self) -> OwnableRef<'_, VId>;
     fn dir(&self) -> Direction;
 }
 
@@ -59,16 +59,16 @@ mod imp {
     }
 
     impl<VId: IdType, EId: IdType> NeighborRef<VId, EId> for (VId, EId, VId, Direction) {
-        fn id(&self) -> WeakRef<'_, VId> {
-            WeakRef::Borrowed(&self.0)
+        fn id(&self) -> OwnableRef<'_, VId> {
+            OwnableRef::Borrowed(&self.0)
         }
 
-        fn edge(&self) -> WeakRef<'_, EId> {
-            WeakRef::Borrowed(&self.1)
+        fn edge(&self) -> OwnableRef<'_, EId> {
+            OwnableRef::Borrowed(&self.1)
         }
 
-        fn src(&self) -> WeakRef<'_, VId> {
-            WeakRef::Borrowed(&self.2)
+        fn src(&self) -> OwnableRef<'_, VId> {
+            OwnableRef::Borrowed(&self.2)
         }
 
         fn dir(&self) -> Direction {

@@ -20,17 +20,19 @@ pub struct AdjMatrix<V, E, Ty, Id> {
     n_edges: usize,
 }
 
-impl<V, E, Ty: EdgeType, Id: IdPair> AdjMatrix<V, E, Ty, Id>
-where
-    Id::VertexId: IntegerIdType,
-    Id::EdgeId: IntegerIdType,
-{
+impl<V, E, Ty: EdgeType, Id: IdPair> AdjMatrix<V, E, Ty, Id> {
     pub fn new() -> Self {
         Self {
             matrix: raw::Matrix::with_capacity(8),
             vertices: Vec::new(),
             n_edges: 0,
         }
+    }
+}
+
+impl<V, E, Ty: EdgeType> AdjMatrix<V, E, Ty, DefaultId> {
+    pub fn with_id<Id: IdPair>() -> AdjMatrix<V, E, Ty, Id> {
+        AdjMatrix::new()
     }
 }
 
@@ -734,11 +736,7 @@ mod raw {
         ty: PhantomData<(Ty, Id)>,
     }
 
-    impl<E, Ty: EdgeType, Id: IdPair> Matrix<E, Ty, Id>
-    where
-        Id::VertexId: IntegerIdType,
-        Id::EdgeId: IntegerIdType,
-    {
+    impl<E, Ty: EdgeType, Id: IdPair> Matrix<E, Ty, Id> {
         pub fn with_capacity(capacity: usize) -> Self {
             if capacity == 0 {
                 return Self {

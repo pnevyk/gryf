@@ -10,11 +10,8 @@ pub struct AddVertexError<V> {
 }
 
 impl<V> AddVertexError<V> {
-    pub fn new(attr: V) -> Self {
-        Self {
-            attr,
-            kind: AddVertexErrorKind::CapacityOverflow,
-        }
+    pub fn new(attr: V, kind: AddVertexErrorKind) -> Self {
+        Self { attr, kind }
     }
 }
 

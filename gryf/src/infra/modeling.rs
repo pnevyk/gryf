@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use arbitrary::Arbitrary;
 
 use crate::core::{
-    error::{AddEdgeError, AddEdgeErrorKind, AddVertexError},
+    error::{AddEdgeError, AddEdgeErrorKind, AddVertexError, AddVertexErrorKind},
     id::{EdgeId, IdType, IntegerIdType, VertexId},
     marker::{Direction, EdgeType},
     EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Neighbors, VertexSet,
@@ -301,7 +301,10 @@ impl<V, E, Ty: EdgeType> GraphMut<V, E> for Model<V, E, Ty> {
 impl<V, E, Ty: EdgeType> GraphAdd<V, E> for Model<V, E, Ty> {
     fn try_add_vertex(&mut self, vertex: V) -> Result<Self::VertexId, AddVertexError<V>> {
         if Some(self.vertex_count()) == self.params.max_vertex_count {
-            return Err(AddVertexError::new(vertex));
+            return Err(AddVertexError::new(
+                vertex,
+                AddVertexErrorKind::CapacityOverflow,
+            ));
         }
 
         let id = VertexId::from_usize(self.vertices.len());

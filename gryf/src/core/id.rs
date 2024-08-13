@@ -99,15 +99,9 @@ pub struct EdgeId<Id = u64>(pub Id);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Virtual<I>(u64, PhantomData<I>);
 
-impl<I> Virtual<I> {
-    pub fn new(id: u64) -> Self {
-        Self(id, PhantomData)
-    }
-}
-
 impl<I: IdType> IdType for Virtual<I> {
     fn sentinel() -> Self {
-        Self::new(u64::MAX)
+        Self::from_bits(u64::MAX)
     }
 
     fn is_integer() -> bool {
@@ -119,7 +113,7 @@ impl<I: IdType> IdType for Virtual<I> {
     }
 
     fn from_bits(bits: u64) -> Self {
-        Self::new(bits)
+        Self(bits, PhantomData)
     }
 }
 

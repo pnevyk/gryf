@@ -92,7 +92,7 @@ where
                     .copied()
                     .enumerate()
                     .find(|(_, deg)| *deg > 0)
-                    .map(|(i, _)| self.map.to_real(Virtual::new(i as u64)).unwrap())
+                    .map(|(i, _)| self.map.to_real(Virtual::from_usize(i)).unwrap())
                     .unwrap();
 
                 // Find an incoming edge to that vertex from a vertex that has

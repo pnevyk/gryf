@@ -70,8 +70,8 @@ impl<V, E, Ty: EdgeType> Path<V, E, Ty> {
         Self::new_unchecked(AdjList::new(), None)
     }
 
-    pub fn with_capacity(vertex_count: usize, edge_count: usize) -> Self {
-        Self::new_unchecked(AdjList::with_capacity(vertex_count, edge_count), None)
+    pub fn with_capacity(vertex_capacity: usize, edge_capacity: usize) -> Self {
+        Self::new_unchecked(AdjList::with_capacity(vertex_capacity, edge_capacity), None)
     }
 }
 

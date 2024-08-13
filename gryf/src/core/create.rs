@@ -1,7 +1,7 @@
 use super::{base::IntoEdge, graph::GraphAdd};
 
 pub trait Create<V, E>: GraphAdd<V, E> + Sized {
-    fn with_capacity(vertex_count: usize, edge_count: usize) -> Self;
+    fn with_capacity(vertex_capacity: usize, edge_capacity: usize) -> Self;
 
     fn empty() -> Self {
         Self::with_capacity(0, 0)

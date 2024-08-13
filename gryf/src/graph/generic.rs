@@ -50,8 +50,8 @@ impl<V, E, Ty: EdgeType> Graph<V, E, Ty> {
         Self::new_in(AdjList::new())
     }
 
-    pub fn with_capacity(vertex_count: usize, edge_count: usize) -> Self {
-        Self::new_in(AdjList::with_capacity(vertex_count, edge_count))
+    pub fn with_capacity(vertex_capacity: usize, edge_capacity: usize) -> Self {
+        Self::new_in(AdjList::with_capacity(vertex_capacity, edge_capacity))
     }
 }
 
@@ -532,8 +532,8 @@ impl<V, E, Ty: EdgeType, G> Create<V, E> for Graph<V, E, Ty, G>
 where
     G: Create<V, E>,
 {
-    fn with_capacity(vertex_count: usize, edge_count: usize) -> Self {
-        Self::new_in(G::with_capacity(vertex_count, edge_count))
+    fn with_capacity(vertex_capacity: usize, edge_capacity: usize) -> Self {
+        Self::new_in(G::with_capacity(vertex_capacity, edge_capacity))
     }
 }
 

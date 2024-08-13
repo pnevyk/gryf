@@ -485,11 +485,11 @@ where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
 {
-    fn with_capacity(vertex_count: usize, edge_count: usize) -> Self {
+    fn with_capacity(vertex_capacity: usize, edge_capacity: usize) -> Self {
         Self {
-            vertices: Vec::with_capacity(vertex_count),
-            edges: Vec::with_capacity(edge_count),
-            endpoints: Vec::with_capacity(edge_count),
+            vertices: Vec::with_capacity(vertex_capacity),
+            edges: Vec::with_capacity(edge_capacity),
+            endpoints: Vec::with_capacity(edge_capacity),
             ty: PhantomData,
         }
     }

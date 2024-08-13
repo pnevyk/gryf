@@ -691,20 +691,6 @@ mod raw {
         }
     }
 
-    impl<T> IntoIterator for FlaggedVec<T> {
-        type Item = Option<T>;
-        type IntoIter = FlaggedIter<T>;
-
-        fn into_iter(mut self) -> Self::IntoIter {
-            let flags = mem::take(&mut self.flags);
-            let data = mem::take(&mut self.data);
-
-            FlaggedIter {
-                inner: flags.into_iter().zip(data),
-            }
-        }
-    }
-
     impl<E> MatrixLinearStorage<E> for FlaggedVec<E> {
         fn with_capacity(capacity: usize) -> Self {
             Self::with_capacity(capacity)
@@ -720,6 +706,15 @@ mod raw {
 
         fn len(&self) -> usize {
             self.len()
+        }
+
+        fn into_entries(mut self) -> impl Iterator<Item = Option<E>> {
+            let flags = mem::take(&mut self.flags);
+            let data = mem::take(&mut self.data);
+
+            FlaggedIter {
+                inner: flags.into_iter().zip(data),
+            }
         }
     }
 

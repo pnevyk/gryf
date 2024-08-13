@@ -1,36 +1,88 @@
+use std::fmt;
+
 use gryf::{
     algo::ShortestPaths,
     core::{
-        id::IdType,
+        id::{IdType, IntegerIdType},
         marker::{Direction, Undirected},
         GraphBase, Neighbors,
     },
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-struct ChessSquare(pub usize, pub usize);
+pub struct ChessSquare {
+    file: u8,
+    rank: u8,
+}
 
-impl IdType for ChessSquare {
-    fn sentinel() -> Self {
-        Self(usize::MAX, usize::MAX)
-    }
+pub enum File {
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+}
 
-    fn is_integer() -> bool {
-        false
-    }
-
-    fn as_bits(&self) -> u64 {
-        panic!("unsupported")
-    }
-
-    fn from_bits(_: u64) -> Self {
-        panic!("unsupported")
+impl ChessSquare {
+    fn new(file: File, rank: u8) -> Self {
+        assert!((1..=8).contains(&rank));
+        let file = file as u8;
+        let rank = rank - 1;
+        Self { file, rank }
     }
 }
 
-struct Chessboard;
+impl IdType for ChessSquare {
+    fn sentinel() -> Self {
+        Self {
+            file: u8::MAX,
+            rank: u8::MAX,
+        }
+    }
 
-impl GraphBase for Chessboard {
+    fn is_integer() -> bool {
+        true
+    }
+
+    fn as_bits(&self) -> u64 {
+        (self.rank * 8 + self.file) as u64
+    }
+
+    fn from_bits(bits: u64) -> Self {
+        let file = (bits % 8) as u8;
+        let rank = (bits / 8) as u8;
+        Self { file, rank }
+    }
+}
+
+impl IntegerIdType for ChessSquare {}
+
+impl From<usize> for ChessSquare {
+    fn from(value: usize) -> Self {
+        ChessSquare::from_usize(value)
+    }
+}
+
+impl From<ChessSquare> for usize {
+    fn from(value: ChessSquare) -> Self {
+        value.as_usize()
+    }
+}
+
+impl fmt::Display for ChessSquare {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let file = (b'a' + self.file) as char;
+        let rank = self.rank + 1;
+        f.write_fmt(format_args!("{file}{rank}"))
+    }
+}
+
+pub struct KingMove;
+
+impl GraphBase for KingMove {
     type VertexId = ChessSquare;
     type EdgeId = (ChessSquare, ChessSquare);
     type EdgeType = Undirected;
@@ -40,7 +92,7 @@ impl GraphBase for Chessboard {
     }
 }
 
-impl Neighbors for Chessboard {
+impl Neighbors for KingMove {
     type NeighborRef<'a> = (ChessSquare, (ChessSquare, ChessSquare), ChessSquare, Direction)
     where
         Self: 'a;
@@ -66,7 +118,7 @@ impl Neighbors for Chessboard {
     }
 }
 
-struct ChessNeighborsIter {
+pub struct ChessNeighborsIter {
     src: ChessSquare,
     index: usize,
     dir: Direction,
@@ -89,7 +141,7 @@ impl Iterator for ChessNeighborsIter {
             // +---+---+---+
             // | 5 | 6 | 7 |
             // +---+---+---+
-            let ChessSquare(x, y) = self.src;
+            let ChessSquare { file: x, rank: y } = self.src;
             let (x, y) = match self.index {
                 0 => (x.wrapping_sub(1), y + 1),
                 1 => (x, y + 1),
@@ -109,17 +161,17 @@ impl Iterator for ChessNeighborsIter {
                 continue;
             }
 
-            let dst = ChessSquare(x, y);
+            let dst = ChessSquare { file: x, rank: y };
             return Some((dst, (self.src, dst), self.src, self.dir));
         }
     }
 }
 
 fn main() {
-    let start = ChessSquare(0, 0);
-    let end = ChessSquare(4, 2);
+    let start = ChessSquare::new(File::E, 1);
+    let end = ChessSquare::new(File::D, 4);
 
-    let path = ShortestPaths::on(&Chessboard)
+    let path = ShortestPaths::on(&KingMove)
         .goal(end)
         .unit_weight()
         .bfs()
@@ -127,7 +179,7 @@ fn main() {
         .unwrap();
 
     println!(
-        "{} moves by king to get from {:?} to {:?}",
+        "{} moves by king to get from {} to {}",
         path[end], start, end
     );
 }

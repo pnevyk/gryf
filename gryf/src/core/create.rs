@@ -8,31 +8,6 @@ pub trait Create<V, E>: GraphAdd<V, E> + Sized {
     }
 }
 
-pub trait ExtendWithEdges<T, V, E>: Create<V, E>
-where
-    T: IntoEdge<Self, E>,
-{
-    fn extend_with_edges<I>(&mut self, iter: I)
-    where
-        I: IntoIterator<Item = T>;
-}
-
-impl<T, V, E, G> ExtendWithEdges<T, V, E> for G
-where
-    T: IntoEdge<Self, E>,
-    G: Create<V, E>,
-{
-    fn extend_with_edges<I>(&mut self, iter: I)
-    where
-        I: IntoIterator<Item = T>,
-    {
-        for edge in iter {
-            let (from, to, edge) = edge.unpack();
-            self.add_edge(&from, &to, edge);
-        }
-    }
-}
-
 pub trait ExtendWithVertices<V, E>: Create<V, E> {
     fn extend_with_vertices<I>(&mut self, iter: I)
     where
@@ -61,6 +36,31 @@ where
     {
         for vertex in iter {
             self.add_vertex(vertex);
+        }
+    }
+}
+
+pub trait ExtendWithEdges<T, V, E>: Create<V, E>
+where
+    T: IntoEdge<Self, E>,
+{
+    fn extend_with_edges<I>(&mut self, iter: I)
+    where
+        I: IntoIterator<Item = T>;
+}
+
+impl<T, V, E, G> ExtendWithEdges<T, V, E> for G
+where
+    T: IntoEdge<Self, E>,
+    G: Create<V, E>,
+{
+    fn extend_with_edges<I>(&mut self, iter: I)
+    where
+        I: IntoIterator<Item = T>,
+    {
+        for edge in iter {
+            let (from, to, edge) = edge.unpack();
+            self.add_edge(&from, &to, edge);
         }
     }
 }

@@ -91,10 +91,10 @@ pub trait AsIdRef<I: IdType> {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct VertexId<Id = u64>(pub Id);
+pub struct VertexId<N = u64>(N);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct EdgeId<Id = u64>(pub Id);
+pub struct EdgeId<N = u64>(N);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Virtual<I>(u64, PhantomData<I>);

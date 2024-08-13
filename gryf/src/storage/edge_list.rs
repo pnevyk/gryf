@@ -32,6 +32,12 @@ impl<V, E, Ty: EdgeType, Id: IdPair> EdgeList<V, E, Ty, Id> {
     }
 }
 
+impl<V, E, Ty: EdgeType> EdgeList<V, E, Ty, DefaultId> {
+    pub fn with_id<Id: IdPair>() -> EdgeList<V, E, Ty, Id> {
+        EdgeList::new()
+    }
+}
+
 impl<V, E, Ty: EdgeType, Id: IdPair> EdgeList<V, E, Ty, Id>
 where
     Id::VertexId: IntegerIdType,

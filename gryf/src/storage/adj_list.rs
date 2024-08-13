@@ -35,6 +35,12 @@ impl<V, E, Ty: EdgeType, Id: IdPair> AdjList<V, E, Ty, Id> {
     }
 }
 
+impl<V, E, Ty: EdgeType> AdjList<V, E, Ty, DefaultId> {
+    pub fn with_id<Id: IdPair>() -> AdjList<V, E, Ty, Id> {
+        AdjList::new()
+    }
+}
+
 impl<V, E, Ty: EdgeType, Id: IdPair> AdjList<V, E, Ty, Id>
 where
     Id::VertexId: IntegerIdType,

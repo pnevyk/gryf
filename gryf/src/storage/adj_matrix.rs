@@ -382,10 +382,10 @@ where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
 {
-    fn with_capacity(vertex_count: usize, _edge_count: usize) -> Self {
+    fn with_capacity(vertex_capacity: usize, _edge_capacity: usize) -> Self {
         Self {
-            matrix: raw::Matrix::with_capacity(vertex_count),
-            vertices: Vec::with_capacity(vertex_count),
+            matrix: raw::Matrix::with_capacity(vertex_capacity),
+            vertices: Vec::with_capacity(vertex_capacity),
             n_edges: 0,
         }
     }

@@ -384,8 +384,8 @@ impl<V: Clone, E: Clone, G> Create<V, E> for Stable<G>
 where
     G: Create<V, E> + Neighbors,
 {
-    fn with_capacity(vertex_count: usize, edge_count: usize) -> Self {
-        Self::new(G::with_capacity(vertex_count, edge_count))
+    fn with_capacity(vertex_capacity: usize, edge_capacity: usize) -> Self {
+        Self::new(G::with_capacity(vertex_capacity, edge_capacity))
     }
 }
 

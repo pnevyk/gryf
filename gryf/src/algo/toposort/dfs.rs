@@ -68,11 +68,11 @@ where
                 &mut self.raw,
                 |raw| {
                     raw.next(graph, |_, raw_event| match raw_event {
-                        RawEvent::Skip { vertex, src } if !self.closed.is_visited(&vertex) => {
+                        RawEvent::Skip { vertex, from } if !self.closed.is_visited(&vertex) => {
                             // Vertex not added to the stack, but also
                             // has not been closed. That means that we
                             // encountered a back edge.
-                            self.cycle = src.map(|(_, edge)| edge);
+                            self.cycle = from.map(|(_, edge)| edge);
 
                             // Prune to avoid unnecessary work.
                             false

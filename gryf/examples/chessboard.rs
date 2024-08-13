@@ -101,17 +101,17 @@ impl Neighbors for KingMove {
     where
         Self: 'a;
 
-    fn neighbors_undirected(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_> {
+    fn neighbors_undirected(&self, from: &Self::VertexId) -> Self::NeighborsIter<'_> {
         ChessNeighborsIter {
-            src: *src,
+            from: *from,
             index: 0,
             dir: Direction::Outgoing,
         }
     }
 
-    fn neighbors_directed(&self, src: &Self::VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
+    fn neighbors_directed(&self, from: &Self::VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
         ChessNeighborsIter {
-            src: *src,
+            from: *from,
             index: 0,
             dir,
         }
@@ -119,7 +119,7 @@ impl Neighbors for KingMove {
 }
 
 pub struct ChessNeighborsIter {
-    src: ChessSquare,
+    from: ChessSquare,
     index: usize,
     dir: Direction,
 }
@@ -141,7 +141,7 @@ impl Iterator for ChessNeighborsIter {
             // +---+---+---+
             // | 5 | 6 | 7 |
             // +---+---+---+
-            let ChessSquare { file: x, rank: y } = self.src;
+            let ChessSquare { file: x, rank: y } = self.from;
             let (x, y) = match self.index {
                 0 => (x.wrapping_sub(1), y + 1),
                 1 => (x, y + 1),
@@ -161,8 +161,8 @@ impl Iterator for ChessNeighborsIter {
                 continue;
             }
 
-            let dst = ChessSquare { file: x, rank: y };
-            return Some((dst, (self.src, dst), self.src, self.dir));
+            let to = ChessSquare { file: x, rank: y };
+            return Some((to, (self.from, to), self.from, self.dir));
         }
     }
 }

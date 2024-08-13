@@ -23,22 +23,22 @@ fn to_num(v: VertexId) -> u64 {
 }
 
 struct Neighbor {
-    src: VertexId,
+    pred: VertexId,
 }
 
 impl NeighborRef<VertexId, EdgeId> for Neighbor {
     fn id(&self) -> OwnableRef<'_, VertexId> {
-        let n = self.src.as_bits();
+        let n = self.pred.as_bits();
         let c = if n % 2 == 0 { n / 2 } else { 3 * n + 1 };
         OwnableRef::Owned(to_vertex(c))
     }
 
     fn edge(&self) -> OwnableRef<'_, EdgeId> {
-        OwnableRef::Owned(EdgeId::from_bits(self.src.as_bits()))
+        OwnableRef::Owned(EdgeId::from_bits(self.pred.as_bits()))
     }
 
-    fn src(&self) -> OwnableRef<'_, VertexId> {
-        self.src.into()
+    fn pred(&self) -> OwnableRef<'_, VertexId> {
+        self.pred.into()
     }
 
     fn dir(&self) -> Direction {
@@ -59,13 +59,13 @@ impl Neighbors for Collatz {
     where
         Self: 'a;
 
-    fn neighbors_undirected(&self, src: &VertexId) -> Self::NeighborsIter<'_> {
-        iter::once(Neighbor { src: *src })
+    fn neighbors_undirected(&self, from: &VertexId) -> Self::NeighborsIter<'_> {
+        iter::once(Neighbor { pred: *from })
     }
 
-    fn neighbors_directed(&self, src: &VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
+    fn neighbors_directed(&self, from: &VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
         assert_eq!(dir, Direction::Outgoing, "incoming edges are not available");
-        iter::once(Neighbor { src: *src })
+        iter::once(Neighbor { pred: *from })
     }
 }
 

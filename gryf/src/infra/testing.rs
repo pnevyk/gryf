@@ -97,12 +97,12 @@ where
     }
 
     let mut graph = G::with_capacity(vertex_count, vertex_count - 1);
-    let mut src = graph.add_vertex(V::default());
+    let mut from = graph.add_vertex(V::default());
 
     for _ in 1..vertex_count {
-        let dst = graph.add_vertex(V::default());
-        graph.add_edge(&src, &dst, E::default());
-        src = dst;
+        let to = graph.add_vertex(V::default());
+        graph.add_edge(&from, &to, E::default());
+        from = to;
     }
 
     graph
@@ -223,7 +223,7 @@ where
             // Ideally we would check `== Some(id)` but for that we would
             // need to use multi edge iterator, which is not implemented for all
             // storages.
-            .filter(|(src, dst)| graph.edge_id(src, dst).any(|e| e == id))
+            .filter(|(from, to)| graph.edge_id(from, to).any(|e| e == id))
             .is_none()
             .then_some(i)
     });

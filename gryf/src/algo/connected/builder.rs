@@ -28,9 +28,9 @@ impl<'a, G> ConnectedBuilder<'a, G>
 where
     G: GraphBase,
 {
-    pub fn between(self, src: &'a G::VertexId, dst: &'a G::VertexId) -> Self {
+    pub fn between(self, from: &'a G::VertexId, to: &'a G::VertexId) -> Self {
         Self {
-            between: Some((src, dst)),
+            between: Some((from, to)),
             ..self
         }
     }

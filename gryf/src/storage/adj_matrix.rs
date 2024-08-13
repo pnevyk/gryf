@@ -61,8 +61,8 @@ where
     where
         Self: 'a;
 
-    fn neighbors_undirected(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_> {
-        self.vertex(src).expect("vertex does not exist");
+    fn neighbors_undirected(&self, from: &Self::VertexId) -> Self::NeighborsIter<'_> {
+        self.vertex(from).expect("vertex does not exist");
 
         let filter = if Ty::is_directed() {
             None
@@ -73,7 +73,7 @@ where
 
         NeighborsIter {
             matrix: self.matrix.detach(),
-            src: *src,
+            from: *from,
             other: 0,
             vertex_count: self.vertex_count(),
             filter,
@@ -81,12 +81,12 @@ where
         }
     }
 
-    fn neighbors_directed(&self, src: &Self::VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
-        self.vertex(src).expect("vertex does not exist");
+    fn neighbors_directed(&self, from: &Self::VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
+        self.vertex(from).expect("vertex does not exist");
 
         NeighborsIter {
             matrix: self.matrix.detach(),
-            src: *src,
+            from: *from,
             other: 0,
             vertex_count: self.vertex_count(),
             filter: Some(dir),
@@ -165,8 +165,8 @@ where
         }
     }
 
-    fn edge_id(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Self::EdgeIdIter<'_> {
-        let id = self.matrix.index(src.as_usize(), dst.as_usize());
+    fn edge_id(&self, from: &Self::VertexId, to: &Self::VertexId) -> Self::EdgeIdIter<'_> {
+        let id = self.matrix.index(from.as_usize(), to.as_usize());
         self.matrix.get(id).map(|_| id).into_iter()
     }
 
@@ -271,19 +271,19 @@ where
 
     fn try_add_edge(
         &mut self,
-        src: &Self::VertexId,
-        dst: &Self::VertexId,
+        from: &Self::VertexId,
+        to: &Self::VertexId,
         edge: E,
     ) -> Result<Self::EdgeId, AddEdgeError<E>> {
-        if src.as_usize() >= self.vertices.len() {
-            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::SourceAbsent));
+        if from.as_usize() >= self.vertices.len() {
+            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::TailAbsent));
         }
 
-        if dst.as_usize() >= self.vertices.len() {
-            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::DestinationAbsent));
+        if to.as_usize() >= self.vertices.len() {
+            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::HeadAbsent));
         }
 
-        let id = self.matrix.index(src.as_usize(), dst.as_usize());
+        let id = self.matrix.index(from.as_usize(), to.as_usize());
 
         if self.matrix.contains(id) {
             return Err(AddEdgeError::new(edge, AddEdgeErrorKind::MultiEdge));
@@ -401,14 +401,14 @@ where
         F: FnMut(&V, &V) -> Option<E>,
     {
         shared::connect_vertices::<Ty>(self.vertices.len(), |i, j| {
-            let src = &self.vertices[i];
-            let dst = &self.vertices[j];
+            let from = &self.vertices[i];
+            let to = &self.vertices[j];
 
-            if let Some(edge) = connect(src, dst) {
-                let src = Id::VertexId::from_usize(i);
-                let dst = Id::VertexId::from_usize(j);
+            if let Some(edge) = connect(from, to) {
+                let from = Id::VertexId::from_usize(i);
+                let to = Id::VertexId::from_usize(j);
 
-                self.add_edge(&src, &dst, edge);
+                self.add_edge(&from, &to, edge);
             }
         })
     }
@@ -478,7 +478,7 @@ where
 
 pub struct NeighborsIter<'a, Ty, Id: IdPair> {
     matrix: raw::DetachedMatrix<'a, Ty, Id>,
-    src: Id::VertexId,
+    from: Id::VertexId,
     other: usize,
     vertex_count: usize,
     filter: Option<Direction>,
@@ -507,16 +507,16 @@ where
                     }
                 }
             } else {
-                let dst = self.other;
+                let to = self.other;
                 self.other += 1;
 
                 let id = match self.dir {
-                    Direction::Outgoing => self.matrix.index(self.src.as_usize(), dst),
-                    Direction::Incoming => self.matrix.index(dst, self.src.as_usize()),
+                    Direction::Outgoing => self.matrix.index(self.from.as_usize(), to),
+                    Direction::Incoming => self.matrix.index(to, self.from.as_usize()),
                 };
 
                 if self.matrix.contains(id) {
-                    return Some((Id::VertexId::from_usize(dst), id, self.src, self.dir));
+                    return Some((Id::VertexId::from_usize(to), id, self.from, self.dir));
                 }
             }
         }

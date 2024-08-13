@@ -129,18 +129,18 @@ where
         time: Time,
     },
     TreeEdge {
-        src: G::VertexId,
-        dst: G::VertexId,
+        from: G::VertexId,
+        to: G::VertexId,
         edge: G::EdgeId,
     },
     BackEdge {
-        src: G::VertexId,
-        dst: G::VertexId,
+        from: G::VertexId,
+        to: G::VertexId,
         edge: G::EdgeId,
     },
     CrossForwardEdge {
-        src: G::VertexId,
-        dst: G::VertexId,
+        from: G::VertexId,
+        to: G::VertexId,
         edge: G::EdgeId,
     },
     Close {
@@ -171,22 +171,22 @@ mod tests {
         };
         (tree, $e:expr, ($u:expr, $v:expr)) => {
             DfsEvent::TreeEdge {
-                src: $u,
-                dst: $v,
+                from: $u,
+                to: $v,
                 edge: $e,
             }
         };
         (back, $e:expr, ($u:expr, $v:expr)) => {
             DfsEvent::BackEdge {
-                src: $u,
-                dst: $v,
+                from: $u,
+                to: $v,
                 edge: $e,
             }
         };
         (cross_forward, $e:expr, ($u:expr, $v:expr)) => {
             DfsEvent::CrossForwardEdge {
-                src: $u,
-                dst: $v,
+                from: $u,
+                to: $v,
                 edge: $e,
             }
         };

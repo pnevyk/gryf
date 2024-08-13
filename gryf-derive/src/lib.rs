@@ -69,12 +69,12 @@ pub fn neighbors(tokens: TokenStream) -> TokenStream {
             where
                 Self: 'a;
 
-            fn neighbors_undirected(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_> {
-                <#field_type as #gryf::core::Neighbors>::neighbors_undirected(&self.#field_name, src)
+            fn neighbors_undirected(&self, from: &Self::VertexId) -> Self::NeighborsIter<'_> {
+                <#field_type as #gryf::core::Neighbors>::neighbors_undirected(&self.#field_name, from)
             }
 
-            fn neighbors_directed(&self, src: &Self::VertexId, dir: #gryf::core::marker::Direction) -> Self::NeighborsIter<'_> {
-                <#field_type as #gryf::core::Neighbors>::neighbors_directed(&self.#field_name, src, dir)
+            fn neighbors_directed(&self, from: &Self::VertexId, dir: #gryf::core::marker::Direction) -> Self::NeighborsIter<'_> {
+                <#field_type as #gryf::core::Neighbors>::neighbors_directed(&self.#field_name, from, dir)
             }
 
             fn degree_undirected(&self, id: &Self::VertexId) -> usize {
@@ -177,8 +177,8 @@ pub fn edge_set(tokens: TokenStream) -> TokenStream {
                 <#field_type as #gryf::core::EdgeSet>::edges_by_id(&self.#field_name)
             }
 
-            fn edge_id(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Self::EdgeIdIter<'_> {
-                <#field_type as #gryf::core::EdgeSet>::edge_id(&self.#field_name, src, dst)
+            fn edge_id(&self, from: &Self::VertexId, to: &Self::VertexId) -> Self::EdgeIdIter<'_> {
+                <#field_type as #gryf::core::EdgeSet>::edge_id(&self.#field_name, from, to)
             }
 
             fn endpoints(&self, id: &Self::EdgeId) -> Option<(Self::VertexId, Self::VertexId)> {
@@ -200,12 +200,12 @@ pub fn edge_set(tokens: TokenStream) -> TokenStream {
                 <#field_type as #gryf::core::EdgeSet>::contains_edge(&self.#field_name, id)
             }
 
-            fn contains_edge_between(&self, src: &Self::VertexId, dst: &Self::VertexId) -> bool {
-                <#field_type as #gryf::core::EdgeSet>::contains_edge_between(&self.#field_name, src, dst)
+            fn contains_edge_between(&self, from: &Self::VertexId, to: &Self::VertexId) -> bool {
+                <#field_type as #gryf::core::EdgeSet>::contains_edge_between(&self.#field_name, from, to)
             }
 
-            fn edge_id_any(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Option<Self::EdgeId> {
-                <#field_type as #gryf::core::EdgeSet>::edge_id_any(&self.#field_name, src, dst)
+            fn edge_id_any(&self, from: &Self::VertexId, to: &Self::VertexId) -> Option<Self::EdgeId> {
+                <#field_type as #gryf::core::EdgeSet>::edge_id_any(&self.#field_name, from, to)
             }
 
             fn edge_id_map(&self) -> #gryf::core::id::CompactIdMap<Self::EdgeId>
@@ -370,11 +370,11 @@ pub fn graph_add(tokens: TokenStream) -> TokenStream {
 
             fn try_add_edge(
                 &mut self,
-                src: &Self::VertexId,
-                dst: &Self::VertexId,
+                from: &Self::VertexId,
+                to: &Self::VertexId,
                 edge: E,
             ) -> Result<Self::EdgeId, #gryf::core::error::AddEdgeError<E>> {
-                <#field_type as #gryf::core::GraphAdd<V, E>>::try_add_edge(&mut self.#field_name, src, dst, edge)
+                <#field_type as #gryf::core::GraphAdd<V, E>>::try_add_edge(&mut self.#field_name, from, to, edge)
             }
 
             fn add_vertex(&mut self, vertex: V) -> Self::VertexId {
@@ -395,27 +395,27 @@ pub fn graph_add(tokens: TokenStream) -> TokenStream {
                 <#field_type as #gryf::core::GraphAdd<V, E>>::get_or_add_vertex(&mut self.#field_name, vertex)
             }
 
-            fn add_edge(&mut self, src: &Self::VertexId, dst: &Self::VertexId, edge: E) -> Self::EdgeId {
-                <#field_type as #gryf::core::GraphAdd<V, E>>::add_edge(&mut self.#field_name, src, dst, edge)
+            fn add_edge(&mut self, from: &Self::VertexId, to: &Self::VertexId, edge: E) -> Self::EdgeId {
+                <#field_type as #gryf::core::GraphAdd<V, E>>::add_edge(&mut self.#field_name, from, to, edge)
             }
 
             fn try_add_edge_connecting(
                 &mut self,
-                src: V,
-                dst: V,
+                from: V,
+                to: V,
                 edge: E,
             ) -> Result<Self::EdgeId, #gryf::core::error::AddEdgeConnectingError<V, E>>
             where
                 V: Eq,
             {
-                <#field_type as #gryf::core::GraphAdd<V, E>>::try_add_edge_connecting(&mut self.#field_name, src, dst, edge)
+                <#field_type as #gryf::core::GraphAdd<V, E>>::try_add_edge_connecting(&mut self.#field_name, from, to, edge)
             }
 
-            fn add_edge_connecting(&mut self, src: V, dst: V, edge: E) -> Self::EdgeId
+            fn add_edge_connecting(&mut self, from: V, to: V, edge: E) -> Self::EdgeId
             where
                 V: Eq,
             {
-                <#field_type as #gryf::core::GraphAdd<V, E>>::add_edge_connecting(&mut self.#field_name, src, dst, edge)
+                <#field_type as #gryf::core::GraphAdd<V, E>>::add_edge_connecting(&mut self.#field_name, from, to, edge)
             }
         }
     };
@@ -456,12 +456,12 @@ pub fn graph_full(tokens: TokenStream) -> TokenStream {
                 <#field_type as #gryf::core::GraphFull<V, E>>::clear(&mut self.#field_name)
             }
 
-            fn remove_edges_between(&mut self, src: &Self::VertexId, dst: &Self::VertexId) {
-                <#field_type as #gryf::core::GraphFull<V, E>>::remove_edges_between(&mut self.#field_name, src, dst)
+            fn remove_edges_between(&mut self, from: &Self::VertexId, to: &Self::VertexId) {
+                <#field_type as #gryf::core::GraphFull<V, E>>::remove_edges_between(&mut self.#field_name, from, to)
             }
 
-            fn remove_edge_any_between(&mut self, src: &Self::VertexId, dst: &Self::VertexId) -> Option<E> {
-                <#field_type as #gryf::core::GraphFull<V, E>>::remove_edge_any_between(&mut self.#field_name, src, dst)
+            fn remove_edge_any_between(&mut self, from: &Self::VertexId, to: &Self::VertexId) -> Option<E> {
+                <#field_type as #gryf::core::GraphFull<V, E>>::remove_edge_any_between(&mut self.#field_name, from, to)
             }
 
             fn clear_edges(&mut self) {

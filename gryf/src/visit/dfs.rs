@@ -214,28 +214,28 @@ where
     ) -> bool {
         match raw_event {
             RawEvent::Popped { .. } => {}
-            RawEvent::Push { vertex, src } => {
+            RawEvent::Push { vertex, from } => {
                 queue.push_back(DfsEvent::TreeEdge {
-                    src: src.0,
-                    dst: vertex,
-                    edge: src.1,
+                    from: from.0,
+                    to: vertex,
+                    edge: from.1,
                 });
             }
-            RawEvent::Skip { vertex, src } => {
-                let src = src.expect("src always available");
+            RawEvent::Skip { vertex, from } => {
+                let from = from.expect("edge tail vertex always available");
 
                 if is_directed {
                     if !closed.contains(&vertex) {
                         queue.push_back(DfsEvent::BackEdge {
-                            src: src.0,
-                            dst: vertex,
-                            edge: src.1,
+                            from: from.0,
+                            to: vertex,
+                            edge: from.1,
                         });
                     } else {
                         queue.push_back(DfsEvent::CrossForwardEdge {
-                            src: src.0,
-                            dst: vertex,
-                            edge: src.1,
+                            from: from.0,
+                            to: vertex,
+                            edge: from.1,
                         });
                     }
                 } else {
@@ -252,9 +252,9 @@ where
 
                         if parent.as_ref() != Some(&vertex) {
                             queue.push_back(DfsEvent::BackEdge {
-                                src: src.0,
-                                dst: vertex,
-                                edge: src.1,
+                                from: from.0,
+                                to: vertex,
+                                edge: from.1,
                             });
                         }
                     }

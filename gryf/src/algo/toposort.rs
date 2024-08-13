@@ -177,16 +177,16 @@ mod tests {
                     .map(|(k, v)| (v, k))
                     .collect::<HashMap<_, _>>();
 
-                for (src, dst) in graph.edges_by_id().map(|e| graph.endpoints(&e).unwrap()) {
+                for (from, to) in graph.edges_by_id().map(|e| graph.endpoints(&e).unwrap()) {
                     let i = map
-                        .get(&src)
-                        .unwrap_or_else(|| panic!("algorithm omitted vertex {src:?}"));
+                        .get(&from)
+                        .unwrap_or_else(|| panic!("algorithm omitted vertex {from:?}"));
 
                     let j = map
-                        .get(&dst)
-                        .unwrap_or_else(|| panic!("algorithm omitted vertex {dst:?}"));
+                        .get(&to)
+                        .unwrap_or_else(|| panic!("algorithm omitted vertex {to:?}"));
 
-                    assert!(i < j, "invalid topological order for {src:?} -> {dst:?}");
+                    assert!(i < j, "invalid topological order for {from:?} -> {to:?}");
                 }
             }
             (Ok(_), Some(_)) => panic!("algorithm did not detect cycle"),

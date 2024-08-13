@@ -37,11 +37,11 @@ where
     Connected::on(graph).run().is()
 }
 
-pub fn is_path_between<G>(graph: &G, src: &G::VertexId, dst: &G::VertexId) -> bool
+pub fn is_path_between<G>(graph: &G, from: &G::VertexId, to: &G::VertexId) -> bool
 where
     G: Neighbors + VertexSet,
 {
-    Connected::on(graph).between(src, dst).run().is()
+    Connected::on(graph).between(from, to).run().is()
 }
 
 #[cfg(test)]
@@ -121,9 +121,9 @@ mod tests {
                     }
                 }
 
-                if let Some((_, dst)) = between {
+                if let Some((_, to)) = between {
                     assert!(
-                        visited.is_visited(&dst),
+                        visited.is_visited(&to),
                         "algorithm reported connected vertices while they are not"
                     )
                 } else {
@@ -354,26 +354,26 @@ mod tests {
 
         #[test]
         #[ignore = "run property-based tests with `cargo test proptest_ -- --ignored`"]
-        fn proptest_connected_between_undirected_any(graph in graph_undirected(any::<()>(), any::<()>()), src: u64, dst: u64) {
+        fn proptest_connected_between_undirected_any(graph in graph_undirected(any::<()>(), any::<()>()), from: u64, to: u64) {
             let n = graph.vertex_count() as u64;
             prop_assume!(n > 0);
 
-            let src = VertexId::from_bits(src % n);
-            let dst = VertexId::from_bits(dst % n);
-            let connected = Connected::on(&graph).between(&src, &dst).run();
-            assert_valid(connected, &graph, Some((src, dst)));
+            let from = VertexId::from_bits(from % n);
+            let to = VertexId::from_bits(to % n);
+            let connected = Connected::on(&graph).between(&from, &to).run();
+            assert_valid(connected, &graph, Some((from, to)));
         }
 
         #[test]
         #[ignore = "run property-based tests with `cargo test proptest_ -- --ignored`"]
-        fn proptest_connected_between_directed_any(graph in graph_directed(any::<()>(), any::<()>()), src: u64, dst: u64) {
+        fn proptest_connected_between_directed_any(graph in graph_directed(any::<()>(), any::<()>()), from: u64, to: u64) {
             let n = graph.vertex_count() as u64;
             prop_assume!(n > 0);
 
-            let src = VertexId::from_bits(src % n);
-            let dst = VertexId::from_bits(dst % n);
-            let connected = Connected::on(&graph).between(&src, &dst).run();
-            assert_valid(connected, &graph, Some((src, dst)));
+            let from = VertexId::from_bits(from % n);
+            let to = VertexId::from_bits(to % n);
+            let connected = Connected::on(&graph).between(&from, &to).run();
+            assert_valid(connected, &graph, Some((from, to)));
         }
     }
 }

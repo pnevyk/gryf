@@ -89,25 +89,25 @@ where
     where
         Self: 'a;
 
-    fn neighbors_undirected(&self, src: &G::VertexId) -> Self::NeighborsIter<'_> {
-        if !self.check_vertex(src) {
+    fn neighbors_undirected(&self, from: &G::VertexId) -> Self::NeighborsIter<'_> {
+        if !self.check_vertex(from) {
             panic!("vertex does not exist");
         }
 
         SubsetIter::<_, G::NeighborRef<'_>>::new(
-            self.graph.neighbors_undirected(src),
+            self.graph.neighbors_undirected(from),
             |neighbor| self.check_vertex(&neighbor.id()) && self.check_edge(&neighbor.edge()),
             true,
         )
     }
 
-    fn neighbors_directed(&self, src: &G::VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
-        if !self.check_vertex(src) {
+    fn neighbors_directed(&self, from: &G::VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
+        if !self.check_vertex(from) {
             panic!("vertex does not exist");
         }
 
         SubsetIter::<_, G::NeighborRef<'_>>::new(
-            self.graph.neighbors_directed(src, dir),
+            self.graph.neighbors_directed(from, dir),
             |neighbor| self.check_vertex(&neighbor.id()) && self.check_edge(&neighbor.edge()),
             true,
         )
@@ -158,11 +158,11 @@ where
         SubsetIter::new(self.graph.edges_by_id(), |id| self.contains_edge(id), true)
     }
 
-    fn edge_id(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Self::EdgeIdIter<'_> {
-        let endpoints_exist = self.check_vertex(src) && self.check_vertex(dst);
+    fn edge_id(&self, from: &Self::VertexId, to: &Self::VertexId) -> Self::EdgeIdIter<'_> {
+        let endpoints_exist = self.check_vertex(from) && self.check_vertex(to);
 
         SubsetIter::new(
-            self.graph.edge_id(src, dst),
+            self.graph.edge_id(from, to),
             |id| self.contains_edge(id),
             endpoints_exist,
         )
@@ -171,8 +171,8 @@ where
     fn endpoints(&self, id: &Self::EdgeId) -> Option<(Self::VertexId, Self::VertexId)> {
         if self.check_edge(id) {
             match self.graph.endpoints(id) {
-                Some((src, dst)) if self.check_vertex(&src) && self.check_vertex(&dst) => {
-                    Some((src, dst))
+                Some((from, to)) if self.check_vertex(&from) && self.check_vertex(&to) => {
+                    Some((from, to))
                 }
                 _ => None,
             }
@@ -343,8 +343,8 @@ mod tests {
         Subgraph::new(graph)
             .filter_vertex(|v: &VertexId, _, _| v.as_usize() < 4)
             .filter_edge(|e, g, _| {
-                let (src, dst): (VertexId, VertexId) = g.endpoints(e).unwrap();
-                src.as_usize() + dst.as_usize() < 4 || dst.as_usize() == 5
+                let (from, to): (VertexId, VertexId) = g.endpoints(e).unwrap();
+                from.as_usize() + to.as_usize() < 4 || to.as_usize() == 5
             })
     }
 

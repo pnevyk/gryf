@@ -411,14 +411,14 @@ where
             }
         }
 
-        for (e, (src, dst, edge)) in self.edges.iter().enumerate() {
+        for (e, (from, to, edge)) in self.edges.iter().enumerate() {
             if !removed_edges.contains(&e)
-                && !removed_vertices.contains(src)
-                && !removed_vertices.contains(dst)
+                && !removed_vertices.contains(from)
+                && !removed_vertices.contains(to)
             {
-                let src = ids[*src].as_ref().unwrap();
-                let dst = ids[*dst].as_ref().unwrap();
-                graph.add_edge(src, dst, edge.current());
+                let from = ids[*from].as_ref().unwrap();
+                let to = ids[*to].as_ref().unwrap();
+                graph.add_edge(from, to, edge.current());
             }
         }
 
@@ -492,9 +492,9 @@ impl ShrinkStructureState {
         let mut neighbors_out = BTreeMap::new();
         let mut neighbors_in = BTreeMap::new();
 
-        for &(src, dst, _) in edges {
-            *neighbors_out.entry((src, dst)).or_default() += 1;
-            *neighbors_in.entry((dst, src)).or_default() += 1;
+        for &(from, to, _) in edges {
+            *neighbors_out.entry((from, to)).or_default() += 1;
+            *neighbors_in.entry((to, from)).or_default() += 1;
         }
 
         Self {
@@ -545,16 +545,16 @@ impl ShrinkStructureState {
             self.current.removed_vertices.insert(v);
 
             for neighbors in [&mut self.neighbors_out, &mut self.neighbors_in] {
-                neighbors.retain(|&(src, dst), _| !(src == v || dst == v));
+                neighbors.retain(|&(from, to), _| !(from == v || to == v));
             }
         }
 
         for e in remove_edges {
-            let (src, dst, _) = edges[e];
+            let (from, to, _) = edges[e];
 
             self.current.removed_edges.insert(e);
-            self.neighbors_in.remove(&(src, dst));
-            self.neighbors_in.remove(&(dst, src));
+            self.neighbors_in.remove(&(from, to));
+            self.neighbors_in.remove(&(to, from));
         }
 
         self.command = command;
@@ -586,9 +586,9 @@ impl ShrinkStructureState {
         !self.current.removed_vertices.contains(&v)
     }
 
-    fn edge_exists(&self, e: usize, (src, dst): (usize, usize)) -> bool {
-        !(self.current.removed_vertices.contains(&src)
-            || self.current.removed_vertices.contains(&dst)
+    fn edge_exists(&self, e: usize, (from, to): (usize, usize)) -> bool {
+        !(self.current.removed_vertices.contains(&from)
+            || self.current.removed_vertices.contains(&to)
             || self.current.removed_edges.contains(&e))
     }
 
@@ -607,15 +607,15 @@ impl ShrinkStructureState {
                 .or_else(|| {
                     (0..edges.len())
                         .find(|&e| {
-                            let (src, dst, _) = edges[e];
-                            self.edge_exists(e, (src, dst))
+                            let (from, to, _) = edges[e];
+                            self.edge_exists(e, (from, to))
                         })
                         .map(ShrinkStructure::Edge)
                 }),
             ShrinkStructure::Edge(e) => ((e + 1)..edges.len())
                 .find(|&f| {
-                    let (src, dst, _) = edges[f];
-                    self.edge_exists(f, (src, dst))
+                    let (from, to, _) = edges[f];
+                    self.edge_exists(f, (from, to))
                 })
                 .map(ShrinkStructure::Edge),
         }
@@ -635,7 +635,7 @@ struct ShrinkAttrState {
 }
 
 // The implementation is adapted from VecValueTree
-// (https://github.com/proptest-rs/proptest/blob/ef305c4fadd7c0ba13a349f542da00d290116ccb/proptest/src/collection.rs#L603-L672).
+// (https://github.com/proptest-rs/proptest/blob/ef305c4fadd7c0ba13a349f542da00d290116ccb/proptest/from/collection.rs#L603-L672).
 impl ShrinkAttrState {
     pub fn new() -> Self {
         Self {
@@ -670,8 +670,8 @@ impl ShrinkAttrState {
                     if e >= edges.len() {
                         return false;
                     } else {
-                        let (src, dst, edge) = &mut edges[e];
-                        if structure.edge_exists(e, (*src, *dst)) && edge.simplify() {
+                        let (from, to, edge) = &mut edges[e];
+                        if structure.edge_exists(e, (*from, *to)) && edge.simplify() {
                             self.previous = Some(self.command);
                             return true;
                         } else {

@@ -228,11 +228,11 @@ pub enum RawEvent<Id: IdPair> {
     },
     Push {
         vertex: Id::VertexId,
-        src: (Id::VertexId, Id::EdgeId),
+        from: (Id::VertexId, Id::EdgeId),
     },
     Skip {
         vertex: Id::VertexId,
-        src: Option<(Id::VertexId, Id::EdgeId)>,
+        from: Option<(Id::VertexId, Id::EdgeId)>,
     },
 }
 
@@ -273,7 +273,7 @@ impl<G: GraphBase> RawVisit<G, UseVertexId, RawBfs> {
             if self.visited.visit(u.clone()) {
                 let event = RawEvent::Push {
                     vertex: u.clone(),
-                    src: (v.clone(), n.edge().into_owned()),
+                    from: (v.clone(), n.edge().into_owned()),
                 };
                 if f(self, event) {
                     self.collection.push(u);
@@ -281,7 +281,7 @@ impl<G: GraphBase> RawVisit<G, UseVertexId, RawBfs> {
             } else {
                 let event = RawEvent::Skip {
                     vertex: u,
-                    src: Some((v.clone(), n.edge().into_owned())),
+                    from: Some((v.clone(), n.edge().into_owned())),
                 };
                 f(self, event);
             }
@@ -328,7 +328,7 @@ impl<G: GraphBase> RawVisit<G, UseVertexId, RawDfs> {
                     if !self.visited.is_visited(&u) {
                         let event = RawEvent::Push {
                             vertex: u.clone(),
-                            src: (v.clone(), n.edge().into_owned()),
+                            from: (v.clone(), n.edge().into_owned()),
                         };
                         if f(self, event) {
                             self.collection.push(u.clone());
@@ -336,7 +336,7 @@ impl<G: GraphBase> RawVisit<G, UseVertexId, RawDfs> {
                     } else {
                         let event = RawEvent::Skip {
                             vertex: u.clone(),
-                            src: Some((v.clone(), n.edge().into_owned())),
+                            from: Some((v.clone(), n.edge().into_owned())),
                         };
                         f(self, event);
                     }
@@ -346,7 +346,7 @@ impl<G: GraphBase> RawVisit<G, UseVertexId, RawDfs> {
             } else {
                 let event = RawEvent::Skip {
                     vertex: v,
-                    src: None,
+                    from: None,
                 };
                 f(self, event);
             }
@@ -468,7 +468,7 @@ impl<Id: GraphBase> RawVisit<Id, UseVertexId, RawDfsExtra> {
 
                 let event = RawEvent::Push {
                     vertex: u.clone(),
-                    src: (v.clone(), e),
+                    from: (v.clone(), e),
                 };
                 if !f(self, event) {
                     continue;
@@ -486,7 +486,7 @@ impl<Id: GraphBase> RawVisit<Id, UseVertexId, RawDfsExtra> {
             } else {
                 let event = RawEvent::Skip {
                     vertex: u,
-                    src: Some((v.clone(), e)),
+                    from: Some((v.clone(), e)),
                 };
                 f(self, event);
             }
@@ -536,7 +536,7 @@ impl<G: GraphBase> RawVisit<G, UseVertexId, RawDfsNoBacktrack> {
             if !neighbor_chosen && self.visited.visit(u.clone()) {
                 let event = RawEvent::Push {
                     vertex: u.clone(),
-                    src: (v.clone(), n.edge().into_owned()),
+                    from: (v.clone(), n.edge().into_owned()),
                 };
                 if f(self, event) {
                     self.collection.push(u.clone());
@@ -551,7 +551,7 @@ impl<G: GraphBase> RawVisit<G, UseVertexId, RawDfsNoBacktrack> {
             } else {
                 let event = RawEvent::Skip {
                     vertex: u,
-                    src: Some((v.clone(), n.edge().into_owned())),
+                    from: Some((v.clone(), n.edge().into_owned())),
                 };
                 f(self, event);
             }

@@ -31,12 +31,16 @@ where
     where
         Self: 'a;
 
-    fn neighbors_undirected(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_> {
-        self.graph.neighbors_undirected(src)
+    fn neighbors_undirected(&self, from: &Self::VertexId) -> Self::NeighborsIter<'_> {
+        self.graph.neighbors_undirected(from)
     }
 
-    fn neighbors_directed(&self, src: &Self::VertexId, _dir: Direction) -> Self::NeighborsIter<'_> {
-        self.neighbors_undirected(src)
+    fn neighbors_directed(
+        &self,
+        from: &Self::VertexId,
+        _dir: Direction,
+    ) -> Self::NeighborsIter<'_> {
+        self.neighbors_undirected(from)
     }
 
     fn degree_undirected(&self, id: &Self::VertexId) -> usize {

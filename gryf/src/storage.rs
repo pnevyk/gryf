@@ -51,8 +51,8 @@ mod tests {
         assert_eq!(graph.edges().count(), graph.edge_count());
 
         let valid_edges_by_id = graph.edges_by_id().all(|edge_id| {
-            let (src, dst) = graph.endpoints(&edge_id).unwrap();
-            graph.edge_id_any(&src, &dst) == Some(edge_id)
+            let (from, to) = graph.endpoints(&edge_id).unwrap();
+            graph.edge_id_any(&from, &to) == Some(edge_id)
         });
         assert!(valid_edges_by_id);
 

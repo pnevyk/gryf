@@ -36,12 +36,12 @@ where
 
         let edges = graph
             .edges()
-            .map(|edge| (edge.src().clone(), edge.id().clone(), edge.dst().clone()))
+            .map(|edge| (edge.from().clone(), edge.id().clone(), edge.to().clone()))
             .collect::<Vec<_>>();
 
-        for (src, id, dst) in edges {
+        for (from, id, to) in edges {
             let attr = graph.remove_edge(&id).unwrap();
-            graph.add_edge(&dst, &src, attr);
+            graph.add_edge(&to, &from, attr);
         }
 
         graph
@@ -60,12 +60,12 @@ where
     where
         Self: 'a;
 
-    fn neighbors_undirected(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_> {
-        Iter(self.graph.neighbors_undirected(src))
+    fn neighbors_undirected(&self, from: &Self::VertexId) -> Self::NeighborsIter<'_> {
+        Iter(self.graph.neighbors_undirected(from))
     }
 
-    fn neighbors_directed(&self, src: &Self::VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
-        Iter(self.graph.neighbors_directed(src, dir.opposite()))
+    fn neighbors_directed(&self, from: &Self::VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
+        Iter(self.graph.neighbors_directed(from, dir.opposite()))
     }
 
     fn degree_undirected(&self, id: &Self::VertexId) -> usize {
@@ -93,16 +93,16 @@ where
         self.graph.edges_by_id()
     }
 
-    fn edge_id(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Self::EdgeIdIter<'_> {
-        self.graph.edge_id(dst, src)
+    fn edge_id(&self, from: &Self::VertexId, to: &Self::VertexId) -> Self::EdgeIdIter<'_> {
+        self.graph.edge_id(to, from)
     }
 
     fn endpoints(&self, id: &Self::EdgeId) -> Option<(Self::VertexId, Self::VertexId)> {
-        self.graph.endpoints(id).map(|(src, dst)| (dst, src))
+        self.graph.endpoints(id).map(|(from, to)| (to, from))
     }
 
-    fn edge_id_any(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Option<Self::EdgeId> {
-        self.graph.edge_id_any(dst, src)
+    fn edge_id_any(&self, from: &Self::VertexId, to: &Self::VertexId) -> Option<Self::EdgeId> {
+        self.graph.edge_id_any(to, from)
     }
 }
 
@@ -169,12 +169,12 @@ where
         self.0.attr()
     }
 
-    fn src(&self) -> &VId {
-        self.0.dst()
+    fn from(&self) -> &VId {
+        self.0.to()
     }
 
-    fn dst(&self) -> &VId {
-        self.0.src()
+    fn to(&self) -> &VId {
+        self.0.from()
     }
 }
 
@@ -192,8 +192,8 @@ where
         self.0.edge()
     }
 
-    fn src(&self) -> OwnableRef<'_, VId> {
-        self.0.src()
+    fn pred(&self) -> OwnableRef<'_, VId> {
+        self.0.pred()
     }
 
     fn dir(&self) -> Direction {
@@ -259,7 +259,7 @@ mod tests {
         let graph = Transpose::new(create_graph());
         let mut edges = graph
             .edges()
-            .map(|edge| (*edge.src(), *edge.dst(), *edge.attr()));
+            .map(|edge| (*edge.from(), *edge.to(), *edge.attr()));
 
         assert_eq!(edges.next(), Some((1.into(), 0.into(), 0)));
         assert_eq!(edges.next(), Some((2.into(), 1.into(), 1)));
@@ -273,7 +273,7 @@ mod tests {
         let mut neighbors = graph.neighbors_undirected(&1.into()).map(|neighbor| {
             (
                 neighbor.id().into_owned(),
-                neighbor.src().into_owned(),
+                neighbor.pred().into_owned(),
                 neighbor.dir(),
             )
         });
@@ -300,7 +300,7 @@ mod tests {
             .map(|neighbor| {
                 (
                     neighbor.id().into_owned(),
-                    neighbor.src().into_owned(),
+                    neighbor.pred().into_owned(),
                     neighbor.dir(),
                 )
             });
@@ -319,7 +319,7 @@ mod tests {
             .map(|neighbor| {
                 (
                     neighbor.id().into_owned(),
-                    neighbor.src().into_owned(),
+                    neighbor.pred().into_owned(),
                     neighbor.dir(),
                 )
             });

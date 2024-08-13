@@ -99,15 +99,15 @@ impl<V, E> MutOp<V, E> {
                 graph.clear();
                 MutOpResult::Clear
             }
-            MutOp::AddEdge(src, dst, edge) => {
-                let src = G::VertexId::from_usize(src.get(n).unwrap_or_default());
-                let dst = G::VertexId::from_usize(dst.get(n).unwrap_or_default());
-                MutOpResult::AddEdge(graph.try_add_edge(&src, &dst, edge))
+            MutOp::AddEdge(from, to, edge) => {
+                let from = G::VertexId::from_usize(from.get(n).unwrap_or_default());
+                let to = G::VertexId::from_usize(to.get(n).unwrap_or_default());
+                MutOpResult::AddEdge(graph.try_add_edge(&from, &to, edge))
             }
-            MutOp::RemoveEdge(src, dst) => {
-                let src = G::VertexId::from_usize(src.get(n).unwrap_or_default());
-                let dst = G::VertexId::from_usize(dst.get(n).unwrap_or_default());
-                let id = match graph.edge_id_any(&src, &dst) {
+            MutOp::RemoveEdge(from, to) => {
+                let from = G::VertexId::from_usize(from.get(n).unwrap_or_default());
+                let to = G::VertexId::from_usize(to.get(n).unwrap_or_default());
+                let id = match graph.edge_id_any(&from, &to) {
                     Some(id) => id,
                     None => return MutOpResult::RemoveEdge(None),
                 };
@@ -149,14 +149,14 @@ impl<V, E> MutOpsSeq<V, E> {
 
             let op = match op {
                 MutOp::RemoveVertex(index) => MutOp::RemoveVertex(index.map(n).unwrap_or_default()),
-                MutOp::AddEdge(src, dst, edge) => MutOp::AddEdge(
-                    src.map(n).unwrap_or_default(),
-                    dst.map(n).unwrap_or_default(),
+                MutOp::AddEdge(from, to, edge) => MutOp::AddEdge(
+                    from.map(n).unwrap_or_default(),
+                    to.map(n).unwrap_or_default(),
                     edge,
                 ),
-                MutOp::RemoveEdge(src, dst) => MutOp::RemoveEdge(
-                    src.map(n).unwrap_or_default(),
-                    dst.map(n).unwrap_or_default(),
+                MutOp::RemoveEdge(from, to) => MutOp::RemoveEdge(
+                    from.map(n).unwrap_or_default(),
+                    to.map(n).unwrap_or_default(),
                 ),
                 op => op,
             };
@@ -165,11 +165,11 @@ impl<V, E> MutOpsSeq<V, E> {
                 MutOp::AddVertex(vertex) => println!("graph.add_vertex({vertex:?});"),
                 MutOp::RemoveVertex(index) => println!("graph.remove_vertex(&{index:?});"),
                 MutOp::Clear => println!("graph.clear();"),
-                MutOp::AddEdge(src, dst, edge) => {
-                    println!("graph.add_edge(&{src:?}, &{dst:?}, {edge:?});")
+                MutOp::AddEdge(from, to, edge) => {
+                    println!("graph.add_edge(&{from:?}, &{to:?}, {edge:?});")
                 }
-                MutOp::RemoveEdge(src, dst) => {
-                    println!("graph.remove_edge_any_between(&{src:?}, &{dst:?});")
+                MutOp::RemoveEdge(from, to) => {
+                    println!("graph.remove_edge_any_between(&{from:?}, &{to:?});")
                 }
                 MutOp::ClearEdges => println!("graph.clear_edges();"),
             }

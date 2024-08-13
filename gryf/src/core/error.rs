@@ -74,8 +74,8 @@ impl<E> AddEdgeError<E> {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AddEdgeErrorKind {
-    SourceAbsent,
-    DestinationAbsent,
+    TailAbsent,
+    HeadAbsent,
     MultiEdge,
     CapacityOverflow,
 }
@@ -83,8 +83,8 @@ pub enum AddEdgeErrorKind {
 impl fmt::Display for AddEdgeErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let reason = match self {
-            AddEdgeErrorKind::SourceAbsent => "source does not exist",
-            AddEdgeErrorKind::DestinationAbsent => "destination does not exist",
+            AddEdgeErrorKind::TailAbsent => "edge tail vertex does not exist",
+            AddEdgeErrorKind::HeadAbsent => "edge head vertex does not exist",
             AddEdgeErrorKind::MultiEdge => {
                 "an edge already exists and the graph does not allow multi edges"
             }

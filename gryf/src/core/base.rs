@@ -12,14 +12,14 @@ pub trait VertexRef<VId: IdType, V> {
 pub trait EdgeRef<VId: IdType, EId: IdType, E> {
     fn id(&self) -> &EId;
     fn attr(&self) -> &E;
-    fn src(&self) -> &VId;
-    fn dst(&self) -> &VId;
+    fn from(&self) -> &VId;
+    fn to(&self) -> &VId;
 }
 
 pub trait NeighborRef<VId: IdType, EId: IdType> {
     fn id(&self) -> OwnableRef<'_, VId>;
     fn edge(&self) -> OwnableRef<'_, EId>;
-    fn src(&self) -> OwnableRef<'_, VId>;
+    fn pred(&self) -> OwnableRef<'_, VId>;
     fn dir(&self) -> Direction;
 }
 
@@ -49,11 +49,11 @@ mod imp {
             self.1
         }
 
-        fn src(&self) -> &VId {
+        fn from(&self) -> &VId {
             &self.2
         }
 
-        fn dst(&self) -> &VId {
+        fn to(&self) -> &VId {
             &self.3
         }
     }
@@ -67,7 +67,7 @@ mod imp {
             OwnableRef::Borrowed(&self.1)
         }
 
-        fn src(&self) -> OwnableRef<'_, VId> {
+        fn pred(&self) -> OwnableRef<'_, VId> {
             OwnableRef::Borrowed(&self.2)
         }
 

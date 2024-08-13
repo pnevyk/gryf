@@ -511,22 +511,22 @@ where
         self.storage.endpoints(id.as_id().as_ref())
     }
 
-    pub fn edge_id<VId>(&self, src: VId, dst: VId) -> G::EdgeIdIter<'_>
+    pub fn edge_id<VId>(&self, from: VId, to: VId) -> G::EdgeIdIter<'_>
     where
         G: EdgeSet,
         VId: AsIdRef<G::VertexId>,
     {
         self.storage
-            .edge_id(src.as_id().as_ref(), dst.as_id().as_ref())
+            .edge_id(from.as_id().as_ref(), to.as_id().as_ref())
     }
 
-    pub fn edge_id_any<VId>(&self, src: VId, dst: VId) -> Option<G::EdgeId>
+    pub fn edge_id_any<VId>(&self, from: VId, to: VId) -> Option<G::EdgeId>
     where
         G: EdgeSet,
         VId: AsIdRef<G::VertexId>,
     {
         self.storage
-            .edge_id_any(src.as_id().as_ref(), dst.as_id().as_ref())
+            .edge_id_any(from.as_id().as_ref(), to.as_id().as_ref())
     }
 
     pub fn edges_by_id(&self) -> G::EdgesByIdIter<'_>
@@ -544,13 +544,13 @@ where
         self.storage.contains_edge(id.as_id().as_ref())
     }
 
-    pub fn contains_edge_between<VId>(&self, src: VId, dst: VId) -> bool
+    pub fn contains_edge_between<VId>(&self, from: VId, to: VId) -> bool
     where
         G: EdgeSet,
         VId: AsIdRef<G::VertexId>,
     {
         self.storage
-            .contains_edge_between(src.as_id().as_ref(), dst.as_id().as_ref())
+            .contains_edge_between(from.as_id().as_ref(), to.as_id().as_ref())
     }
 
     pub fn is_directed(&self) -> bool
@@ -599,36 +599,36 @@ where
         self.storage.try_replace_edge(id.as_id().as_ref(), edge)
     }
 
-    pub fn neighbors_undirected<VId>(&self, src: VId) -> G::NeighborsIter<'_>
+    pub fn neighbors_undirected<VId>(&self, from: VId) -> G::NeighborsIter<'_>
     where
         G: Neighbors,
         VId: AsIdRef<G::VertexId>,
     {
-        self.storage.neighbors_undirected(src.as_id().as_ref())
+        self.storage.neighbors_undirected(from.as_id().as_ref())
     }
 
-    pub fn neighbors_directed<VId>(&self, src: VId, dir: Direction) -> G::NeighborsIter<'_>
+    pub fn neighbors_directed<VId>(&self, from: VId, dir: Direction) -> G::NeighborsIter<'_>
     where
         G: Neighbors,
         VId: AsIdRef<G::VertexId>,
     {
-        self.storage.neighbors_directed(src.as_id().as_ref(), dir)
+        self.storage.neighbors_directed(from.as_id().as_ref(), dir)
     }
 
-    pub fn degree_undirected<VId>(&self, src: VId) -> usize
+    pub fn degree_undirected<VId>(&self, from: VId) -> usize
     where
         G: Neighbors,
         VId: AsIdRef<G::VertexId>,
     {
-        self.storage.degree_undirected(src.as_id().as_ref())
+        self.storage.degree_undirected(from.as_id().as_ref())
     }
 
-    pub fn degree_directed<VId>(&self, src: VId, dir: Direction) -> usize
+    pub fn degree_directed<VId>(&self, from: VId, dir: Direction) -> usize
     where
         G: Neighbors,
         VId: AsIdRef<G::VertexId>,
     {
-        self.storage.degree_directed(src.as_id().as_ref(), dir)
+        self.storage.degree_directed(from.as_id().as_ref(), dir)
     }
 
     pub fn ends(&self) -> Option<&[G::VertexId; 2]> {

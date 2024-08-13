@@ -83,9 +83,9 @@ where
             out.write_all(
                 format!(
                     "    v{} {} v{} [label={:?}];\n",
-                    indexer.get(edge.src()),
+                    indexer.get(edge.from()),
                     line,
-                    indexer.get(edge.dst()),
+                    indexer.get(edge.to()),
                     (self.get_edge_label)(edge.attr())
                 )
                 .as_bytes(),

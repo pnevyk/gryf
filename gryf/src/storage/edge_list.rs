@@ -78,11 +78,11 @@ where
     where
         Self: 'a;
 
-    fn neighbors_undirected(&self, src: &Id::VertexId) -> Self::NeighborsIter<'_> {
-        self.vertex(src).expect("vertex does not exist");
+    fn neighbors_undirected(&self, from: &Id::VertexId) -> Self::NeighborsIter<'_> {
+        self.vertex(from).expect("vertex does not exist");
 
         NeighborsIter {
-            src: *src,
+            from: *from,
             edges: self.endpoints.as_slice(),
             dir: None,
             index: 0,
@@ -91,11 +91,11 @@ where
         }
     }
 
-    fn neighbors_directed(&self, src: &Id::VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
-        self.vertex(src).expect("vertex does not exist");
+    fn neighbors_directed(&self, from: &Id::VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
+        self.vertex(from).expect("vertex does not exist");
 
         NeighborsIter {
-            src: *src,
+            from: *from,
             edges: self.endpoints.as_slice(),
             dir: Some(dir),
             index: 0,
@@ -188,10 +188,10 @@ where
         (0..self.edges.len()).into()
     }
 
-    fn edge_id(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Self::EdgeIdIter<'_> {
+    fn edge_id(&self, from: &Self::VertexId, to: &Self::VertexId) -> Self::EdgeIdIter<'_> {
         EdgeIdIter {
-            src: *src,
-            dst: *dst,
+            from: *from,
+            to: *to,
             endpoints: self.endpoints.iter().enumerate(),
             ty: PhantomData,
         }
@@ -295,19 +295,19 @@ where
 
     fn try_add_edge(
         &mut self,
-        src: &Self::VertexId,
-        dst: &Self::VertexId,
+        from: &Self::VertexId,
+        to: &Self::VertexId,
         edge: E,
     ) -> Result<Self::EdgeId, AddEdgeError<E>> {
-        if src.as_usize() >= self.vertices.len() {
-            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::SourceAbsent));
+        if from.as_usize() >= self.vertices.len() {
+            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::TailAbsent));
         }
 
-        if dst.as_usize() >= self.vertices.len() {
-            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::DestinationAbsent));
+        if to.as_usize() >= self.vertices.len() {
+            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::HeadAbsent));
         }
 
-        self.endpoints.push([*src, *dst]);
+        self.endpoints.push([*from, *to]);
         let index = self.edges.len();
         self.edges.push(edge);
         Ok(index.into())
@@ -396,14 +396,14 @@ where
         F: FnMut(&V, &V) -> Option<E>,
     {
         shared::connect_vertices::<Ty>(self.vertices.len(), |i, j| {
-            let src = &self.vertices[i];
-            let dst = &self.vertices[j];
+            let from = &self.vertices[i];
+            let to = &self.vertices[j];
 
-            if let Some(edge) = connect(src, dst) {
-                let src = Id::VertexId::from_usize(i);
-                let dst = Id::VertexId::from_usize(j);
+            if let Some(edge) = connect(from, to) {
+                let from = Id::VertexId::from_usize(i);
+                let to = Id::VertexId::from_usize(j);
 
-                self.add_edge(&src, &dst, edge);
+                self.add_edge(&from, &to, edge);
             }
         })
     }
@@ -412,8 +412,8 @@ where
 impl<V, E, Ty: EdgeType, Id: IdPair> Guarantee for EdgeList<V, E, Ty, Id> {}
 
 pub struct EdgeIdIter<'a, Ty: EdgeType, Id: IdPair> {
-    src: Id::VertexId,
-    dst: Id::VertexId,
+    from: Id::VertexId,
+    to: Id::VertexId,
     endpoints: Enumerate<slice::Iter<'a, [Id::VertexId; 2]>>,
     ty: PhantomData<Ty>,
 }
@@ -426,10 +426,10 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         for (index, endpoints) in self.endpoints.by_ref() {
-            let src_dst = endpoints[0] == self.src && endpoints[1] == self.dst;
-            let dst_src =
-                !Ty::is_directed() && endpoints[0] == self.dst && endpoints[1] == self.src;
-            if src_dst || dst_src {
+            let from_to = endpoints[0] == self.from && endpoints[1] == self.to;
+            let to_from =
+                !Ty::is_directed() && endpoints[0] == self.to && endpoints[1] == self.from;
+            if from_to || to_from {
                 return Some(Id::EdgeId::from_usize(index));
             }
         }
@@ -439,7 +439,7 @@ where
 }
 
 pub struct NeighborsIter<'a, Ty, Id: IdPair> {
-    src: Id::VertexId,
+    from: Id::VertexId,
     edges: &'a [[Id::VertexId; 2]],
     index: usize,
     dir: Option<Direction>,
@@ -457,7 +457,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         if Ty::is_directed() {
             if let Some((id, dir)) = self.self_loop.take() {
-                return Some((self.src, id, self.src, dir));
+                return Some((self.from, id, self.from, dir));
             }
         }
 
@@ -470,32 +470,32 @@ where
 
             let neighbor = match (self.dir, Ty::is_directed()) {
                 (Some(Direction::Outgoing), true) => {
-                    if endpoints[0] == self.src {
+                    if endpoints[0] == self.from {
                         Some((endpoints[1], Direction::Outgoing))
                     } else {
                         None
                     }
                 }
                 (Some(Direction::Incoming), true) => {
-                    if endpoints[1] == self.src {
+                    if endpoints[1] == self.from {
                         Some((endpoints[0], Direction::Incoming))
                     } else {
                         None
                     }
                 }
                 (Some(dir), false) => {
-                    if endpoints[0] == self.src {
+                    if endpoints[0] == self.from {
                         Some((endpoints[1], dir))
-                    } else if endpoints[1] == self.src {
+                    } else if endpoints[1] == self.from {
                         Some((endpoints[0], dir))
                     } else {
                         None
                     }
                 }
                 (None, _) => {
-                    if endpoints[0] == self.src {
+                    if endpoints[0] == self.from {
                         Some((endpoints[1], Direction::Outgoing))
-                    } else if endpoints[1] == self.src {
+                    } else if endpoints[1] == self.from {
                         Some((endpoints[0], Direction::Incoming))
                     } else {
                         None
@@ -504,14 +504,14 @@ where
             };
 
             if let Some((neighbor, dir)) = neighbor {
-                if Ty::is_directed() && neighbor == self.src && self.dir.is_none() {
+                if Ty::is_directed() && neighbor == self.from && self.dir.is_none() {
                     // There is only one edge-item in edge list for a self-loop
                     // in directed graph. But we need to report the edge twice,
                     // for each direction.
                     self.self_loop = Some((id, dir.opposite()));
                 }
 
-                return Some((neighbor, id, self.src, dir));
+                return Some((neighbor, id, self.from, dir));
             }
         }
     }

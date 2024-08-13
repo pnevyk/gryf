@@ -132,14 +132,14 @@ where
     W: Weight,
     F: GetWeight<E, W>,
 {
-    let u = vertex_map.to_virt(*edge.src()).unwrap();
+    let u = vertex_map.to_virt(*edge.from()).unwrap();
 
     let short_dist = &dist[u.as_usize()];
     if short_dist == &W::inf() {
         return None;
     }
 
-    let v = vertex_map.to_virt(*edge.dst()).unwrap();
+    let v = vertex_map.to_virt(*edge.to()).unwrap();
 
     let edge_dist = edge_weight.get(edge.attr());
     let next_dist = short_dist.clone() + edge_dist;

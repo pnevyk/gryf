@@ -27,8 +27,8 @@ where
         I: IntoIterator<Item = T>,
     {
         for edge in iter {
-            let (src, dst, edge) = edge.unpack();
-            self.add_edge(&src, &dst, edge);
+            let (from, to, edge) = edge.unpack();
+            self.add_edge(&from, &to, edge);
         }
     }
 }

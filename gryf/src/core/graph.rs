@@ -40,8 +40,8 @@ pub trait Neighbors: GraphBase {
     where
         Self: 'a;
 
-    fn neighbors_undirected(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_>;
-    fn neighbors_directed(&self, src: &Self::VertexId, dir: Direction) -> Self::NeighborsIter<'_>;
+    fn neighbors_undirected(&self, from: &Self::VertexId) -> Self::NeighborsIter<'_>;
+    fn neighbors_directed(&self, from: &Self::VertexId, dir: Direction) -> Self::NeighborsIter<'_>;
 
     fn degree_undirected(&self, id: &Self::VertexId) -> usize {
         if Self::EdgeType::is_directed() {
@@ -119,7 +119,7 @@ pub trait EdgeSet: GraphBase {
 
     fn edges_by_id(&self) -> Self::EdgesByIdIter<'_>;
 
-    fn edge_id(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Self::EdgeIdIter<'_>;
+    fn edge_id(&self, from: &Self::VertexId, to: &Self::VertexId) -> Self::EdgeIdIter<'_>;
 
     fn endpoints(&self, id: &Self::EdgeId) -> Option<(Self::VertexId, Self::VertexId)>;
 
@@ -141,12 +141,12 @@ pub trait EdgeSet: GraphBase {
         self.edges_by_id().any(|e| &e == id)
     }
 
-    fn contains_edge_between(&self, src: &Self::VertexId, dst: &Self::VertexId) -> bool {
-        self.edge_id_any(src, dst).is_some()
+    fn contains_edge_between(&self, from: &Self::VertexId, to: &Self::VertexId) -> bool {
+        self.edge_id_any(from, to).is_some()
     }
 
-    fn edge_id_any(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Option<Self::EdgeId> {
-        self.edge_id(src, dst).next()
+    fn edge_id_any(&self, from: &Self::VertexId, to: &Self::VertexId) -> Option<Self::EdgeId> {
+        self.edge_id(from, to).next()
     }
 
     fn edge_id_map(&self) -> CompactIdMap<Self::EdgeId>
@@ -251,8 +251,8 @@ pub trait GraphAdd<V, E>: GraphMut<V, E> {
     fn try_add_vertex(&mut self, vertex: V) -> Result<Self::VertexId, AddVertexError<V>>;
     fn try_add_edge(
         &mut self,
-        src: &Self::VertexId,
-        dst: &Self::VertexId,
+        from: &Self::VertexId,
+        to: &Self::VertexId,
         edge: E,
     ) -> Result<Self::EdgeId, AddEdgeError<E>>;
 
@@ -283,8 +283,8 @@ pub trait GraphAdd<V, E>: GraphMut<V, E> {
         }
     }
 
-    fn add_edge(&mut self, src: &Self::VertexId, dst: &Self::VertexId, edge: E) -> Self::EdgeId {
-        match self.try_add_edge(src, dst, edge) {
+    fn add_edge(&mut self, from: &Self::VertexId, to: &Self::VertexId, edge: E) -> Self::EdgeId {
+        match self.try_add_edge(from, to, edge) {
             Ok(id) => id,
             Err(error) => panic!("{error}"),
         }
@@ -292,24 +292,24 @@ pub trait GraphAdd<V, E>: GraphMut<V, E> {
 
     fn try_add_edge_connecting(
         &mut self,
-        src: V,
-        dst: V,
+        from: V,
+        to: V,
         edge: E,
     ) -> Result<Self::EdgeId, AddEdgeConnectingError<V, E>>
     where
         V: Eq,
     {
-        let src = self.try_get_or_add_vertex(src)?;
-        let dst = self.try_get_or_add_vertex(dst)?;
-        let edge = self.try_add_edge(&src, &dst, edge)?;
+        let from = self.try_get_or_add_vertex(from)?;
+        let to = self.try_get_or_add_vertex(to)?;
+        let edge = self.try_add_edge(&from, &to, edge)?;
         Ok(edge)
     }
 
-    fn add_edge_connecting(&mut self, src: V, dst: V, edge: E) -> Self::EdgeId
+    fn add_edge_connecting(&mut self, from: V, to: V, edge: E) -> Self::EdgeId
     where
         V: Eq,
     {
-        match self.try_add_edge_connecting(src, dst, edge) {
+        match self.try_add_edge_connecting(from, to, edge) {
             Ok(id) => id,
             Err(error) => panic!("{error}"),
         }
@@ -329,12 +329,12 @@ pub trait GraphFull<V, E>: GraphAdd<V, E> {
         }
     }
 
-    fn remove_edges_between(&mut self, src: &Self::VertexId, dst: &Self::VertexId) {
-        while self.remove_edge_any_between(src, dst).is_some() {}
+    fn remove_edges_between(&mut self, from: &Self::VertexId, to: &Self::VertexId) {
+        while self.remove_edge_any_between(from, to).is_some() {}
     }
 
-    fn remove_edge_any_between(&mut self, src: &Self::VertexId, dst: &Self::VertexId) -> Option<E> {
-        let id = self.edge_id_any(src, dst)?;
+    fn remove_edge_any_between(&mut self, from: &Self::VertexId, to: &Self::VertexId) -> Option<E> {
+        let id = self.edge_id_any(from, to)?;
         self.remove_edge(&id)
     }
 
@@ -412,12 +412,12 @@ mod imp {
                 where
                     Self: 'a;
 
-                fn neighbors_undirected(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_> {
-                    (**self).neighbors_undirected(src)
+                fn neighbors_undirected(&self, from: &Self::VertexId) -> Self::NeighborsIter<'_> {
+                    (**self).neighbors_undirected(from)
                 }
 
-                fn neighbors_directed(&self, src: &Self::VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
-                    (**self).neighbors_directed(src, dir)
+                fn neighbors_directed(&self, from: &Self::VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
+                    (**self).neighbors_directed(from, dir)
                 }
 
                 fn degree_undirected(&self, id: &Self::VertexId) -> usize {
@@ -494,8 +494,8 @@ mod imp {
                     (**self).edges_by_id()
                 }
 
-                fn edge_id(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Self::EdgeIdIter<'_> {
-                    (**self).edge_id(src, dst)
+                fn edge_id(&self, from: &Self::VertexId, to: &Self::VertexId) -> Self::EdgeIdIter<'_> {
+                    (**self).edge_id(from, to)
                 }
 
                 fn endpoints(&self, id: &Self::EdgeId) -> Option<(Self::VertexId, Self::VertexId)> {
@@ -517,12 +517,12 @@ mod imp {
                     (**self).contains_edge(id)
                 }
 
-                fn contains_edge_between(&self, src: &Self::VertexId, dst: &Self::VertexId) -> bool {
-                    (**self).contains_edge_between(src, dst)
+                fn contains_edge_between(&self, from: &Self::VertexId, to: &Self::VertexId) -> bool {
+                    (**self).contains_edge_between(from, to)
                 }
 
-                fn edge_id_any(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Option<Self::EdgeId> {
-                    (**self).edge_id_any(src, dst)
+                fn edge_id_any(&self, from: &Self::VertexId, to: &Self::VertexId) -> Option<Self::EdgeId> {
+                    (**self).edge_id_any(from, to)
                 }
 
                 fn edge_id_map(&self) -> CompactIdMap<Self::EdgeId>
@@ -640,11 +640,11 @@ mod imp {
 
         fn try_add_edge(
             &mut self,
-            src: &Self::VertexId,
-            dst: &Self::VertexId,
+            from: &Self::VertexId,
+            to: &Self::VertexId,
             edge: E,
         ) -> Result<Self::EdgeId, AddEdgeError<E>> {
-            (**self).try_add_edge(src, dst, edge)
+            (**self).try_add_edge(from, to, edge)
         }
 
         fn add_vertex(&mut self, vertex: V) -> Self::VertexId {
@@ -667,30 +667,30 @@ mod imp {
 
         fn add_edge(
             &mut self,
-            src: &Self::VertexId,
-            dst: &Self::VertexId,
+            from: &Self::VertexId,
+            to: &Self::VertexId,
             edge: E,
         ) -> Self::EdgeId {
-            (**self).add_edge(src, dst, edge)
+            (**self).add_edge(from, to, edge)
         }
 
         fn try_add_edge_connecting(
             &mut self,
-            src: V,
-            dst: V,
+            from: V,
+            to: V,
             edge: E,
         ) -> Result<Self::EdgeId, AddEdgeConnectingError<V, E>>
         where
             V: Eq,
         {
-            (**self).try_add_edge_connecting(src, dst, edge)
+            (**self).try_add_edge_connecting(from, to, edge)
         }
 
-        fn add_edge_connecting(&mut self, src: V, dst: V, edge: E) -> Self::EdgeId
+        fn add_edge_connecting(&mut self, from: V, to: V, edge: E) -> Self::EdgeId
         where
             V: Eq,
         {
-            (**self).add_edge_connecting(src, dst, edge)
+            (**self).add_edge_connecting(from, to, edge)
         }
     }
 
@@ -710,16 +710,16 @@ mod imp {
             (**self).clear()
         }
 
-        fn remove_edges_between(&mut self, src: &Self::VertexId, dst: &Self::VertexId) {
-            (**self).remove_edges_between(src, dst)
+        fn remove_edges_between(&mut self, from: &Self::VertexId, to: &Self::VertexId) {
+            (**self).remove_edges_between(from, to)
         }
 
         fn remove_edge_any_between(
             &mut self,
-            src: &Self::VertexId,
-            dst: &Self::VertexId,
+            from: &Self::VertexId,
+            to: &Self::VertexId,
         ) -> Option<E> {
-            (**self).remove_edge_any_between(src, dst)
+            (**self).remove_edge_any_between(from, to)
         }
 
         fn clear_edges(&mut self) {

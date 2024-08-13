@@ -157,15 +157,15 @@ impl<V, E, Ty: EdgeType> Model<V, E, Ty> {
         }
 
         match op {
-            MutOp::AddEdge(src, dst, _) if !self.params.allow_loops && src == dst => return false,
+            MutOp::AddEdge(from, to, _) if !self.params.allow_loops && from == to => return false,
             _ => {}
         }
 
         if !self.params.allow_multi_edges {
-            if let MutOp::AddEdge(src, dst, _) = op {
+            if let MutOp::AddEdge(from, to, _) = op {
                 let n = self.vertex_bound();
-                if let (Some(src), Some(dst)) = (src.get(n), dst.get(n)) {
-                    if self.edge_exists(src, dst) {
+                if let (Some(from), Some(to)) = (from.get(n), to.get(n)) {
+                    if self.edge_exists(from, to) {
                         return false;
                     }
                 }
@@ -175,12 +175,12 @@ impl<V, E, Ty: EdgeType> Model<V, E, Ty> {
         true
     }
 
-    fn edge_exists(&self, src: usize, dst: usize) -> bool {
+    fn edge_exists(&self, from: usize, to: usize) -> bool {
         self.neighbors
             .iter()
             .filter_map(Option::as_ref)
             .copied()
-            .any(|(u, v)| u == src && v == dst || (!Ty::is_directed() && u == dst && v == src))
+            .any(|(u, v)| u == from && v == to || (!Ty::is_directed() && u == to && v == from))
     }
 }
 
@@ -225,14 +225,14 @@ impl<V, E, Ty: EdgeType> EdgeSet for Model<V, E, Ty> {
         IdIter::new(&self.edges)
     }
 
-    fn edge_id(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Self::EdgeIdIter<'_> {
-        let (src, dst) = (src.as_usize(), dst.as_usize());
-        EdgeIdIter::new([src, dst], &self.neighbors)
+    fn edge_id(&self, from: &Self::VertexId, to: &Self::VertexId) -> Self::EdgeIdIter<'_> {
+        let (from, to) = (from.as_usize(), to.as_usize());
+        EdgeIdIter::new([from, to], &self.neighbors)
     }
 
     fn endpoints(&self, id: &Self::EdgeId) -> Option<(Self::VertexId, Self::VertexId)> {
-        let &(src, dst) = self.neighbors.get(id.as_usize())?.as_ref()?;
-        Some((VertexId::from_usize(src), VertexId::from_usize(dst)))
+        let &(from, to) = self.neighbors.get(id.as_usize())?.as_ref()?;
+        Some((VertexId::from_usize(from), VertexId::from_usize(to)))
     }
 
     fn edge_count(&self) -> usize {
@@ -312,31 +312,31 @@ impl<V, E, Ty: EdgeType> GraphAdd<V, E> for Model<V, E, Ty> {
 
     fn try_add_edge(
         &mut self,
-        src: &Self::VertexId,
-        dst: &Self::VertexId,
+        from: &Self::VertexId,
+        to: &Self::VertexId,
         edge: E,
     ) -> Result<Self::EdgeId, AddEdgeError<E>> {
-        if self.vertex(src).is_none() {
-            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::SourceAbsent));
+        if self.vertex(from).is_none() {
+            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::TailAbsent));
         }
 
-        if self.vertex(dst).is_none() {
-            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::DestinationAbsent));
+        if self.vertex(to).is_none() {
+            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::HeadAbsent));
         }
 
         if Some(self.edge_count()) == self.params.max_edge_count {
             return Err(AddEdgeError::new(edge, AddEdgeErrorKind::CapacityOverflow));
         }
 
-        let (src, dst) = (src.as_usize(), dst.as_usize());
+        let (from, to) = (from.as_usize(), to.as_usize());
 
-        if !self.params.allow_multi_edges && self.edge_exists(src, dst) {
+        if !self.params.allow_multi_edges && self.edge_exists(from, to) {
             return Err(AddEdgeError::new(edge, AddEdgeErrorKind::MultiEdge));
         }
 
         let id = EdgeId::from_usize(self.edges.len());
         self.edges.push(Some(edge));
-        self.neighbors.push(Some((src, dst)));
+        self.neighbors.push(Some((from, to)));
 
         Ok(id)
     }
@@ -353,8 +353,8 @@ impl<V, E, Ty: EdgeType> GraphFull<V, E> for Model<V, E, Ty> {
             RemovalBehavior::SwapRemove => {
                 let mut i = 0;
                 while i < self.edges.len() {
-                    if let Some(&(src, dst)) = self.neighbors[i].as_ref() {
-                        if src == index || dst == index {
+                    if let Some(&(from, to)) = self.neighbors[i].as_ref() {
+                        if from == index || to == index {
                             self.edges.swap_remove(i);
                             self.neighbors.swap_remove(i);
                             continue;
@@ -371,8 +371,8 @@ impl<V, E, Ty: EdgeType> GraphFull<V, E> for Model<V, E, Ty> {
                     .iter_mut()
                     .zip(self.edges.iter_mut())
                     .filter(|(n, _)| {
-                        if let Some(&(src, dst)) = n.as_ref() {
-                            src == index || dst == index
+                        if let Some(&(from, to)) = n.as_ref() {
+                            from == index || to == index
                         } else {
                             false
                         }
@@ -416,12 +416,12 @@ impl<V, E, Ty: EdgeType> Neighbors for Model<V, E, Ty> {
     where
         Self: 'a;
 
-    fn neighbors_undirected(&self, src: &Self::VertexId) -> Self::NeighborsIter<'_> {
-        NeighborsIter::new(src.as_usize(), &self.neighbors, None)
+    fn neighbors_undirected(&self, from: &Self::VertexId) -> Self::NeighborsIter<'_> {
+        NeighborsIter::new(from.as_usize(), &self.neighbors, None)
     }
 
-    fn neighbors_directed(&self, src: &Self::VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
-        NeighborsIter::new(src.as_usize(), &self.neighbors, Some(dir))
+    fn neighbors_directed(&self, from: &Self::VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
+        NeighborsIter::new(from.as_usize(), &self.neighbors, Some(dir))
     }
 }
 
@@ -521,12 +521,12 @@ impl<'a, T> Iterator for EdgesIter<'a, T> {
             self.index += 1;
 
             if let Some(value) = head {
-                let (src, dst) = pair.unwrap();
+                let (from, to) = pair.unwrap();
                 return Some((
                     id,
                     value,
-                    VertexId::from_usize(src),
-                    VertexId::from_usize(dst),
+                    VertexId::from_usize(from),
+                    VertexId::from_usize(to),
                 ));
             }
         }
@@ -563,12 +563,12 @@ impl<'a, Ty: EdgeType> Iterator for EdgeIdIter<'a, Ty> {
             let index = EdgeId::from_usize(self.index);
             self.index += 1;
 
-            if let Some(&(src, dst)) = pair.as_ref() {
-                let src_dst = src == self.between[0] && dst == self.between[1];
-                let dst_src =
-                    !Ty::is_directed() && dst == self.between[0] && src == self.between[1];
+            if let Some(&(from, to)) = pair.as_ref() {
+                let from_to = from == self.between[0] && to == self.between[1];
+                let to_from =
+                    !Ty::is_directed() && to == self.between[0] && from == self.between[1];
 
-                if src_dst || dst_src {
+                if from_to || to_from {
                     return Some(index);
                 }
             }
@@ -578,7 +578,7 @@ impl<'a, Ty: EdgeType> Iterator for EdgeIdIter<'a, Ty> {
 
 #[derive(Debug)]
 pub struct NeighborsIter<'a, Ty> {
-    src: usize,
+    from: usize,
     neighbors: &'a [Option<(usize, usize)>],
     dir: Option<Direction>,
     index: usize,
@@ -587,12 +587,12 @@ pub struct NeighborsIter<'a, Ty> {
 
 impl<'a, Ty> NeighborsIter<'a, Ty> {
     pub fn new(
-        src: usize,
+        from: usize,
         neighbors: &'a [Option<(usize, usize)>],
         dir: Option<Direction>,
     ) -> Self {
         Self {
-            src,
+            from,
             neighbors,
             dir,
             index: 0,
@@ -614,44 +614,44 @@ impl<'a, Ty: EdgeType> Iterator for NeighborsIter<'a, Ty> {
 
             match (pair.as_ref(), self.dir, Ty::is_directed()) {
                 // If vertex matches source and the graph is undirected.
-                (Some(&(src, dst)), _, false)
+                (Some(&(from, to)), _, false)
                 // If the vertex matches source and the graph is directed but
                 // the direction does not matter.
-                | (Some(&(src, dst)), None, true)
+                | (Some(&(from, to)), None, true)
                 // If the vertex matches source and the graph is directed and
                 // the direction is outgoing.
-                | (Some(&(src, dst)), Some(Direction::Outgoing), true)
-                    if src == self.src =>
+                | (Some(&(from, to)), Some(Direction::Outgoing), true)
+                    if from == self.from =>
                 {
                     return Some((
-                        VertexId::from_usize(dst),
+                        VertexId::from_usize(to),
                         id,
-                        VertexId::from_usize(src),
+                        VertexId::from_usize(from),
                         Direction::Outgoing,
                     ));
                 }
                 // If the vertex matches destination and the graph is
                 // undirected, we still consider the edge outgoing.
-                (Some(&(src, dst)), _, false) if dst == self.src => {
+                (Some(&(from, to)), _, false) if to == self.from => {
                     return Some((
-                        VertexId::from_usize(src),
+                        VertexId::from_usize(from),
                         id,
-                        VertexId::from_usize(dst),
+                        VertexId::from_usize(to),
                         Direction::Outgoing,
                     ));
                 }
                 // If the vertex matches destination and the graph is directed
                 // but the direction does not matter.
-                (Some(&(src, dst)), None, true)
+                (Some(&(from, to)), None, true)
                 // If the vertex matches destination and the graph is directed
                 // and the direction is incoming.
-                | (Some(&(src, dst)), Some(Direction::Incoming), true)
-                    if dst == self.src =>
+                | (Some(&(from, to)), Some(Direction::Incoming), true)
+                    if to == self.from =>
                 {
                     return Some((
-                        VertexId::from_usize(src),
+                        VertexId::from_usize(from),
                         id,
-                        VertexId::from_usize(dst),
+                        VertexId::from_usize(to),
                         Direction::Incoming,
                     ));
                 }

@@ -263,8 +263,8 @@ standard traits like
 [`Iterator`](https://doc.rust-lang.org/stable/std/iter/trait.Iterator.html) or
 [`Read`](https://doc.rust-lang.org/stable/std/io/trait.Read.html) do). For
 example, `replace_vertex(id)` can be expressed using `vertex_mut(id)` and
-`mem::replace`; or `remove_edge_any_between(src, dst)` by combining
-`edge_id_any(src, dst)` and `remove_edge(id)`. Sometimes, such default
+`mem::replace`; or `remove_edge_any_between(from, to)` by combining
+`edge_id_any(from, to)` and `remove_edge(id)`. Sometimes, such default
 implementation may be (significantly) inefficient, but must still be
 semantically correct. To improve performance, the storage can provide overriding
 implementations. This enables having wide API surface on the graph available

@@ -77,26 +77,26 @@ where
     where
         Self: 'a;
 
-    fn neighbors_undirected(&self, src: &G::VertexId) -> Self::NeighborsIter<'_> {
+    fn neighbors_undirected(&self, from: &G::VertexId) -> Self::NeighborsIter<'_> {
         NeighborsIter {
-            src: src.clone(),
+            from: from.clone(),
             dir: Direction::Outgoing,
             neighbors: self
                 .graph
-                .neighbors_undirected(src)
+                .neighbors_undirected(from)
                 .map(|n| n.id().into_owned().into())
                 .collect(),
             vertices: self.graph.vertices_by_id(),
         }
     }
 
-    fn neighbors_directed(&self, src: &G::VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
+    fn neighbors_directed(&self, from: &G::VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
         NeighborsIter {
-            src: src.clone(),
+            from: from.clone(),
             dir,
             neighbors: self
                 .graph
-                .neighbors_directed(src, dir)
+                .neighbors_directed(from, dir)
                 .map(|n| n.id().into_owned().into())
                 .collect(),
             vertices: self.graph.vertices_by_id(),
@@ -108,7 +108,7 @@ pub struct NeighborsIter<'a, G>
 where
     G: VertexSet + 'a,
 {
-    src: G::VertexId,
+    from: G::VertexId,
     dir: Direction,
     neighbors: FxHashSet<OwnableRef<'a, G::VertexId>>,
     vertices: G::VerticesByIdIter<'a>,
@@ -125,8 +125,8 @@ where
         loop {
             let v = self.vertices.next()?;
 
-            if v != self.src && !self.neighbors.contains(&v) {
-                return Some((v, IdType::sentinel(), self.src.clone(), self.dir));
+            if v != self.from && !self.neighbors.contains(&v) {
+                return Some((v, IdType::sentinel(), self.from.clone(), self.dir));
             }
         }
     }

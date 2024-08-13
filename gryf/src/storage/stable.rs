@@ -88,25 +88,25 @@ where
     where
         Self: 'a;
 
-    fn neighbors_undirected(&self, src: &G::VertexId) -> Self::NeighborsIter<'_> {
-        if self.removed_vertices.contains(src) {
+    fn neighbors_undirected(&self, from: &G::VertexId) -> Self::NeighborsIter<'_> {
+        if self.removed_vertices.contains(from) {
             panic!("vertex does not exist");
         }
 
         NeighborsIter {
-            inner: self.inner.neighbors_undirected(src),
+            inner: self.inner.neighbors_undirected(from),
             removed_vertices: &self.removed_vertices,
             removed_edges: &self.removed_edges,
         }
     }
 
-    fn neighbors_directed(&self, src: &G::VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
-        if self.removed_vertices.contains(src) {
+    fn neighbors_directed(&self, from: &G::VertexId, dir: Direction) -> Self::NeighborsIter<'_> {
+        if self.removed_vertices.contains(from) {
             panic!("vertex does not exist");
         }
 
         NeighborsIter {
-            inner: self.inner.neighbors_directed(src, dir),
+            inner: self.inner.neighbors_directed(from, dir),
             removed_vertices: &self.removed_vertices,
             removed_edges: &self.removed_edges,
         }
@@ -174,11 +174,11 @@ where
         }
     }
 
-    fn edge_id(&self, src: &Self::VertexId, dst: &Self::VertexId) -> Self::EdgeIdIter<'_> {
+    fn edge_id(&self, from: &Self::VertexId, to: &Self::VertexId) -> Self::EdgeIdIter<'_> {
         let endpoints_exist =
-            !self.removed_vertices.contains(src) && !self.removed_vertices.contains(dst);
+            !self.removed_vertices.contains(from) && !self.removed_vertices.contains(to);
         EdgeIdIter {
-            inner: self.inner.edge_id(src, dst),
+            inner: self.inner.edge_id(from, to),
             removed_edges: &self.removed_edges,
             endpoints_exist,
         }
@@ -305,19 +305,19 @@ where
 
     fn try_add_edge(
         &mut self,
-        src: &Self::VertexId,
-        dst: &Self::VertexId,
+        from: &Self::VertexId,
+        to: &Self::VertexId,
         edge: E,
     ) -> Result<Self::EdgeId, AddEdgeError<E>> {
-        if self.removed_vertices.contains(src) {
-            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::SourceAbsent));
+        if self.removed_vertices.contains(from) {
+            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::TailAbsent));
         }
 
-        if self.removed_vertices.contains(dst) {
-            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::DestinationAbsent));
+        if self.removed_vertices.contains(to) {
+            return Err(AddEdgeError::new(edge, AddEdgeErrorKind::HeadAbsent));
         }
 
-        self.inner.try_add_edge(src, dst, edge)
+        self.inner.try_add_edge(from, to, edge)
     }
 }
 

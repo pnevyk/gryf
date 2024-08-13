@@ -1,11 +1,12 @@
 use crate::core::marker::EdgeType;
 
 #[allow(clippy::len_without_is_empty)]
-pub trait MatrixLinearStorage<E>: Default + IntoIterator<Item = Option<E>> {
+pub trait MatrixLinearStorage<E>: Default {
     fn with_capacity(capacity: usize) -> Self;
     fn resize_with_none(&mut self, new_len: usize);
     fn push(&mut self, value: Option<E>);
     fn len(&self) -> usize;
+    fn into_entries(self) -> impl Iterator<Item = Option<E>>;
 }
 
 pub fn linear_len<Ty: EdgeType>(vertex_capacity: usize) -> usize {
@@ -30,7 +31,7 @@ pub fn resize<E, Ty: EdgeType, M: MatrixLinearStorage<E>>(prev: &mut M, vertex_c
         let prev_capacity = (prev_len as f32).sqrt() as usize;
 
         // Add the top-right corner.
-        for (i, value) in core::mem::take(prev).into_iter().enumerate() {
+        for (i, value) in core::mem::take(prev).into_entries().enumerate() {
             next.push(value);
 
             // Are we on the right edge of the original square?
@@ -81,6 +82,8 @@ pub fn coords<Ty: EdgeType>(index: usize, vertex_capacity: usize) -> (usize, usi
 }
 
 mod imp {
+    use bitvec::{order::BitOrder, store::BitStore, vec::BitVec};
+
     use super::MatrixLinearStorage;
 
     impl<E> MatrixLinearStorage<E> for Vec<Option<E>> {
@@ -98,6 +101,36 @@ mod imp {
 
         fn len(&self) -> usize {
             self.len()
+        }
+
+        fn into_entries(self) -> impl Iterator<Item = Option<E>> {
+            self.into_iter()
+        }
+    }
+
+    impl<T, O> MatrixLinearStorage<()> for BitVec<T, O>
+    where
+        T: BitStore,
+        O: BitOrder,
+    {
+        fn with_capacity(capacity: usize) -> Self {
+            Self::with_capacity(capacity)
+        }
+
+        fn resize_with_none(&mut self, new_len: usize) {
+            self.resize_with(new_len, |_| false);
+        }
+
+        fn push(&mut self, value: Option<()>) {
+            self.push(value.is_some())
+        }
+
+        fn len(&self) -> usize {
+            self.len()
+        }
+
+        fn into_entries(self) -> impl Iterator<Item = Option<()>> {
+            self.into_iter().map(|bit| bit.then_some(()))
         }
     }
 }

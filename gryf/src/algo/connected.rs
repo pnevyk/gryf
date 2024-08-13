@@ -53,7 +53,7 @@ mod tests {
     use crate::{
         core::{
             base::NeighborRef,
-            id::VertexId,
+            id::{IdType, VertexId},
             marker::{Directed, Direction, Undirected},
             GraphAdd,
         },
@@ -358,8 +358,8 @@ mod tests {
             let n = graph.vertex_count() as u64;
             prop_assume!(n > 0);
 
-            let src = VertexId(src % n);
-            let dst = VertexId(dst % n);
+            let src = VertexId::from_bits(src % n);
+            let dst = VertexId::from_bits(dst % n);
             let connected = Connected::on(&graph).between(&src, &dst).run();
             assert_valid(connected, &graph, Some((src, dst)));
         }
@@ -370,8 +370,8 @@ mod tests {
             let n = graph.vertex_count() as u64;
             prop_assume!(n > 0);
 
-            let src = VertexId(src % n);
-            let dst = VertexId(dst % n);
+            let src = VertexId::from_bits(src % n);
+            let dst = VertexId::from_bits(dst % n);
             let connected = Connected::on(&graph).between(&src, &dst).run();
             assert_valid(connected, &graph, Some((src, dst)));
         }

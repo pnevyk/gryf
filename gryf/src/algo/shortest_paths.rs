@@ -116,7 +116,7 @@ mod tests {
 
     use crate::{
         core::{
-            id::{DefaultId, EdgeId, VertexId},
+            id::{DefaultId, EdgeId, IdType, VertexId},
             marker::{Directed, Undirected},
             GraphAdd, GraphMut, VertexSet,
         },
@@ -374,7 +374,7 @@ mod tests {
             let n = graph.vertex_count() as u64;
             prop_assume!(n > 0);
 
-            let start = VertexId(start % n);
+            let start = VertexId::from_bits(start % n);
             let paths = ShortestPaths::on(&graph).using(Algo::Dijkstra).run(start).unwrap();
 
             for v in graph.vertices_by_id() {
@@ -395,7 +395,7 @@ mod tests {
             let n = graph.vertex_count() as u64;
             prop_assume!(n > 0);
 
-            let start = VertexId(start % n);
+            let start = VertexId::from_bits(start % n);
             let _ = ShortestPaths::on(&graph).using(Algo::BellmanFord).run(start);
         }
 
@@ -405,7 +405,7 @@ mod tests {
             let n = graph.vertex_count() as u64;
             prop_assume!(n > 0);
 
-            let start = VertexId(start % n);
+            let start = VertexId::from_bits(start % n);
             let paths = ShortestPaths::on(&graph).using(Algo::BellmanFord).run(start).unwrap();
 
             for v in graph.vertices_by_id() {
@@ -426,7 +426,7 @@ mod tests {
             let n = graph.vertex_count() as u64;
             prop_assume!(n > 0);
 
-            let start = VertexId(start % n);
+            let start = VertexId::from_bits(start % n);
             let paths_d = ShortestPaths::on(&graph).using(Algo::Dijkstra).run(start).unwrap();
             let paths_bf = ShortestPaths::on(&graph).using(Algo::BellmanFord).run(start).unwrap();
 
@@ -443,7 +443,7 @@ mod tests {
             let n = graph.vertex_count() as u64;
             prop_assume!(n > 0);
 
-            let start = VertexId(start % n);
+            let start = VertexId::from_bits(start % n);
             let paths_d = ShortestPaths::on(&graph).using(Algo::Dijkstra).run(start).unwrap();
             let paths_bf = ShortestPaths::on(&graph).using(Algo::BellmanFord).run(start).unwrap();
 
@@ -460,7 +460,7 @@ mod tests {
             let n = graph.vertex_count() as u64;
             prop_assume!(n > 0);
 
-            let start = VertexId(start % n);
+            let start = VertexId::from_bits(start % n);
             let paths_d = ShortestPaths::on(&graph).unit_weight().dijkstra().run(start).unwrap();
             let paths_bfs = ShortestPaths::on(&graph).unit_weight().bfs().run(start).unwrap();
 
@@ -477,7 +477,7 @@ mod tests {
             let n = graph.vertex_count() as u64;
             prop_assume!(n > 0);
 
-            let start = VertexId(start % n);
+            let start = VertexId::from_bits(start % n);
             let paths_d = ShortestPaths::on(&graph).unit_weight().dijkstra().run(start).unwrap();
             let paths_bfs = ShortestPaths::on(&graph).unit_weight().bfs().run(start).unwrap();
 

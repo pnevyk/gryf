@@ -12,7 +12,7 @@ use super::{Error, ShortestPaths};
 
 pub fn bellman_ford<V, E, G, W, F>(
     graph: &G,
-    start: G::VertexId,
+    source: G::VertexId,
     goal: Option<G::VertexId>,
     edge_weight: F,
 ) -> Result<ShortestPaths<W, G>, Error>
@@ -27,7 +27,7 @@ where
     let mut dist = vec![W::inf(); vertex_map.len()];
     let mut pred = vec![Virtual::sentinel(); vertex_map.len()];
 
-    dist[vertex_map.to_virt(start).unwrap().as_usize()] = W::zero();
+    dist[vertex_map.to_virt(source).unwrap().as_usize()] = W::zero();
 
     let mut terminated_early = false;
 
@@ -115,7 +115,7 @@ where
         })
         .collect();
 
-    Ok(ShortestPaths { start, dist, pred })
+    Ok(ShortestPaths { source, dist, pred })
 }
 
 #[inline(always)]

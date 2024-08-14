@@ -14,7 +14,7 @@ pub use builder::ShortestPathsBuilder;
 
 #[derive(Debug)]
 pub struct ShortestPaths<W, G: GraphBase> {
-    start: G::VertexId,
+    source: G::VertexId,
     // Using HashMaps because the algorithm supports early termination when
     // reaching given goal. It is likely that reaching goal means visiting a
     // subgraph which is significantly smaller than the original graph.
@@ -26,8 +26,8 @@ impl<W, G> ShortestPaths<W, G>
 where
     G: GraphBase,
 {
-    pub fn start(&self) -> &G::VertexId {
-        &self.start
+    pub fn source(&self) -> &G::VertexId {
+        &self.source
     }
 
     pub fn dist<VI>(&self, to: VI) -> Option<&W>
@@ -370,19 +370,19 @@ mod tests {
     proptest! {
         #[test]
         #[ignore = "run property-based tests with `cargo test proptest_ -- --ignored`"]
-        fn proptest_dijkstra_connected_all_reachable(graph in graph_undirected(any::<()>(), any::<u16>().prop_map(|e| e as u32)).connected(), start: u64) {
+        fn proptest_dijkstra_connected_all_reachable(graph in graph_undirected(any::<()>(), any::<u16>().prop_map(|e| e as u32)).connected(), source: u64) {
             let n = graph.vertex_count() as u64;
             prop_assume!(n > 0);
 
-            let start = VertexId::from_bits(start % n);
-            let paths = ShortestPaths::on(&graph).using(Algo::Dijkstra).run(start).unwrap();
+            let source = VertexId::from_bits(source % n);
+            let paths = ShortestPaths::on(&graph).using(Algo::Dijkstra).run(source).unwrap();
 
             for v in graph.vertices_by_id() {
                 prop_assert_ne!(paths.dist(v), None);
 
                 let u = paths.reconstruct(v).last();
-                if v != start {
-                    prop_assert_eq!(u, Some(start));
+                if v != source {
+                    prop_assert_eq!(u, Some(source));
                 } else {
                     prop_assert_eq!(u, None);
                 }
@@ -391,29 +391,29 @@ mod tests {
 
         #[test]
         #[ignore = "run property-based tests with `cargo test proptest_ -- --ignored`"]
-        fn proptest_bellman_ford_any_directed_negative_weight_no_panic(graph in graph_directed(any::<()>(), any::<i16>().prop_map(|e| e as i32)).max_size(128), start: u64) {
+        fn proptest_bellman_ford_any_directed_negative_weight_no_panic(graph in graph_directed(any::<()>(), any::<i16>().prop_map(|e| e as i32)).max_size(128), source: u64) {
             let n = graph.vertex_count() as u64;
             prop_assume!(n > 0);
 
-            let start = VertexId::from_bits(start % n);
-            let _ = ShortestPaths::on(&graph).using(Algo::BellmanFord).run(start);
+            let source = VertexId::from_bits(source % n);
+            let _ = ShortestPaths::on(&graph).using(Algo::BellmanFord).run(source);
         }
 
         #[test]
         #[ignore = "run property-based tests with `cargo test proptest_ -- --ignored`"]
-        fn proptest_bellman_ford_all_reachable(graph in graph_undirected(any::<()>(), any::<u16>().prop_map(|e| e as u32)).max_size(128).connected(), start: u64) {
+        fn proptest_bellman_ford_all_reachable(graph in graph_undirected(any::<()>(), any::<u16>().prop_map(|e| e as u32)).max_size(128).connected(), source: u64) {
             let n = graph.vertex_count() as u64;
             prop_assume!(n > 0);
 
-            let start = VertexId::from_bits(start % n);
-            let paths = ShortestPaths::on(&graph).using(Algo::BellmanFord).run(start).unwrap();
+            let source = VertexId::from_bits(source % n);
+            let paths = ShortestPaths::on(&graph).using(Algo::BellmanFord).run(source).unwrap();
 
             for v in graph.vertices_by_id() {
                 prop_assert_ne!(paths.dist(v), None);
 
                 let u = paths.reconstruct(v).last();
-                if v != start {
-                    prop_assert_eq!(u, Some(start));
+                if v != source {
+                    prop_assert_eq!(u, Some(source));
                 } else {
                     prop_assert_eq!(u, None);
                 }
@@ -422,13 +422,13 @@ mod tests {
 
         #[test]
         #[ignore = "run property-based tests with `cargo test proptest_ -- --ignored`"]
-        fn proptest_dijkstra_bellman_ford_agree_any_directed(graph in graph_directed(any::<()>(), any::<u16>().prop_map(|e| e as u32)).max_size(128), start: u64) {
+        fn proptest_dijkstra_bellman_ford_agree_any_directed(graph in graph_directed(any::<()>(), any::<u16>().prop_map(|e| e as u32)).max_size(128), source: u64) {
             let n = graph.vertex_count() as u64;
             prop_assume!(n > 0);
 
-            let start = VertexId::from_bits(start % n);
-            let paths_d = ShortestPaths::on(&graph).using(Algo::Dijkstra).run(start).unwrap();
-            let paths_bf = ShortestPaths::on(&graph).using(Algo::BellmanFord).run(start).unwrap();
+            let source = VertexId::from_bits(source % n);
+            let paths_d = ShortestPaths::on(&graph).using(Algo::Dijkstra).run(source).unwrap();
+            let paths_bf = ShortestPaths::on(&graph).using(Algo::BellmanFord).run(source).unwrap();
 
             for v in graph.vertices_by_id() {
                 prop_assert_eq!(paths_d.dist(v), paths_bf.dist(v));
@@ -439,13 +439,13 @@ mod tests {
 
         #[test]
         #[ignore = "run property-based tests with `cargo test proptest_ -- --ignored`"]
-        fn proptest_dijkstra_bellman_ford_agree_any_undirected(graph in graph_undirected(any::<()>(), any::<u16>().prop_map(|e| e as u32)).max_size(128), start: u64) {
+        fn proptest_dijkstra_bellman_ford_agree_any_undirected(graph in graph_undirected(any::<()>(), any::<u16>().prop_map(|e| e as u32)).max_size(128), source: u64) {
             let n = graph.vertex_count() as u64;
             prop_assume!(n > 0);
 
-            let start = VertexId::from_bits(start % n);
-            let paths_d = ShortestPaths::on(&graph).using(Algo::Dijkstra).run(start).unwrap();
-            let paths_bf = ShortestPaths::on(&graph).using(Algo::BellmanFord).run(start).unwrap();
+            let source = VertexId::from_bits(source % n);
+            let paths_d = ShortestPaths::on(&graph).using(Algo::Dijkstra).run(source).unwrap();
+            let paths_bf = ShortestPaths::on(&graph).using(Algo::BellmanFord).run(source).unwrap();
 
             for v in graph.vertices_by_id() {
                 prop_assert_eq!(paths_d.dist(v), paths_bf.dist(v));
@@ -456,13 +456,13 @@ mod tests {
 
         #[test]
         #[ignore = "run property-based tests with `cargo test proptest_ -- --ignored`"]
-        fn proptest_dijkstra_bfs_agree_any_directed(graph in graph_directed(any::<()>(), any::<()>()).max_size(128), start: u64) {
+        fn proptest_dijkstra_bfs_agree_any_directed(graph in graph_directed(any::<()>(), any::<()>()).max_size(128), source: u64) {
             let n = graph.vertex_count() as u64;
             prop_assume!(n > 0);
 
-            let start = VertexId::from_bits(start % n);
-            let paths_d = ShortestPaths::on(&graph).unit_weight().dijkstra().run(start).unwrap();
-            let paths_bfs = ShortestPaths::on(&graph).unit_weight().bfs().run(start).unwrap();
+            let source = VertexId::from_bits(source % n);
+            let paths_d = ShortestPaths::on(&graph).unit_weight().dijkstra().run(source).unwrap();
+            let paths_bfs = ShortestPaths::on(&graph).unit_weight().bfs().run(source).unwrap();
 
             for v in graph.vertices_by_id() {
                 prop_assert_eq!(paths_d.dist(v), paths_bfs.dist(v));
@@ -473,13 +473,13 @@ mod tests {
 
         #[test]
         #[ignore = "run property-based tests with `cargo test proptest_ -- --ignored`"]
-        fn proptest_dijkstra_bfs_agree_any_undirected(graph in graph_undirected(any::<()>(), any::<()>()).max_size(128), start: u64) {
+        fn proptest_dijkstra_bfs_agree_any_undirected(graph in graph_undirected(any::<()>(), any::<()>()).max_size(128), source: u64) {
             let n = graph.vertex_count() as u64;
             prop_assume!(n > 0);
 
-            let start = VertexId::from_bits(start % n);
-            let paths_d = ShortestPaths::on(&graph).unit_weight().dijkstra().run(start).unwrap();
-            let paths_bfs = ShortestPaths::on(&graph).unit_weight().bfs().run(start).unwrap();
+            let source = VertexId::from_bits(source % n);
+            let paths_d = ShortestPaths::on(&graph).unit_weight().dijkstra().run(source).unwrap();
+            let paths_bfs = ShortestPaths::on(&graph).unit_weight().bfs().run(source).unwrap();
 
             for v in graph.vertices_by_id() {
                 prop_assert_eq!(paths_d.dist(v), paths_bfs.dist(v));

@@ -14,7 +14,7 @@ use super::{Error, ShortestPaths};
 
 pub fn bfs<G, W>(
     graph: &G,
-    start: G::VertexId,
+    source: G::VertexId,
     goal: Option<G::VertexId>,
     edge_dist: W,
 ) -> Result<ShortestPaths<W, G>, Error>
@@ -48,8 +48,8 @@ where
     let mut pred = FxHashMap::default();
     let mut queue = VecDeque::new();
 
-    dist.insert(start.clone(), W::zero());
-    queue.push_back((start.clone(), W::zero()));
+    dist.insert(source.clone(), W::zero());
+    queue.push_back((source.clone(), W::zero()));
 
     while let Some((vertex, vertex_dist)) = queue.pop_front() {
         if goal.as_ref() == Some(&vertex) {
@@ -87,5 +87,5 @@ where
         }
     }
 
-    Ok(ShortestPaths { start, dist, pred })
+    Ok(ShortestPaths { source, dist, pred })
 }

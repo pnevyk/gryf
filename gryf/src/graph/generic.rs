@@ -162,18 +162,18 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         self.storage.vertices_by_id()
     }
 
-    pub fn contains_vertex<VId>(&self, id: VId) -> bool
+    pub fn contains_vertex<VI>(&self, id: VI) -> bool
     where
         G: GraphRef<V, E>,
-        VId: AsIdRef<G::VertexId>,
+        VI: AsIdRef<G::VertexId>,
     {
         self.storage.contains_vertex(id.as_id().as_ref())
     }
 
-    pub fn vertex<VId>(&self, id: VId) -> Option<&V>
+    pub fn vertex<VI>(&self, id: VI) -> Option<&V>
     where
         G: GraphRef<V, E>,
-        VId: AsIdRef<G::VertexId>,
+        VI: AsIdRef<G::VertexId>,
     {
         self.storage.vertex(id.as_id().as_ref())
     }
@@ -193,10 +193,10 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         self.storage.find_vertex(vertex)
     }
 
-    pub fn vertex_mut<VId>(&mut self, id: VId) -> Option<&mut V>
+    pub fn vertex_mut<VI>(&mut self, id: VI) -> Option<&mut V>
     where
         G: GraphMut<V, E>,
-        VId: AsIdRef<G::VertexId>,
+        VI: AsIdRef<G::VertexId>,
     {
         self.storage.vertex_mut(id.as_id().as_ref())
     }
@@ -215,30 +215,26 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         self.storage.try_add_vertex(vertex)
     }
 
-    pub fn remove_vertex<VId>(&mut self, id: VId) -> Option<V>
+    pub fn remove_vertex<VI>(&mut self, id: VI) -> Option<V>
     where
         G: GraphFull<V, E>,
-        VId: AsIdRef<G::VertexId>,
+        VI: AsIdRef<G::VertexId>,
     {
         self.storage.remove_vertex(id.as_id().as_ref())
     }
 
-    pub fn replace_vertex<VId>(&mut self, id: VId, vertex: V) -> V
+    pub fn replace_vertex<VI>(&mut self, id: VI, vertex: V) -> V
     where
         G: GraphMut<V, E>,
-        VId: AsIdRef<G::VertexId>,
+        VI: AsIdRef<G::VertexId>,
     {
         self.storage.replace_vertex(id.as_id().as_ref(), vertex)
     }
 
-    pub fn try_replace_vertex<VId>(
-        &mut self,
-        id: VId,
-        vertex: V,
-    ) -> Result<V, ReplaceVertexError<V>>
+    pub fn try_replace_vertex<VI>(&mut self, id: VI, vertex: V) -> Result<V, ReplaceVertexError<V>>
     where
         G: GraphMut<V, E>,
-        VId: AsIdRef<G::VertexId>,
+        VI: AsIdRef<G::VertexId>,
     {
         self.storage.try_replace_vertex(id.as_id().as_ref(), vertex)
     }
@@ -288,27 +284,27 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         self.storage.edge_bound()
     }
 
-    pub fn endpoints<EId>(&self, id: EId) -> Option<(G::VertexId, G::VertexId)>
+    pub fn endpoints<EI>(&self, id: EI) -> Option<(G::VertexId, G::VertexId)>
     where
         G: EdgeSet,
-        EId: AsIdRef<G::EdgeId>,
+        EI: AsIdRef<G::EdgeId>,
     {
         self.storage.endpoints(id.as_id().as_ref())
     }
 
-    pub fn edge_id<VId>(&self, from: VId, to: VId) -> G::EdgeIdIter<'_>
+    pub fn edge_id<VI>(&self, from: VI, to: VI) -> G::EdgeIdIter<'_>
     where
         G: EdgeSet,
-        VId: AsIdRef<G::VertexId>,
+        VI: AsIdRef<G::VertexId>,
     {
         self.storage
             .edge_id(from.as_id().as_ref(), to.as_id().as_ref())
     }
 
-    pub fn edge_id_any<VId>(&self, from: VId, to: VId) -> Option<G::EdgeId>
+    pub fn edge_id_any<VI>(&self, from: VI, to: VI) -> Option<G::EdgeId>
     where
         G: EdgeSet,
-        VId: AsIdRef<G::VertexId>,
+        VI: AsIdRef<G::VertexId>,
     {
         self.storage
             .edge_id_any(from.as_id().as_ref(), to.as_id().as_ref())
@@ -321,18 +317,18 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         self.storage.edges_by_id()
     }
 
-    pub fn contains_edge<EId>(&self, id: EId) -> bool
+    pub fn contains_edge<EI>(&self, id: EI) -> bool
     where
         G: EdgeSet,
-        EId: AsIdRef<G::EdgeId>,
+        EI: AsIdRef<G::EdgeId>,
     {
         self.storage.contains_edge(id.as_id().as_ref())
     }
 
-    pub fn contains_edge_between<VId>(&self, from: VId, to: VId) -> bool
+    pub fn contains_edge_between<VI>(&self, from: VI, to: VI) -> bool
     where
         G: EdgeSet,
-        VId: AsIdRef<G::VertexId>,
+        VI: AsIdRef<G::VertexId>,
     {
         self.storage
             .contains_edge_between(from.as_id().as_ref(), to.as_id().as_ref())
@@ -345,10 +341,10 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         self.storage.is_directed()
     }
 
-    pub fn edge<EId>(&self, id: EId) -> Option<&E>
+    pub fn edge<EI>(&self, id: EI) -> Option<&E>
     where
         G: GraphRef<V, E>,
-        EId: AsIdRef<G::EdgeId>,
+        EI: AsIdRef<G::EdgeId>,
     {
         self.storage.edge(id.as_id().as_ref())
     }
@@ -360,32 +356,32 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         self.storage.edges()
     }
 
-    pub fn edge_mut<EId>(&mut self, id: EId) -> Option<&mut E>
+    pub fn edge_mut<EI>(&mut self, id: EI) -> Option<&mut E>
     where
         G: GraphMut<V, E>,
-        EId: AsIdRef<G::EdgeId>,
+        EI: AsIdRef<G::EdgeId>,
     {
         self.storage.edge_mut(id.as_id().as_ref())
     }
 
-    pub fn add_edge<VId>(&mut self, from: VId, to: VId, edge: E) -> G::EdgeId
+    pub fn add_edge<VI>(&mut self, from: VI, to: VI, edge: E) -> G::EdgeId
     where
         G: GraphAdd<V, E>,
-        VId: AsIdRef<G::VertexId>,
+        VI: AsIdRef<G::VertexId>,
     {
         self.storage
             .add_edge(from.as_id().as_ref(), to.as_id().as_ref(), edge)
     }
 
-    pub fn try_add_edge<VId>(
+    pub fn try_add_edge<VI>(
         &mut self,
-        from: VId,
-        to: VId,
+        from: VI,
+        to: VI,
         edge: E,
     ) -> Result<G::EdgeId, AddEdgeError<E>>
     where
         G: GraphAdd<V, E>,
-        VId: AsIdRef<G::VertexId>,
+        VI: AsIdRef<G::VertexId>,
     {
         self.storage
             .try_add_edge(from.as_id().as_ref(), to.as_id().as_ref(), edge)
@@ -412,44 +408,44 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         self.storage.add_edge_connecting(from, to, edge)
     }
 
-    pub fn remove_edge<EId>(&mut self, id: EId) -> Option<E>
+    pub fn remove_edge<EI>(&mut self, id: EI) -> Option<E>
     where
         G: GraphFull<V, E>,
-        EId: AsIdRef<G::EdgeId>,
+        EI: AsIdRef<G::EdgeId>,
     {
         self.storage.remove_edge(id.as_id().as_ref())
     }
 
-    pub fn remove_edges_between<VId>(&mut self, from: VId, to: VId)
+    pub fn remove_edges_between<VI>(&mut self, from: VI, to: VI)
     where
         G: GraphFull<V, E>,
-        VId: AsIdRef<G::VertexId>,
+        VI: AsIdRef<G::VertexId>,
     {
         self.storage
             .remove_edges_between(from.as_id().as_ref(), to.as_id().as_ref())
     }
 
-    pub fn remove_edge_any_between<VId>(&mut self, from: VId, to: VId) -> Option<E>
+    pub fn remove_edge_any_between<VI>(&mut self, from: VI, to: VI) -> Option<E>
     where
         G: GraphFull<V, E>,
-        VId: AsIdRef<G::VertexId>,
+        VI: AsIdRef<G::VertexId>,
     {
         self.storage
             .remove_edge_any_between(from.as_id().as_ref(), to.as_id().as_ref())
     }
 
-    pub fn replace_edge<EId>(&mut self, id: EId, edge: E) -> E
+    pub fn replace_edge<EI>(&mut self, id: EI, edge: E) -> E
     where
         G: GraphMut<V, E>,
-        EId: AsIdRef<G::EdgeId>,
+        EI: AsIdRef<G::EdgeId>,
     {
         self.storage.replace_edge(id.as_id().as_ref(), edge)
     }
 
-    pub fn try_replace_edge<EId>(&mut self, id: EId, edge: E) -> Result<E, ReplaceEdgeError<E>>
+    pub fn try_replace_edge<EI>(&mut self, id: EI, edge: E) -> Result<E, ReplaceEdgeError<E>>
     where
         G: GraphMut<V, E>,
-        EId: AsIdRef<G::EdgeId>,
+        EI: AsIdRef<G::EdgeId>,
     {
         self.storage.try_replace_edge(id.as_id().as_ref(), edge)
     }
@@ -461,34 +457,34 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         self.storage.clear_edges()
     }
 
-    pub fn neighbors_undirected<VId>(&self, from: VId) -> G::NeighborsIter<'_>
+    pub fn neighbors_undirected<VI>(&self, from: VI) -> G::NeighborsIter<'_>
     where
         G: Neighbors,
-        VId: AsIdRef<G::VertexId>,
+        VI: AsIdRef<G::VertexId>,
     {
         self.storage.neighbors_undirected(from.as_id().as_ref())
     }
 
-    pub fn neighbors_directed<VId>(&self, from: VId, dir: Direction) -> G::NeighborsIter<'_>
+    pub fn neighbors_directed<VI>(&self, from: VI, dir: Direction) -> G::NeighborsIter<'_>
     where
         G: Neighbors,
-        VId: AsIdRef<G::VertexId>,
+        VI: AsIdRef<G::VertexId>,
     {
         self.storage.neighbors_directed(from.as_id().as_ref(), dir)
     }
 
-    pub fn degree_undirected<VId>(&self, from: VId) -> usize
+    pub fn degree_undirected<VI>(&self, from: VI) -> usize
     where
         G: Neighbors,
-        VId: AsIdRef<G::VertexId>,
+        VI: AsIdRef<G::VertexId>,
     {
         self.storage.degree_undirected(from.as_id().as_ref())
     }
 
-    pub fn degree_directed<VId>(&self, from: VId, dir: Direction) -> usize
+    pub fn degree_directed<VI>(&self, from: VI, dir: Direction) -> usize
     where
         G: Neighbors,
-        VId: AsIdRef<G::VertexId>,
+        VI: AsIdRef<G::VertexId>,
     {
         self.storage.degree_directed(from.as_id().as_ref(), dir)
     }
@@ -537,24 +533,24 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, G, VId> Index<VId> for Graph<V, E, Ty, G>
+impl<V, E, Ty: EdgeType, G, VI> Index<VI> for Graph<V, E, Ty, G>
 where
     G: GraphRef<V, E>,
-    VId: AsIdRef<G::VertexId>,
+    VI: AsIdRef<G::VertexId>,
 {
     type Output = V;
 
-    fn index(&self, id: VId) -> &Self::Output {
+    fn index(&self, id: VI) -> &Self::Output {
         self.vertex(id).expect("vertex does not exist")
     }
 }
 
-impl<V, E, Ty: EdgeType, G, VId> IndexMut<VId> for Graph<V, E, Ty, G>
+impl<V, E, Ty: EdgeType, G, VI> IndexMut<VI> for Graph<V, E, Ty, G>
 where
     G: GraphMut<V, E>,
-    VId: AsIdRef<G::VertexId>,
+    VI: AsIdRef<G::VertexId>,
 {
-    fn index_mut(&mut self, id: VId) -> &mut Self::Output {
+    fn index_mut(&mut self, id: VI) -> &mut Self::Output {
         self.vertex_mut(id).expect("vertex does not exist")
     }
 }

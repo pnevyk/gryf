@@ -101,12 +101,12 @@ where
 #[derive(Debug)]
 struct Indexer<Id>(HashMap<Id, usize>);
 
-impl<Id: IdType> Indexer<Id> {
+impl<I: IdType> Indexer<I> {
     pub fn new() -> Self {
         Self(HashMap::new())
     }
 
-    pub fn get(&mut self, idx: &Id) -> usize {
+    pub fn get(&mut self, idx: &I) -> usize {
         let new_idx = self.0.len();
         *self.0.entry(idx.clone()).or_insert(new_idx)
     }

@@ -155,13 +155,13 @@ impl<R> TransposeRef<R> {
     }
 }
 
-impl<VId, EId, E, R> EdgeRef<VId, EId, E> for TransposeRef<R>
+impl<VI, EI, E, R> EdgeRef<VI, EI, E> for TransposeRef<R>
 where
-    VId: IdType,
-    EId: IdType,
-    R: EdgeRef<VId, EId, E>,
+    VI: IdType,
+    EI: IdType,
+    R: EdgeRef<VI, EI, E>,
 {
-    fn id(&self) -> &EId {
+    fn id(&self) -> &EI {
         self.0.id()
     }
 
@@ -169,30 +169,30 @@ where
         self.0.attr()
     }
 
-    fn from(&self) -> &VId {
+    fn from(&self) -> &VI {
         self.0.to()
     }
 
-    fn to(&self) -> &VId {
+    fn to(&self) -> &VI {
         self.0.from()
     }
 }
 
-impl<VId, EId, R> NeighborRef<VId, EId> for TransposeRef<R>
+impl<VI, EI, R> NeighborRef<VI, EI> for TransposeRef<R>
 where
-    VId: IdType,
-    EId: IdType,
-    R: NeighborRef<VId, EId>,
+    VI: IdType,
+    EI: IdType,
+    R: NeighborRef<VI, EI>,
 {
-    fn id(&self) -> OwnableRef<'_, VId> {
+    fn id(&self) -> OwnableRef<'_, VI> {
         self.0.id()
     }
 
-    fn edge(&self) -> OwnableRef<'_, EId> {
+    fn edge(&self) -> OwnableRef<'_, EI> {
         self.0.edge()
     }
 
-    fn pred(&self) -> OwnableRef<'_, VId> {
+    fn pred(&self) -> OwnableRef<'_, VI> {
         self.0.pred()
     }
 

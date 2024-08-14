@@ -80,21 +80,21 @@ where
     }
 }
 
-pub trait VisitRoots<Id: IdType> {
-    fn next_root(&mut self) -> Option<Id>;
+pub trait VisitRoots<I: IdType> {
+    fn next_root(&mut self) -> Option<I>;
 
-    fn is_done(&mut self, _visited: &impl VisitSet<Id>) -> bool {
+    fn is_done(&mut self, _visited: &impl VisitSet<I>) -> bool {
         // By default, delegate the indication of being done for `Self::next` by
         // returning `None`.
         false
     }
 }
 
-impl<Id: IdType, I> VisitRoots<Id> for I
+impl<I: IdType, T> VisitRoots<I> for T
 where
-    I: Iterator<Item = Id>,
+    T: Iterator<Item = I>,
 {
-    fn next_root(&mut self) -> Option<Id> {
+    fn next_root(&mut self) -> Option<I> {
         self.next()
     }
 }

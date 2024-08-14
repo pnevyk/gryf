@@ -36,24 +36,24 @@ pub enum MutOp<V, E> {
 }
 
 #[derive(Debug)]
-pub enum MutOpResult<V, E, VId, EId> {
-    AddVertex(Result<VId, AddVertexError<V>>),
+pub enum MutOpResult<V, E, VI, EI> {
+    AddVertex(Result<VI, AddVertexError<V>>),
     RemoveVertex(Option<V>),
     Clear,
-    AddEdge(Result<EId, AddEdgeError<E>>),
+    AddEdge(Result<EI, AddEdgeError<E>>),
     RemoveEdge(Option<E>),
     ClearEdges,
 }
 
-impl<V, E, VId1, EId1, VId2, EId2> PartialEq<MutOpResult<V, E, VId2, EId2>>
-    for MutOpResult<V, E, VId1, EId1>
+impl<V, E, VI1, EI1, VI2, EI2> PartialEq<MutOpResult<V, E, VI2, EI2>>
+    for MutOpResult<V, E, VI1, EI1>
 where
     V: PartialEq,
     E: PartialEq,
-    VId1: PartialEq<VId2>,
-    EId1: PartialEq<EId2>,
+    VI1: PartialEq<VI2>,
+    EI1: PartialEq<EI2>,
 {
-    fn eq(&self, other: &MutOpResult<V, E, VId2, EId2>) -> bool {
+    fn eq(&self, other: &MutOpResult<V, E, VI2, EI2>) -> bool {
         // `PartialEq` is implemented for `Result<T, E>` only for `T:
         // PartialEq<T>`.
         fn compare_results<T, U, Error>(lhs: &Result<T, Error>, rhs: &Result<U, Error>) -> bool

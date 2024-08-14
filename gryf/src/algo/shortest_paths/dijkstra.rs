@@ -20,7 +20,7 @@ use super::{Error, ShortestPaths};
 
 pub fn dijkstra<V, E, G, W, F>(
     graph: &G,
-    start: G::VertexId,
+    source: G::VertexId,
     goal: Option<G::VertexId>,
     edge_weight: F,
 ) -> Result<ShortestPaths<W, G>, Error>
@@ -42,8 +42,8 @@ where
     let mut pred = FxHashMap::default();
     let mut queue = BinaryHeap::new();
 
-    dist.insert(start.clone(), W::zero());
-    queue.push(Reverse(Weighted(start.clone(), W::Ord::from(W::zero()))));
+    dist.insert(source.clone(), W::zero());
+    queue.push(Reverse(Weighted(source.clone(), W::Ord::from(W::zero()))));
 
     while let Some(Reverse(Weighted(vertex, vertex_dist))) = queue.pop() {
         let vertex_dist = vertex_dist.into();
@@ -120,5 +120,5 @@ where
         }
     }
 
-    Ok(ShortestPaths { start, dist, pred })
+    Ok(ShortestPaths { source, dist, pred })
 }

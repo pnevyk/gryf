@@ -166,7 +166,7 @@ impl<'a, W, G, F> ShortestPathsBuilder<'a, W, G, F, algo::AnyAlgo>
 where
     G: GraphBase,
 {
-    pub fn run<V, E>(self, start: G::VertexId) -> Result<ShortestPaths<W, G>, Error>
+    pub fn run<V, E>(self, source: G::VertexId) -> Result<ShortestPaths<W, G>, Error>
     where
         G: Neighbors + GraphRef<V, E>,
         G::VertexId: IntegerIdType,
@@ -182,9 +182,9 @@ where
         } = self;
 
         match algo {
-            AlgoExt::Algo(Algo::Dijkstra) => dijkstra(graph, start, goal, edge_weight),
-            AlgoExt::Algo(Algo::BellmanFord) => bellman_ford(graph, start, goal, edge_weight),
-            AlgoExt::Bfs => bfs(graph, start, goal, edge_weight.get_const().unwrap()),
+            AlgoExt::Algo(Algo::Dijkstra) => dijkstra(graph, source, goal, edge_weight),
+            AlgoExt::Algo(Algo::BellmanFord) => bellman_ford(graph, source, goal, edge_weight),
+            AlgoExt::Bfs => bfs(graph, source, goal, edge_weight.get_const().unwrap()),
         }
     }
 }
@@ -193,7 +193,7 @@ impl<'a, W, G, F> ShortestPathsBuilder<'a, W, G, F, algo::Dijkstra>
 where
     G: GraphBase,
 {
-    pub fn run<V, E>(self, start: G::VertexId) -> Result<ShortestPaths<W, G>, Error>
+    pub fn run<V, E>(self, source: G::VertexId) -> Result<ShortestPaths<W, G>, Error>
     where
         G: Neighbors + GraphWeak<V, E>,
         F: GetWeight<E, W>,
@@ -206,7 +206,7 @@ where
             ..
         } = self;
 
-        dijkstra(graph, start, goal, edge_weight)
+        dijkstra(graph, source, goal, edge_weight)
     }
 }
 
@@ -214,7 +214,7 @@ impl<'a, W, G, F> ShortestPathsBuilder<'a, W, G, F, algo::BellmanFord>
 where
     G: GraphBase,
 {
-    pub fn run<V, E>(self, start: G::VertexId) -> Result<ShortestPaths<W, G>, Error>
+    pub fn run<V, E>(self, source: G::VertexId) -> Result<ShortestPaths<W, G>, Error>
     where
         G: GraphRef<V, E>,
         G::VertexId: IntegerIdType,
@@ -228,7 +228,7 @@ where
             ..
         } = self;
 
-        bellman_ford(graph, start, goal, edge_weight)
+        bellman_ford(graph, source, goal, edge_weight)
     }
 }
 
@@ -236,7 +236,7 @@ impl<'a, W, G, F> ShortestPathsBuilder<'a, W, G, F, algo::Bfs>
 where
     G: GraphBase,
 {
-    pub fn run(self, start: G::VertexId) -> Result<ShortestPaths<W, G>, Error>
+    pub fn run(self, source: G::VertexId) -> Result<ShortestPaths<W, G>, Error>
     where
         G: Neighbors,
         F: GetWeight<(), W>,
@@ -248,7 +248,7 @@ where
             edge_weight,
             ..
         } = self;
-        bfs(graph, start, goal, edge_weight.get_const().unwrap())
+        bfs(graph, source, goal, edge_weight.get_const().unwrap())
     }
 }
 
@@ -256,7 +256,7 @@ impl<'a, W, G, F> ShortestPathsBuilder<'a, W, G, F, algo::SpecificAlgo>
 where
     G: GraphBase,
 {
-    pub fn run<V, E>(self, start: G::VertexId) -> Result<ShortestPaths<W, G>, Error>
+    pub fn run<V, E>(self, source: G::VertexId) -> Result<ShortestPaths<W, G>, Error>
     where
         G: Neighbors + GraphRef<V, E>,
         G::VertexId: IntegerIdType,
@@ -276,9 +276,9 @@ where
         } = self;
 
         match algo {
-            AlgoExt::Algo(Algo::Dijkstra) => dijkstra(graph, start, goal, edge_weight),
-            AlgoExt::Algo(Algo::BellmanFord) => bellman_ford(graph, start, goal, edge_weight),
-            AlgoExt::Bfs => bfs(graph, start, goal, edge_weight.get_const().unwrap()),
+            AlgoExt::Algo(Algo::Dijkstra) => dijkstra(graph, source, goal, edge_weight),
+            AlgoExt::Algo(Algo::BellmanFord) => bellman_ford(graph, source, goal, edge_weight),
+            AlgoExt::Bfs => bfs(graph, source, goal, edge_weight.get_const().unwrap()),
         }
     }
 }

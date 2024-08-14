@@ -1,4 +1,5 @@
 use std::{
+    borrow::Borrow,
     hash::BuildHasherDefault,
     marker::PhantomData,
     ops::{Deref, Index, IndexMut},
@@ -294,12 +295,13 @@ where
         self.storage.vertices()
     }
 
-    pub fn find_vertex(&self, vertex: &V) -> Option<G::VertexId>
+    pub fn find_vertex<Q>(&self, vertex: Q) -> Option<G::VertexId>
     where
         G: GraphRef<V, E>,
         V: Eq,
+        Q: Borrow<V>,
     {
-        self.storage.find_vertex(vertex)
+        self.storage.find_vertex(vertex.borrow())
     }
 
     pub fn vertex_mut<VI>(&mut self, id: VI) -> Option<&mut V>

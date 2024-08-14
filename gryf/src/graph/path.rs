@@ -81,9 +81,27 @@ impl<V, E> Path<V, E, Undirected> {
     }
 }
 
+impl<V, E, G> Path<V, E, Undirected, G>
+where
+    G: GraphBase<EdgeType = Undirected> + Neighbors + VertexSet + Guarantee,
+{
+    pub fn new_undirected_in(storage: G) -> Result<Self, PathError<V, E>> {
+        Self::new_in(storage)
+    }
+}
+
 impl<V, E> Path<V, E, Directed, AdjList<V, E, Directed, DefaultId>> {
     pub fn new_directed() -> Self {
         Self::new_unchecked(AdjList::new(), None)
+    }
+}
+
+impl<V, E, G> Path<V, E, Directed, G>
+where
+    G: GraphBase<EdgeType = Directed> + Neighbors + VertexSet + Guarantee,
+{
+    pub fn new_directed_in(storage: G) -> Result<Self, PathError<V, E>> {
+        Self::new_in(storage)
     }
 }
 
@@ -215,6 +233,13 @@ where
         }
 
         Ok(Some(ends))
+    }
+
+    pub fn new_in(storage: G) -> Result<Self, PathError<V, E>>
+    where
+        G: Neighbors + VertexSet + Guarantee,
+    {
+        Self::constrain(storage)
     }
 
     pub fn vertex_count(&self) -> usize

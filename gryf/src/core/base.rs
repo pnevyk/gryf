@@ -4,22 +4,22 @@ use super::{
     marker::Direction,
 };
 
-pub trait VertexRef<VId: IdType, V> {
-    fn id(&self) -> &VId;
+pub trait VertexRef<VI: IdType, V> {
+    fn id(&self) -> &VI;
     fn attr(&self) -> &V;
 }
 
-pub trait EdgeRef<VId: IdType, EId: IdType, E> {
-    fn id(&self) -> &EId;
+pub trait EdgeRef<VI: IdType, EI: IdType, E> {
+    fn id(&self) -> &EI;
     fn attr(&self) -> &E;
-    fn from(&self) -> &VId;
-    fn to(&self) -> &VId;
+    fn from(&self) -> &VI;
+    fn to(&self) -> &VI;
 }
 
-pub trait NeighborRef<VId: IdType, EId: IdType> {
-    fn id(&self) -> OwnableRef<'_, VId>;
-    fn edge(&self) -> OwnableRef<'_, EId>;
-    fn pred(&self) -> OwnableRef<'_, VId>;
+pub trait NeighborRef<VI: IdType, EI: IdType> {
+    fn id(&self) -> OwnableRef<'_, VI>;
+    fn edge(&self) -> OwnableRef<'_, EI>;
+    fn pred(&self) -> OwnableRef<'_, VI>;
     fn dir(&self) -> Direction;
 }
 
@@ -30,8 +30,8 @@ pub trait IntoEdge<Id: IdPair, E> {
 mod imp {
     use super::*;
 
-    impl<'a, VId: IdType, V> VertexRef<VId, V> for (VId, &'a V) {
-        fn id(&self) -> &VId {
+    impl<'a, VI: IdType, V> VertexRef<VI, V> for (VI, &'a V) {
+        fn id(&self) -> &VI {
             &self.0
         }
 
@@ -40,8 +40,8 @@ mod imp {
         }
     }
 
-    impl<'a, VId: IdType, EId: IdType, E> EdgeRef<VId, EId, E> for (EId, &'a E, VId, VId) {
-        fn id(&self) -> &EId {
+    impl<'a, VI: IdType, EI: IdType, E> EdgeRef<VI, EI, E> for (EI, &'a E, VI, VI) {
+        fn id(&self) -> &EI {
             &self.0
         }
 
@@ -49,25 +49,25 @@ mod imp {
             self.1
         }
 
-        fn from(&self) -> &VId {
+        fn from(&self) -> &VI {
             &self.2
         }
 
-        fn to(&self) -> &VId {
+        fn to(&self) -> &VI {
             &self.3
         }
     }
 
-    impl<VId: IdType, EId: IdType> NeighborRef<VId, EId> for (VId, EId, VId, Direction) {
-        fn id(&self) -> OwnableRef<'_, VId> {
+    impl<VI: IdType, EI: IdType> NeighborRef<VI, EI> for (VI, EI, VI, Direction) {
+        fn id(&self) -> OwnableRef<'_, VI> {
             OwnableRef::Borrowed(&self.0)
         }
 
-        fn edge(&self) -> OwnableRef<'_, EId> {
+        fn edge(&self) -> OwnableRef<'_, EI> {
             OwnableRef::Borrowed(&self.1)
         }
 
-        fn pred(&self) -> OwnableRef<'_, VId> {
+        fn pred(&self) -> OwnableRef<'_, VI> {
             OwnableRef::Borrowed(&self.2)
         }
 

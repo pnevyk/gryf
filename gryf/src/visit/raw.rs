@@ -132,12 +132,12 @@ impl<Id: IdPair, U: UseId<Id>, A: RawAlgo<Id, U>> RawVisit<Id, U, A> {
     }
 }
 
-struct VisitRootsIter<'a, Id: IdType, S: VisitRoots<Id>> {
+struct VisitRootsIter<'a, I: IdType, S: VisitRoots<I>> {
     roots: &'a mut S,
-    ty: PhantomData<&'a Id>,
+    ty: PhantomData<&'a I>,
 }
 
-impl<'a, Id: IdType, S: VisitRoots<Id>> VisitRootsIter<'a, Id, S> {
+impl<'a, I: IdType, S: VisitRoots<I>> VisitRootsIter<'a, I, S> {
     fn new(roots: &'a mut S) -> Self {
         Self {
             roots,
@@ -146,8 +146,8 @@ impl<'a, Id: IdType, S: VisitRoots<Id>> VisitRootsIter<'a, Id, S> {
     }
 }
 
-impl<Id: IdType, S: VisitRoots<Id>> Iterator for VisitRootsIter<'_, Id, S> {
-    type Item = Id;
+impl<I: IdType, S: VisitRoots<I>> Iterator for VisitRootsIter<'_, I, S> {
+    type Item = I;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.roots.next_root()

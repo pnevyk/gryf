@@ -156,13 +156,13 @@ impl IdPair for DefaultId {
     type EdgeId = EdgeId;
 }
 
-pub struct CustomId<VId, EId> {
-    ty: PhantomData<fn() -> (VId, EId)>,
+pub struct CustomId<VI, EI> {
+    ty: PhantomData<fn() -> (VI, EI)>,
 }
 
-impl<VId: IdType, EId: IdType> IdPair for CustomId<VId, EId> {
-    type VertexId = VId;
-    type EdgeId = EId;
+impl<VI: IdType, EI: IdType> IdPair for CustomId<VI, EI> {
+    type VertexId = VI;
+    type EdgeId = EI;
 }
 
 pub(crate) trait UseId<Id: IdPair> {

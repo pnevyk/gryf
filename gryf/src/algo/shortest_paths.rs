@@ -30,9 +30,9 @@ where
         &self.start
     }
 
-    pub fn dist<VId>(&self, to: VId) -> Option<&W>
+    pub fn dist<VI>(&self, to: VI) -> Option<&W>
     where
-        VId: Borrow<G::VertexId>,
+        VI: Borrow<G::VertexId>,
     {
         self.dist.get(to.borrow())
     }
@@ -45,14 +45,14 @@ where
     }
 }
 
-impl<W, G, VId> Index<VId> for ShortestPaths<W, G>
+impl<W, G, VI> Index<VI> for ShortestPaths<W, G>
 where
     G: GraphBase,
-    VId: Borrow<G::VertexId>,
+    VI: Borrow<G::VertexId>,
 {
     type Output = W;
 
-    fn index(&self, index: VId) -> &Self::Output {
+    fn index(&self, index: VI) -> &Self::Output {
         self.dist(index).unwrap()
     }
 }

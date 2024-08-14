@@ -119,16 +119,16 @@ where
 }
 
 #[inline(always)]
-fn process_edge<VId, EId, ER, E, W, F>(
+fn process_edge<VI, EI, ER, E, W, F>(
     edge: &ER,
     edge_weight: &F,
-    vertex_map: &CompactIdMap<VId>,
+    vertex_map: &CompactIdMap<VI>,
     dist: &[W],
-) -> Option<(W, Virtual<VId>, Virtual<VId>)>
+) -> Option<(W, Virtual<VI>, Virtual<VI>)>
 where
-    VId: IntegerIdType,
-    EId: IdType,
-    ER: EdgeRef<VId, EId, E>,
+    VI: IntegerIdType,
+    EI: IdType,
+    ER: EdgeRef<VI, EI, E>,
     W: Weight,
     F: GetWeight<E, W>,
 {

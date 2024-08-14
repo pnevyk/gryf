@@ -17,7 +17,10 @@ use rustc_hash::FxHashSet;
 
 use raw::*;
 
-use crate::core::{id::UseVertexId, GraphBase, Neighbors, VertexSet};
+use crate::core::{
+    id::{IdType, UseVertexId},
+    GraphBase, Neighbors, VertexSet,
+};
 
 pub trait Visitor<G> {
     type Item;
@@ -77,6 +80,25 @@ where
     }
 }
 
+pub trait VisitRoots<Id: IdType> {
+    fn next_root(&mut self) -> Option<Id>;
+
+    fn is_done(&mut self, _visited: &impl VisitSet<Id>) -> bool {
+        // By default, delegate the indication of being done for `Self::next` by
+        // returning `None`.
+        false
+    }
+}
+
+impl<Id: IdType, I> VisitRoots<Id> for I
+where
+    I: Iterator<Item = Id>,
+{
+    fn next_root(&mut self) -> Option<Id> {
+        self.next()
+    }
+}
+
 pub struct VisitAll<'a, G>
 where
     G: VertexSet,
@@ -97,11 +119,11 @@ where
     }
 }
 
-impl<G> VisitStarts<G::VertexId> for VisitAll<'_, G>
+impl<G> VisitRoots<G::VertexId> for VisitAll<'_, G>
 where
     G: VertexSet,
 {
-    fn get_next(&mut self) -> Option<G::VertexId> {
+    fn next_root(&mut self) -> Option<G::VertexId> {
         self.ids.next()
     }
 

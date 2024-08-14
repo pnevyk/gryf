@@ -17,7 +17,7 @@ where
 pub struct BfsMulti<'a, G, S>
 where
     G: GraphBase,
-    S: VisitStarts<G::VertexId>,
+    S: VisitRoots<G::VertexId>,
 {
     raw: &'a mut RawVisit<G, UseVertexId, RawBfs>,
     multi: RawVisitMulti<G, UseVertexId, RawBfs, S>,
@@ -51,13 +51,13 @@ where
         }
     }
 
-    pub fn start_multi<S>(&mut self, starts: S) -> BfsMulti<'_, G, S>
+    pub fn start_multi<S>(&mut self, roots: S) -> BfsMulti<'_, G, S>
     where
-        S: VisitStarts<G::VertexId>,
+        S: VisitRoots<G::VertexId>,
     {
         BfsMulti {
             raw: &mut self.raw,
-            multi: RawVisitMulti::new(starts),
+            multi: RawVisitMulti::new(roots),
         }
     }
 
@@ -83,7 +83,7 @@ where
 
 impl<'a, S, G> Visitor<G> for BfsMulti<'a, G, S>
 where
-    S: VisitStarts<G::VertexId>,
+    S: VisitRoots<G::VertexId>,
     G: Neighbors + VertexSet,
 {
     type Item = G::VertexId;

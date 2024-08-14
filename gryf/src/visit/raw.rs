@@ -13,7 +13,7 @@ use crate::core::{
     GraphBase, Neighbors,
 };
 
-use super::VisitSet;
+use super::{VisitRoots, VisitSet};
 
 pub trait TraversalCollection<T>: Default {
     fn push(&mut self, value: T);
@@ -132,59 +132,37 @@ impl<Id: IdPair, U: UseId<Id>, A: RawAlgo<Id, U>> RawVisit<Id, U, A> {
     }
 }
 
-pub trait VisitStarts<Id: IdType> {
-    fn get_next(&mut self) -> Option<Id>;
-
-    #[allow(clippy::wrong_self_convention)]
-    fn is_done(&mut self, _visited: &impl VisitSet<Id>) -> bool {
-        // By default, delegate the indication of being done for `Self::next` by
-        // returning `None`.
-        false
-    }
-}
-
-struct VisitStartsIter<'a, Id: IdType, S: VisitStarts<Id>> {
-    starts: &'a mut S,
+struct VisitRootsIter<'a, Id: IdType, S: VisitRoots<Id>> {
+    roots: &'a mut S,
     ty: PhantomData<&'a Id>,
 }
 
-impl<'a, Id: IdType, S: VisitStarts<Id>> VisitStartsIter<'a, Id, S> {
-    fn new(starts: &'a mut S) -> Self {
+impl<'a, Id: IdType, S: VisitRoots<Id>> VisitRootsIter<'a, Id, S> {
+    fn new(roots: &'a mut S) -> Self {
         Self {
-            starts,
+            roots,
             ty: PhantomData,
         }
     }
 }
 
-impl<Id: IdType, S: VisitStarts<Id>> Iterator for VisitStartsIter<'_, Id, S> {
+impl<Id: IdType, S: VisitRoots<Id>> Iterator for VisitRootsIter<'_, Id, S> {
     type Item = Id;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.starts.get_next()
-    }
-}
-
-impl<Id: IdType, I> VisitStarts<Id> for I
-where
-    I: Iterator<Item = Id>,
-{
-    fn get_next(&mut self) -> Option<Id> {
-        self.next()
+        self.roots.next_root()
     }
 }
 
 pub(crate) struct RawVisitMulti<Id, U, A, S> {
-    pub starts: S,
+    pub roots: S,
     ty: PhantomData<(Id, U, A)>,
 }
 
-impl<Id: IdPair, U: UseId<Id>, A: RawAlgo<Id, U>, S: VisitStarts<U::Id>>
-    RawVisitMulti<Id, U, A, S>
-{
-    pub fn new(starts: S) -> Self {
+impl<Id: IdPair, U: UseId<Id>, A: RawAlgo<Id, U>, S: VisitRoots<U::Id>> RawVisitMulti<Id, U, A, S> {
+    pub fn new(roots: S) -> Self {
         Self {
-            starts,
+            roots,
             ty: PhantomData,
         }
     }
@@ -192,17 +170,17 @@ impl<Id: IdPair, U: UseId<Id>, A: RawAlgo<Id, U>, S: VisitStarts<U::Id>>
     pub fn next_multi<F, R, G>(
         &mut self,
         raw: &mut RawVisit<Id, U, A>,
-        mut get_next: F,
+        mut next_root: F,
         is_still_valid: G,
     ) -> Option<R>
     where
         F: FnMut(&mut RawVisit<Id, U, A>) -> Option<R>,
         G: Fn(&U::Id) -> bool,
     {
-        match get_next(raw) {
+        match next_root(raw) {
             Some(next) => Some(next),
             None => {
-                if self.starts.is_done(&raw.visited) {
+                if self.roots.is_done(&raw.visited) {
                     return None;
                 }
 
@@ -210,11 +188,11 @@ impl<Id: IdPair, U: UseId<Id>, A: RawAlgo<Id, U>, S: VisitStarts<U::Id>>
                 // any. Make sure that the id is still valid -- at the very
                 // minimum if it is still in the graph (it could have been
                 // removed during visiting).
-                let root = VisitStartsIter::new(&mut self.starts)
+                let root = VisitRootsIter::new(&mut self.roots)
                     .find(|v| !raw.visited.is_visited(v) && is_still_valid(v))?;
 
                 raw.start(A::start(&root));
-                get_next(raw)
+                next_root(raw)
             }
         }
     }

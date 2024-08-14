@@ -17,7 +17,7 @@ where
 pub struct DfsMulti<'a, G, S>
 where
     G: GraphBase,
-    S: VisitStarts<G::VertexId>,
+    S: VisitRoots<G::VertexId>,
 {
     raw: &'a mut RawVisit<G, UseVertexId, RawDfs>,
     multi: RawVisitMulti<G, UseVertexId, RawDfs, S>,
@@ -51,13 +51,13 @@ where
         }
     }
 
-    pub fn start_multi<S>(&mut self, starts: S) -> DfsMulti<'_, G, S>
+    pub fn start_multi<S>(&mut self, roots: S) -> DfsMulti<'_, G, S>
     where
-        S: VisitStarts<G::VertexId>,
+        S: VisitRoots<G::VertexId>,
     {
         DfsMulti {
             raw: &mut self.raw,
-            multi: RawVisitMulti::new(starts),
+            multi: RawVisitMulti::new(roots),
         }
     }
 
@@ -83,7 +83,7 @@ where
 
 impl<'a, S, G> Visitor<G> for DfsMulti<'a, G, S>
 where
-    S: VisitStarts<G::VertexId>,
+    S: VisitRoots<G::VertexId>,
     G: Neighbors + VertexSet,
 {
     type Item = G::VertexId;
@@ -120,7 +120,7 @@ where
 pub struct DfsEventsMulti<'a, G, S>
 where
     G: GraphBase,
-    S: VisitStarts<G::VertexId>,
+    S: VisitRoots<G::VertexId>,
 {
     raw: &'a mut RawVisit<G, UseVertexId, RawDfsExtra>,
     multi: RawVisitMulti<G, UseVertexId, RawDfsExtra, S>,
@@ -183,13 +183,13 @@ where
         }
     }
 
-    pub fn start_multi<S>(&mut self, starts: S) -> DfsEventsMulti<'_, G, S>
+    pub fn start_multi<S>(&mut self, roots: S) -> DfsEventsMulti<'_, G, S>
     where
-        S: VisitStarts<G::VertexId>,
+        S: VisitRoots<G::VertexId>,
     {
         DfsEventsMulti {
             raw: &mut self.raw,
-            multi: RawVisitMulti::new(starts),
+            multi: RawVisitMulti::new(roots),
             closed: &mut self.closed,
             queue: VecDeque::new(),
             time: 0,
@@ -329,7 +329,7 @@ where
 impl<'a, S, G> Visitor<G> for DfsEventsMulti<'a, G, S>
 where
     G: Neighbors + VertexSet,
-    S: VisitStarts<G::VertexId>,
+    S: VisitRoots<G::VertexId>,
 {
     type Item = DfsEvent<G>;
 
@@ -382,7 +382,7 @@ where
 pub struct DfsPostOrderMulti<'a, G, S>
 where
     G: GraphBase,
-    S: VisitStarts<G::VertexId>,
+    S: VisitRoots<G::VertexId>,
 {
     raw: &'a mut RawVisit<G, UseVertexId, RawDfsExtra>,
     multi: RawVisitMulti<G, UseVertexId, RawDfsExtra, S>,
@@ -416,13 +416,13 @@ where
         }
     }
 
-    pub fn start_multi<S>(&mut self, starts: S) -> DfsPostOrderMulti<'_, G, S>
+    pub fn start_multi<S>(&mut self, roots: S) -> DfsPostOrderMulti<'_, G, S>
     where
-        S: VisitStarts<G::VertexId>,
+        S: VisitRoots<G::VertexId>,
     {
         DfsPostOrderMulti {
             raw: &mut self.raw,
-            multi: RawVisitMulti::new(starts),
+            multi: RawVisitMulti::new(roots),
         }
     }
 
@@ -453,7 +453,7 @@ where
 impl<'a, S, G> Visitor<G> for DfsPostOrderMulti<'a, G, S>
 where
     G: Neighbors + VertexSet,
-    S: VisitStarts<G::VertexId>,
+    S: VisitRoots<G::VertexId>,
 {
     type Item = G::VertexId;
 
@@ -490,7 +490,7 @@ where
 pub struct DfsNoBacktrackMulti<'a, G, S>
 where
     G: GraphBase,
-    S: VisitStarts<G::VertexId>,
+    S: VisitRoots<G::VertexId>,
 {
     raw: &'a mut RawVisit<G, UseVertexId, RawDfsNoBacktrack>,
     multi: RawVisitMulti<G, UseVertexId, RawDfsNoBacktrack, S>,
@@ -524,13 +524,13 @@ where
         }
     }
 
-    pub fn start_multi<S>(&mut self, starts: S) -> DfsNoBacktrackMulti<'_, G, S>
+    pub fn start_multi<S>(&mut self, roots: S) -> DfsNoBacktrackMulti<'_, G, S>
     where
-        S: VisitStarts<G::VertexId>,
+        S: VisitRoots<G::VertexId>,
     {
         DfsNoBacktrackMulti {
             raw: &mut self.raw,
-            multi: RawVisitMulti::new(starts),
+            multi: RawVisitMulti::new(roots),
         }
     }
 
@@ -557,7 +557,7 @@ where
 impl<'a, S, G> Visitor<G> for DfsNoBacktrackMulti<'a, G, S>
 where
     G: Neighbors + VertexSet,
-    S: VisitStarts<G::VertexId>,
+    S: VisitRoots<G::VertexId>,
 {
     type Item = G::VertexId;
 

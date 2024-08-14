@@ -406,12 +406,6 @@ where
 impl<G: GraphBase> StableId<VertexId, NoReplace> for Stable<G> {}
 impl<G: GraphBase> StableId<EdgeId, NoReplace> for Stable<G> {}
 
-pub trait Stabilize {
-    fn stabilize(self) -> Stable<Self>
-    where
-        Self: Sized + GraphBase;
-}
-
 pub struct VertexIds<'a, G: VertexSet + 'a> {
     inner: G::VerticesByIdIter<'a>,
     removed_vertices: &'a BTreeSet<G::VertexId>,

@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::core::{marker::EdgeType, EdgeSet, GraphBase, Neighbors, VertexSet};
+use crate::core::{EdgeSet, GraphBase, Neighbors, VertexSet};
 
 use self::bfs::bfs_collect;
 
@@ -67,14 +67,14 @@ impl<G: GraphBase> Cycle<G> {
     }
 }
 
-pub fn is_cyclic<Ty: EdgeType, G>(graph: &G) -> bool
+pub fn is_cyclic<G>(graph: &G) -> bool
 where
     G: Neighbors + VertexSet + EdgeSet,
 {
     Cycle::on(graph).run().is_some()
 }
 
-pub fn is_cyclic_undirected<Ty: EdgeType, G>(graph: &G) -> bool
+pub fn is_cyclic_undirected<G>(graph: &G) -> bool
 where
     G: Neighbors + VertexSet + EdgeSet,
 {

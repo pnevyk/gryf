@@ -347,19 +347,15 @@ where
                 let v = self.storage.try_add_vertex(vertex)?;
                 *end = v.clone();
 
-                let (u, v) = if Ty::is_directed() {
-                    // For directed graph, the edge must have the correct
-                    // direction.
-                    if u == ends[0] {
-                        (v, u)
-                    } else {
-                        (u, v)
-                    }
-                } else {
-                    (u, v)
-                };
+                // For directed graph, the edge must have the correct
+                // direction.
+                let reverse = Ty::is_directed() && u == ends[0];
 
-                self.storage.try_add_edge(&u, &v, edge)?;
+                if reverse {
+                    self.storage.try_add_edge(&v, &u, edge)?;
+                } else {
+                    self.storage.try_add_edge(&u, &v, edge)?;
+                }
 
                 Ok(v)
             }

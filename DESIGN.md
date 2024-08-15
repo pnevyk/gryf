@@ -343,8 +343,8 @@ Iterative traversals are preferred over recursive traversals. The main advantage
 is that iterative traversals are lazy, thus allowing to stop the traversal
 without "hacking" the control flow semantics into callback's return type, and
 can be "detached" from the graph so that the graph can be manipulated during
-traversal (:handshake: :hammer:). Iterative traversal is also not limited by the
-size of the program stack. However, in some cases this choice imposes an
+traversal ( :handshake: :hammer: ). Iterative traversal is also not limited by
+the size of the program stack. However, in some cases this choice imposes an
 efficiency penalty. See implementation of `RawDfsExtra` for the most notable
 example.
 

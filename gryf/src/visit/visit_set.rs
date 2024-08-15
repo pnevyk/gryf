@@ -10,6 +10,7 @@ use fixedbitset::FixedBitSet;
 use crate::core::id::{IdType, IntegerIdType};
 
 /// A set of visited vertices or edges.
+#[doc(alias = "VisitMap")]
 pub trait VisitSet<I: IdType> {
     /// Marks the element as visited.
     ///

@@ -8,6 +8,7 @@ use super::{
 
 /// Default [reference](VertexReference) to a vertex with an attribute in a
 /// graph.
+#[doc(alias = "Node")]
 pub struct VertexRef<'a, VI: IdType, V> {
     /// Vertex ID.
     pub id: VI,

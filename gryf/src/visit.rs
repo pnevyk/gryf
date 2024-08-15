@@ -39,6 +39,7 @@ use crate::core::{
 };
 
 /// Trait for a specific graph traversal approach.
+#[doc(alias = "Walker")]
 pub trait Visitor<G> {
     /// The type of the elements being visited.
     type Item;

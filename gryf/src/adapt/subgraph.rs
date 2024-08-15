@@ -85,7 +85,7 @@ where
     where
         Self: 'a;
 
-    type NeighborsIter<'a> = SubsetIter<'a, G::NeighborsIter<'a>, G::NeighborRef<'a>>
+    type NeighborsIter<'a> = SubgraphIter<'a, G::NeighborsIter<'a>, G::NeighborRef<'a>>
     where
         Self: 'a;
 
@@ -94,7 +94,7 @@ where
             panic!("vertex does not exist");
         }
 
-        SubsetIter::<_, G::NeighborRef<'_>>::new(
+        SubgraphIter::<_, G::NeighborRef<'_>>::new(
             self.graph.neighbors_undirected(from),
             |neighbor| self.check_vertex(&neighbor.id()) && self.check_edge(&neighbor.edge()),
             true,
@@ -106,7 +106,7 @@ where
             panic!("vertex does not exist");
         }
 
-        SubsetIter::<_, G::NeighborRef<'_>>::new(
+        SubgraphIter::<_, G::NeighborRef<'_>>::new(
             self.graph.neighbors_directed(from, dir),
             |neighbor| self.check_vertex(&neighbor.id()) && self.check_edge(&neighbor.edge()),
             true,
@@ -118,12 +118,12 @@ impl<G, S> VertexSet for Subgraph<G, S>
 where
     G: VertexSet,
 {
-    type VerticesByIdIter<'a> = SubsetIter<'a, G::VerticesByIdIter<'a>, G::VertexId>
+    type VerticesByIdIter<'a> = SubgraphIter<'a, G::VerticesByIdIter<'a>, G::VertexId>
     where
         Self: 'a;
 
     fn vertices_by_id(&self) -> Self::VerticesByIdIter<'_> {
-        SubsetIter::new(
+        SubgraphIter::new(
             self.graph.vertices_by_id(),
             |id| self.check_vertex(id),
             true,
@@ -146,22 +146,22 @@ impl<G, S> EdgeSet for Subgraph<G, S>
 where
     G: EdgeSet,
 {
-    type EdgesByIdIter<'a> = SubsetIter<'a, G::EdgesByIdIter<'a>, G::EdgeId>
+    type EdgesByIdIter<'a> = SubgraphIter<'a, G::EdgesByIdIter<'a>, G::EdgeId>
     where
         Self: 'a;
 
-    type EdgeIdIter<'a> = SubsetIter<'a, G::EdgeIdIter<'a>, G::EdgeId>
+    type EdgeIdIter<'a> = SubgraphIter<'a, G::EdgeIdIter<'a>, G::EdgeId>
     where
         Self: 'a;
 
     fn edges_by_id(&self) -> Self::EdgesByIdIter<'_> {
-        SubsetIter::new(self.graph.edges_by_id(), |id| self.contains_edge(id), true)
+        SubgraphIter::new(self.graph.edges_by_id(), |id| self.contains_edge(id), true)
     }
 
     fn edge_id(&self, from: &Self::VertexId, to: &Self::VertexId) -> Self::EdgeIdIter<'_> {
         let endpoints_exist = self.check_vertex(from) && self.check_vertex(to);
 
-        SubsetIter::new(
+        SubgraphIter::new(
             self.graph.edge_id(from, to),
             |id| self.contains_edge(id),
             endpoints_exist,
@@ -202,7 +202,7 @@ where
         Self: 'a,
         V: 'a;
 
-    type VerticesIter<'a> = SubsetIter<'a, G::VerticesIter<'a>, G::VertexRef<'a>>
+    type VerticesIter<'a> = SubgraphIter<'a, G::VerticesIter<'a>, G::VertexRef<'a>>
     where
         Self: 'a,
         V: 'a;
@@ -212,13 +212,13 @@ where
             Self: 'a,
             E: 'a;
 
-    type EdgesIter<'a> = SubsetIter<'a, G::EdgesIter<'a>, G::EdgeRef<'a>>
+    type EdgesIter<'a> = SubgraphIter<'a, G::EdgesIter<'a>, G::EdgeRef<'a>>
         where
             Self: 'a,
             E: 'a;
 
     fn vertices(&self) -> Self::VerticesIter<'_> {
-        SubsetIter::<_, G::VertexRef<'_>>::new(
+        SubgraphIter::<_, G::VertexRef<'_>>::new(
             self.graph.vertices(),
             |vertex| self.check_vertex(vertex.id()),
             true,
@@ -226,7 +226,7 @@ where
     }
 
     fn edges(&self) -> Self::EdgesIter<'_> {
-        SubsetIter::<_, G::EdgeRef<'_>>::new(
+        SubgraphIter::<_, G::EdgeRef<'_>>::new(
             self.graph.edges(),
             |edge| self.contains_edge(edge.id()),
             true,
@@ -250,15 +250,15 @@ where
     }
 }
 
-pub struct SubsetIter<'a, I, T> {
+pub struct SubgraphIter<'a, I, T> {
     inner: I,
     #[allow(clippy::type_complexity)]
     filter: Box<dyn Fn(&T) -> bool + 'a>,
     non_empty: bool,
 }
 
-impl<'a, I, T> SubsetIter<'a, I, T> {
-    pub fn new<F>(inner: I, filter: F, non_empty: bool) -> Self
+impl<'a, I, T> SubgraphIter<'a, I, T> {
+    fn new<F>(inner: I, filter: F, non_empty: bool) -> Self
     where
         F: Fn(&T) -> bool + 'a,
     {
@@ -270,7 +270,7 @@ impl<'a, I, T> SubsetIter<'a, I, T> {
     }
 }
 
-impl<'a, I, T> Iterator for SubsetIter<'a, I, T>
+impl<'a, I, T> Iterator for SubgraphIter<'a, I, T>
 where
     I: Iterator<Item = T>,
 {

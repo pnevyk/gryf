@@ -85,6 +85,9 @@ macro_rules! impl_binop {
 
 macro_rules! declare_unsigned_float {
     ($name:ident, $ty:ty, $int_ty:ty) => {
+        #[doc = r"Unsigned variant of ["]
+        #[doc = stringify!($ty)]
+        #[doc = r"] type, useful for [is_unsigned](super::Weight::is_unsigned) property."]
         #[allow(non_camel_case_types)]
         #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
         #[repr(transparent)]

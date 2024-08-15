@@ -1,3 +1,222 @@
+//! Gryf is a [graph](domain) data structure library aspiring to be convenient,
+//! versatile, correct and performant.
+//!
+//! A graph is made up of _vertices_ (also called nodes) which are connected by
+//! _edges_. Both vertices and edges might have _attributes_. Graphs can be used
+//! to model pairwise relations between objects and have many [applications] in
+//! various areas like _computer science_ (packet routing in the internet),
+//! _transportation_ (navigation in a city), _linguistics_ (lexical semantics
+//! relationships), _physics and chemistry_ (processing of molecular structures)
+//! or _social sciences_ (social network analysis), among others.
+//!
+//! Gryf implements various [storages](storage) to hold the graph data and
+//! structure and [encapsulations](domain) that guarantee specific semantics.
+//! Then it provides common [graph traversal](visit) methods and a collection of
+//! [algorithms](algo) on graphs. The algorithms are [organized into the
+//! problems](#problems-instead-of-algorithms) they solve. For specifying the
+//! parameters of an algorithm the [builder
+//! pattern](#builder-pattern-for-algorithms) is utilized.
+//!
+//! <style>svg { width: 100%; height: 100%; }</style>
+#![doc = include_str!("../docs/assets/main_example.excalidraw.svg")]
+//!
+//! ```
+//! use gryf::{algo::ShortestPaths, Graph};
+//!
+//! // Default storage is adjacency list, but that can be simply changed by
+//! // using `Graph::new_undirected_in`.
+//! let mut graph = Graph::new_undirected();
+//!
+//! let prague = graph.add_vertex("Prague");
+//! let bratislava = graph.add_vertex("Bratislava");
+//! let vienna = graph.add_vertex("Vienna");
+//! let munich = graph.add_vertex("Munich");
+//! let nuremberg = graph.add_vertex("Nuremberg");
+//! let florence = graph.add_vertex("Florence");
+//! let rome = graph.add_vertex("Rome");
+//!
+//! graph.extend_with_edges([
+//!     (prague, bratislava, 328u32),
+//!     (prague, nuremberg, 297),
+//!     (prague, vienna, 293),
+//!     (bratislava, vienna, 79),
+//!     (nuremberg, munich, 170),
+//!     (vienna, munich, 402),
+//!     (vienna, florence, 863),
+//!     (munich, florence, 646),
+//!     (florence, rome, 278),
+//! ]);
+//!
+//! // As the edge weights are unsigned and there is a specific goal, Dijktra's
+//! // algorithm is applied. For signed edges, Bellman-Ford would be used.
+//! let shortest_paths = ShortestPaths::on(&graph).goal(prague).run(rome).unwrap();
+//! let distance = shortest_paths[prague];
+//! let path = shortest_paths
+//!     .reconstruct(prague)
+//!     .map(|v| graph[v])
+//!     .collect::<Vec<_>>()
+//!     .join(" - ");
+//!
+//! println!("{distance} km from Prague through {path}");
+//! // 1391 km from Prague through Nuremberg - Munich - Florence - Rome
+//! ```
+//!
+//! [graph]: https://en.wikipedia.org/wiki/Graph_theory
+//! [applications]: https://en.wikipedia.org/wiki/Graph_theory#Applications
+//!
+//! # Common operations
+//!
+//! See the [core] module documentation.
+//!
+//! # Goals
+//!
+//! The main goals of gryf are to be
+//!
+//! * _convenient_, that is, "making the common case straightforward and
+//!   natural",
+//! * _versatile_, that is, "offering simplicity as well as flexibility and
+//!   striving for a good balance if in conflict",
+//! * _correct_, that is, "using extensive fuzzing and property-based testing to
+//!   increase confidence about correctness", and
+//! * _performant_, that is, "writing the code with performance and memory
+//!   efficiency in mind".
+//!
+//! Failing in any of these should be considered an issue to be reported.
+//!
+//! # Design
+//!
+//! _For more details, see the [design document]_.
+//!
+//! ## Problems instead of algorithms
+//!
+//! It may not be obvious which algorithm should (or even can) be used to solve
+//! the given problem at hand, especially for users without much experience or
+//! knowledge in graph theory and algorithms. Instead, gryf organizes the
+//! algorithms into the problem they solve (e.g.,
+//! [`ShortestPaths`](algo::ShortestPaths)) instead of requiring to call the
+//! algorithms directly (`dijkstra`, `bellman_ford`).
+//!
+//! Organizing algorithms into problems brings a number of benefits, among which
+//! the most important are:
+//!
+//! * It is convenient for the user, especially if they are a beginner. It
+//!   allows them not to care about details if they don't want to care.
+//! * Having a specific type instead of a generic one such as `Vec` or `HashMap`
+//!   gives the opportunity to provide additional functionality (like path
+//!   reconstruction for shortest paths or "is perfect?" query on matching).
+//! * Not specifying the algorithm enables the use of automatic algorithm
+//!   selection, which makes the decision based on the properties of the input
+//!   graph.
+//!
+//! ```
+//! # use gryf::{algo::ShortestPaths, Graph};
+//! # let mut graph = Graph::new_undirected();
+//! # let prague = graph.add_vertex("Prague");
+//! # let rome = graph.add_vertex("Rome");
+//! # graph.add_edge(prague, rome, 0);
+//! let shortest_paths = ShortestPaths::on(&graph).run(rome).unwrap();
+//! ```
+//!
+//! ## Builder pattern for algorithms
+//!
+//! Specifying arguments for algorithms is done using the builder pattern. This
+//! avoids the need to pass dummy values (like `None`) to parameters that are
+//! not useful for the use case. On the other hand, it allows tweaking the
+//! algorithm with many optional arguments. Moreover, new optional parameters
+//! can be added in a backward-compatible way. A lot of care is taken to make
+//! the error feedback from the compiler helpful and obvious.
+//!
+//! ```
+//! # use gryf::{algo::ShortestPaths, Graph};
+//! # struct Edge { distance: u32 }
+//! # let mut graph = Graph::new_undirected();
+//! # let prague = graph.add_vertex("Prague");
+//! # let rome = graph.add_vertex("Rome");
+//! # graph.add_edge(prague, rome, Edge { distance: 0 });
+//! let shortest_paths = ShortestPaths::on(&graph)
+//!     .edge_weight_fn(|e| e.distance)
+//!     .goal(prague)
+//!     .run(rome)
+//!     .unwrap();
+//! ```
+//!
+//! ## Separation of graph storage and semantics
+//!
+//! High-level semantics provided by user-facing types are strictly separated
+//! from the underlying storage/representation. The graph data can be stored in
+//! a common representation (e.g., [adjacency list](storage::adj_list) or
+//! [adjacency matrix](storage::adj_matrix)), but it can also be stored in or
+//! represented by a custom, problem-tailored implementation, as long as it
+//! implements provided interfaces.
+//!
+//! On top of storage, there is an encapsulation with clear semantics. The most
+//! general is a generic graph, but restricted forms include simple graphs
+//! (without parallel edges), paths, bipartite graphs and so on. Among the
+//! advantages of restrictive encapsulations are:
+//!
+//! * The type of graph clearly communicates the intention and structure.
+//! * The API is limited such that it is impossible to violate the rules of the
+//!   user-desired class of graph.
+//! * The guaranteed properties of a restricted graph can be utilized in
+//!   choosing a more efficient algorithm.
+//!
+//! ```
+//! # use gryf::Graph;
+//! use gryf::storage::AdjMatrix;
+//!
+//! let mut graph = Graph::new_undirected_in(AdjMatrix::default());
+//! # let a = graph.add_vertex("a");
+//! # let b = graph.add_vertex("b");
+//! # graph.add_edge(a, b, ());
+//! ```
+//!
+//! ## Graph interfaces and generic algorithms
+//!
+//! There is a set of [core traits](crate::core) that represent different levels
+//! of functionality that is supported by a graph representation. The levels
+//! range from basic properties like directionality of the graph over structural
+//! properties like vertex/edge count and vertex neighbors to different kinds of
+//! manipulation capability (readonly, append-only, removable). The traits
+//! require only a bare minimum of methods and provide default, overridable
+//! implementations (even if inefficient) for the remaining API to reduce the
+//! implementation burden.
+//!
+//! Algorithms then constrain the input graph only with traits that are
+//! necessary for its function and don't make any assumption on the specific
+//! graph representation used.
+//!
+//! ## Iteration over recursion
+//!
+//! Iterative graph traversals are preferred over recursion. The main benefits
+//! of this choice are:
+//!
+//! * Traversal is lazy and can be stopped without tricks.
+//! * Traversal state is independent on the graph itself, allowing mutations
+//!   during traversal.
+//! * Traversal is not limited by the size of the program stack.
+//!
+//! ```
+//! use gryf::visit::{DfsEvent, DfsEvents, Visitor};
+//! # use gryf::Graph;
+//! # let mut graph = Graph::new_directed();
+//! # let root = graph.add_vertex("root");
+//! # let v = graph.add_vertex("v");
+//! # graph.add_edge(root, v, 0);
+//!
+//! let is_cyclic = DfsEvents::new(&graph)
+//!     .start(root)
+//!     .into_iter(&graph)
+//!     .any(|event| matches!(event, DfsEvent::BackEdge { .. }));
+//! ```
+//!
+//! [design document]: https://github.com/pnevyk/gryf/blob/main/DESIGN.md
+//!
+//! # Comparison with alternatives
+//!
+//! Check the [rusty graphs](https://github.com/pnevyk/rusty-graphs) repository
+//! for a detailed comparison of gryf and other graph libraries available for
+//! Rust with examples and commentary.
+
 pub mod adapt;
 pub mod algo;
 pub mod core;

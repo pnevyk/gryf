@@ -15,6 +15,7 @@ enum AlgoExt {
     Bfs,
 }
 
+/// Builder for [`ShortestPaths`].
 pub struct ShortestPathsBuilder<'a, W, G, F, A>
 where
     G: GraphBase,
@@ -30,6 +31,7 @@ impl<W, G> ShortestPaths<W, G>
 where
     G: GraphBase,
 {
+    #[doc = include_str!("../../../docs/include/algo.on.md")]
     pub fn on(graph: &G) -> ShortestPathsBuilder<'_, W, G, weight::Identity, algo::AnyAlgo> {
         ShortestPathsBuilder {
             graph,
@@ -45,6 +47,10 @@ impl<'a, W, G, F, A> ShortestPathsBuilder<'a, W, G, F, A>
 where
     G: GraphBase,
 {
+    /// Specifies a goal vertex.
+    ///
+    /// When this vertex is reached during the search, the algorithm stops
+    /// without visiting the rest of the vertices.
     pub fn goal(self, goal: G::VertexId) -> Self {
         Self {
             goal: Some(goal),
@@ -52,6 +58,12 @@ where
         }
     }
 
+    /// Specifies the [mapping](GetWeight) from edge attributes to
+    /// [weight](Weight).
+    ///
+    /// By default, the edge attribute itself is used. If you want the mapping
+    /// to be a function or closure use
+    /// [`edge_weight_fn`](ShortestPathsBuilder::edge_weight_fn) instead.
     pub fn edge_weight<F2, V, E>(self, edge_weight: F2) -> ShortestPathsBuilder<'a, W, G, F2, A>
     where
         G: GraphRef<V, E>,
@@ -70,6 +82,13 @@ where
     // Using closures in `edge_weight` gives "type annotations needed" for the
     // closure argument. This method that uses explicit Fn signature circumvents
     // the problem.
+    ///
+    /// Specifies the [mapping](GetWeight) from edge attributes to
+    /// [weight](Weight).
+    ///
+    /// By default, the edge attribute itself is used. If you want the mapping
+    /// to be a type implementing the [`GetWeight`] trait, use
+    /// [`edge_weight`](ShortestPathsBuilder::edge_weight) instead.
     pub fn edge_weight_fn<F2, V, E>(self, edge_weight: F2) -> ShortestPathsBuilder<'a, W, G, F2, A>
     where
         G: GraphRef<V, E>,
@@ -79,6 +98,16 @@ where
         self.edge_weight(edge_weight)
     }
 
+    /// Specifies that every edge has weight equal to `1`.
+    ///
+    /// Make sure to use this builder method instead of e.g., `|_| 1` because
+    /// this unlocks new algorithms that can be used on graphs with constant
+    /// weights.
+    ///
+    /// If you want to specify a custom [mapping](GetWeight) from edge
+    /// attributes to [weight](Weight), check
+    /// [`edge_weight`](ShortestPathsBuilder::edge_weight) and
+    /// [`edge_weight_fn`](ShortestPathsBuilder::edge_weight_fn).
     pub fn unit_weight(self) -> ShortestPathsBuilder<'a, W, G, weight::Unit, A> {
         ShortestPathsBuilder {
             edge_weight: weight::Unit,
@@ -89,6 +118,9 @@ where
         }
     }
 
+    /// Chooses the Dijkstra's algorithm.
+    ///
+    /// See [`Algo::Dijkstra`] for details.
     pub fn dijkstra<V, E>(self) -> ShortestPathsBuilder<'a, W, G, F, algo::Dijkstra>
     where
         G: Neighbors + GraphWeak<V, E>,
@@ -102,6 +134,9 @@ where
         }
     }
 
+    /// Chooses the Bellman–Ford algorithm.
+    ///
+    /// See [`Algo::BellmanFord`] for details.
     pub fn bellman_ford<V, E>(self) -> ShortestPathsBuilder<'a, W, G, F, algo::BellmanFord>
     where
         G: GraphRef<V, E>,
@@ -116,6 +151,10 @@ where
         }
     }
 
+    /// Chooses the breadth-first search algorithm.
+    ///
+    /// This only works on constant weights. Unlock this algorithm with
+    /// [unit_weight](ShortestPathsBuilder::unit_weight).
     pub fn bfs(self) -> ShortestPathsBuilder<'a, W, G, F, algo::Bfs>
     where
         G: Neighbors,
@@ -130,6 +169,7 @@ where
         }
     }
 
+    #[doc = include_str!("../../../docs/include/algo.using.md")]
     pub fn using<V, E>(self, algo: Algo) -> ShortestPathsBuilder<'a, W, G, F, algo::SpecificAlgo>
     where
         G: Neighbors + GraphRef<V, E>,
@@ -144,6 +184,7 @@ where
         }
     }
 
+    #[doc = include_str!("../../../docs/include/algo.using_opt.md")]
     pub fn using_opt<V, E>(
         self,
         algo: Option<Algo>,
@@ -166,6 +207,7 @@ impl<'a, W, G, F> ShortestPathsBuilder<'a, W, G, F, algo::AnyAlgo>
 where
     G: GraphBase,
 {
+    #[doc = include_str!("../../../docs/include/algo.run.md")]
     pub fn run<V, E>(self, source: G::VertexId) -> Result<ShortestPaths<W, G>, Error>
     where
         G: Neighbors + GraphRef<V, E>,
@@ -193,6 +235,7 @@ impl<'a, W, G, F> ShortestPathsBuilder<'a, W, G, F, algo::Dijkstra>
 where
     G: GraphBase,
 {
+    #[doc = include_str!("../../../docs/include/algo.run.md")]
     pub fn run<V, E>(self, source: G::VertexId) -> Result<ShortestPaths<W, G>, Error>
     where
         G: Neighbors + GraphWeak<V, E>,
@@ -214,6 +257,7 @@ impl<'a, W, G, F> ShortestPathsBuilder<'a, W, G, F, algo::BellmanFord>
 where
     G: GraphBase,
 {
+    #[doc = include_str!("../../../docs/include/algo.run.md")]
     pub fn run<V, E>(self, source: G::VertexId) -> Result<ShortestPaths<W, G>, Error>
     where
         G: GraphRef<V, E>,
@@ -236,6 +280,7 @@ impl<'a, W, G, F> ShortestPathsBuilder<'a, W, G, F, algo::Bfs>
 where
     G: GraphBase,
 {
+    #[doc = include_str!("../../../docs/include/algo.run.md")]
     pub fn run(self, source: G::VertexId) -> Result<ShortestPaths<W, G>, Error>
     where
         G: Neighbors,
@@ -256,6 +301,7 @@ impl<'a, W, G, F> ShortestPathsBuilder<'a, W, G, F, algo::SpecificAlgo>
 where
     G: GraphBase,
 {
+    #[doc = include_str!("../../../docs/include/algo.run.md")]
     pub fn run<V, E>(self, source: G::VertexId) -> Result<ShortestPaths<W, G>, Error>
     where
         G: Neighbors + GraphRef<V, E>,

@@ -1,3 +1,7 @@
+//! A [subgraph] of a graph as determined by the vertex and edge predicates.
+//!
+//! [subgraph]: https://en.wikipedia.org/wiki/Glossary_of_graph_theory#subgraph
+
 use crate::core::{
     EdgeSet, GraphBase, GraphRef, Neighbors, VertexSet,
     base::{EdgeReference, NeighborReference, VertexReference},
@@ -7,6 +11,40 @@ use crate::core::{
 
 use gryf_derive::GraphBase;
 
+/// A [subgraph] of a graph as determined by the vertex and edge predicates.
+///
+/// The vertex or edge presence determination is done lazily. This has a
+/// performance impact on some operations that are usually very fast.
+///
+/// [subgraph]: https://en.wikipedia.org/wiki/Glossary_of_graph_theory#subgraph
+///
+/// # Examples
+///
+/// ```
+/// use gryf::{
+///     adapt::Subgraph,
+///     core::{facts, marker::Undirected, EdgeSet, VertexSet},
+///     Graph,
+/// };
+///
+/// let vertices = 0..10;
+///
+/// let mut graph = Graph::<u32, (), Undirected>::with_capacity(
+///     vertices.len(),
+///     facts::complete_graph_edge_count::<Undirected>(vertices.len()),
+/// );
+/// graph.extend_with_vertices(vertices);
+/// graph.connect_vertices(|_, _| Some(()));
+///
+/// assert_eq!(graph.vertex_count(), 10);
+/// assert_eq!(graph.edge_count(), 55);
+///
+/// // Subgraph with only "even" vertices.
+/// let subgraph = Subgraph::new(&graph).filter_vertex(|v, g, _| g[v] % 2 == 0);
+///
+/// assert_eq!(subgraph.vertex_count(), 5);
+/// assert_eq!(subgraph.edge_count(), 15);
+/// ```
 #[derive(GraphBase)]
 #[gryf_crate]
 pub struct Subgraph<G, S = ()>
@@ -26,6 +64,15 @@ impl<G> Subgraph<G>
 where
     G: GraphBase,
 {
+    /// Creates a new subgraph of the given graph.
+    ///
+    /// Specify the subset of vertices and/or edges by
+    /// [`filter_vertex`](Subgraph::filter_vertex) and
+    /// [`filter_edge`](Subgraph::filter_edge), respectively. If neither is
+    /// defined, the subgraph represents the full original graph.
+    ///
+    /// If you need some owned additional state for determining the subsets, use
+    /// the [`Subgraph::with_state`] constructor.
     pub fn new(graph: G) -> Self {
         Self::with_state(graph, ())
     }
@@ -35,6 +82,16 @@ impl<G, S> Subgraph<G, S>
 where
     G: GraphBase,
 {
+    /// Creates a new subgraph of the given graph and a state to be used in the
+    /// predicates.
+    ///
+    /// Specify the subset of vertices and/or edges by
+    /// [`filter_vertex`](Subgraph::filter_vertex) and
+    /// [`filter_edge`](Subgraph::filter_edge), respectively. If neither is
+    /// defined, the subgraph represents the full original graph.
+    ///
+    /// If you don't need any state for determining the subsets, use the
+    /// [`Subgraph::new`] constructor.
     pub fn with_state(graph: G, state: S) -> Self {
         Self {
             graph,
@@ -44,10 +101,15 @@ where
         }
     }
 
+    /// Returns the original graph.
     pub fn into_inner(self) -> G {
         self.graph
     }
 
+    /// Specifies the subset of vertices by a predicate.
+    ///
+    /// The predicate takes the vertex ID, the original graph and the state that
+    /// was passed in via [`Subgraph::with_state`] (if any).
     pub fn filter_vertex<F>(self, predicate: F) -> Self
     where
         F: Fn(&G::VertexId, &G, &S) -> bool + 'static,
@@ -58,6 +120,10 @@ where
         }
     }
 
+    /// Specifies the subset of edges by a predicate.
+    ///
+    /// The predicate takes the edge ID, the original graph and the state that
+    /// was passed in via [`Subgraph::with_state`] (if any).
     pub fn filter_edge<F>(self, predicate: F) -> Self
     where
         F: Fn(&G::EdgeId, &G, &S) -> bool + 'static,

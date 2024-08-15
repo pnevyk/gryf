@@ -25,6 +25,26 @@ use gryf_derive::{EdgeSet, GraphBase, GraphMut, GraphRef, Neighbors, VertexSet};
 
 use super::generic::Graph;
 
+/// Graph that is a [path].
+///
+/// [path]: https://en.wikipedia.org/wiki/Path_(graph_theory)
+///
+/// # Examples
+///
+/// ```
+/// use gryf::domain::{Graph, Path};
+///
+/// let mut graph = Graph::new_undirected();
+/// let a = graph.add_vertex("a");
+///
+/// let mut path = Path::new_undirected_in(graph).unwrap();
+/// let b = path.try_add_vertex("b", Some(1), a).unwrap();
+/// let c = path.try_add_vertex("c", Some(2), b).unwrap();
+///
+/// let bc = path.edge_id_any(b, c).unwrap();
+///
+/// assert_eq!(path.edge(bc).unwrap(), &2);
+/// ```
 #[derive(Debug, Clone, GraphBase, Neighbors, VertexSet, EdgeSet, GraphRef, GraphMut)]
 #[gryf_crate]
 pub struct Path<V, E, Ty: EdgeType, G = AdjList<V, E, Ty, DefaultId>>
@@ -37,18 +57,30 @@ where
     ty: PhantomData<(V, E, Ty)>,
 }
 
+/// The error type for path manipulation operations.
 #[derive(Debug, Error)]
 pub enum PathError<V, E> {
-    #[error("the graph has higher degree than valid")]
+    /// The graph has higher degree than is valid.
+    #[error("the graph has higher degree than is valid")]
     HigherDegree,
+
+    /// The graph contains cycle.
     #[error("the graph contains cycle")]
     Cycle,
+
+    /// The graph is not connected.
     #[error("the graph is not connected")]
     Disconnected,
-    #[error("the path has mixed direction")]
+
+    /// The path has mixed direction of edges.
+    #[error("the path has mixed direction of edges")]
     Direction,
+
+    /// Adding a vertex to the underlying storage failed.
     #[error("{0}")]
     AddVertex(AddVertexError<V>),
+
+    /// Adding an edge to the underlying storage failed.
     #[error("{0}")]
     AddEdge(AddEdgeError<E>),
 }
@@ -66,16 +98,19 @@ impl<V, E> From<AddEdgeError<E>> for PathError<V, E> {
 }
 
 impl<V, E, Ty: EdgeType> Path<V, E, Ty> {
+    /// Creates an empty graph.
     pub fn new() -> Self {
         Self::new_unchecked(AdjList::new(), None)
     }
 
+    /// Creates an empty graph with given capacities.
     pub fn with_capacity(vertex_capacity: usize, edge_capacity: usize) -> Self {
         Self::new_unchecked(AdjList::with_capacity(vertex_capacity, edge_capacity), None)
     }
 }
 
 impl<V, E> Path<V, E, Undirected> {
+    /// Creates an empty undirected graph.
     pub fn new_undirected() -> Self {
         Self::new_unchecked(AdjList::new(), None)
     }
@@ -85,12 +120,14 @@ impl<V, E, G> Path<V, E, Undirected, G>
 where
     G: GraphBase<EdgeType = Undirected> + Neighbors + VertexSet + Guarantee,
 {
+    /// Creates a new undirected graph wrapping given storage.
     pub fn new_undirected_in(storage: G) -> Result<Self, PathError<V, E>> {
         Self::new_in(storage)
     }
 }
 
 impl<V, E> Path<V, E, Directed, AdjList<V, E, Directed, DefaultId>> {
+    /// Creates an empty directed graph.
     pub fn new_directed() -> Self {
         Self::new_unchecked(AdjList::new(), None)
     }
@@ -100,6 +137,7 @@ impl<V, E, G> Path<V, E, Directed, G>
 where
     G: GraphBase<EdgeType = Directed> + Neighbors + VertexSet + Guarantee,
 {
+    /// Creates a new directed graph wrapping given storage.
     pub fn new_directed_in(storage: G) -> Result<Self, PathError<V, E>> {
         Self::new_in(storage)
     }
@@ -233,6 +271,7 @@ where
         Ok(Some(ends))
     }
 
+    /// Creates a new graph wrapping given storage.
     pub fn new_in(storage: G) -> Result<Self, PathError<V, E>>
     where
         G: Neighbors + VertexSet + Guarantee,
@@ -240,6 +279,7 @@ where
         Self::constrain(storage)
     }
 
+    #[doc = include_str!("../../docs/include/vertex_set.vertex_count.md")]
     pub fn vertex_count(&self) -> usize
     where
         G: VertexSet,
@@ -247,6 +287,7 @@ where
         self.storage.vertex_count()
     }
 
+    #[doc = include_str!("../../docs/include/graph_base.vertex_count_hint.md")]
     pub fn vertex_count_hint(&self) -> Option<usize>
     where
         G: GraphBase,
@@ -254,6 +295,7 @@ where
         self.storage.vertex_count_hint()
     }
 
+    #[doc = include_str!("../../docs/include/vertex_set.vertex_bound.md")]
     pub fn vertex_bound(&self) -> usize
     where
         G: VertexSet,
@@ -262,6 +304,7 @@ where
         self.storage.vertex_bound()
     }
 
+    #[doc = include_str!("../../docs/include/vertex_set.vertices_by_id.md")]
     pub fn vertices_by_id(&self) -> G::VerticesByIdIter<'_>
     where
         G: VertexSet,
@@ -269,6 +312,7 @@ where
         self.storage.vertices_by_id()
     }
 
+    #[doc = include_str!("../../docs/include/vertex_set.contains_vertex.md")]
     pub fn contains_vertex<VI>(&self, id: VI) -> bool
     where
         G: GraphRef<V, E>,
@@ -277,6 +321,7 @@ where
         self.storage.contains_vertex(id.as_id().as_ref())
     }
 
+    #[doc = include_str!("../../docs/include/graph_ref.vertex.md")]
     pub fn vertex<VI>(&self, id: VI) -> Option<&V>
     where
         G: GraphRef<V, E>,
@@ -285,6 +330,7 @@ where
         self.storage.vertex(id.as_id().as_ref())
     }
 
+    #[doc = include_str!("../../docs/include/graph_ref.vertices.md")]
     pub fn vertices(&self) -> G::VerticesIter<'_>
     where
         G: GraphRef<V, E>,
@@ -292,6 +338,7 @@ where
         self.storage.vertices()
     }
 
+    #[doc = include_str!("../../docs/include/graph_ref.find_vertex.md")]
     pub fn find_vertex<Q>(&self, vertex: Q) -> Option<G::VertexId>
     where
         G: GraphRef<V, E>,
@@ -301,6 +348,7 @@ where
         self.storage.find_vertex(vertex.borrow())
     }
 
+    #[doc = include_str!("../../docs/include/graph_mut.vertex_mut.md")]
     pub fn vertex_mut<VI>(&mut self, id: VI) -> Option<&mut V>
     where
         G: GraphMut<V, E>,
@@ -309,6 +357,27 @@ where
         self.storage.vertex_mut(id.as_id().as_ref())
     }
 
+    /// Connects a new vertex to given end with given edge, returning error in
+    /// case of failure.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use gryf::{
+    ///     core::id::{IdType, VertexId},
+    ///     domain::Path,
+    /// };
+    ///
+    /// let mut graph = Path::new_directed();
+    ///
+    /// let u = graph
+    ///     .try_add_vertex("hello", None, VertexId::sentinel())
+    ///     .unwrap();
+    /// let v = graph.try_add_vertex("world", Some(42), u).unwrap();
+    ///
+    /// assert_eq!(graph.vertex_count(), 2);
+    /// assert_eq!(graph.ends(), Some(&[u, v]));
+    /// ```
     pub fn try_add_vertex<VI>(
         &mut self,
         vertex: V,
@@ -366,6 +435,35 @@ where
         }
     }
 
+    /// Connects a new vertex to given end with a default edge.
+    ///
+    /// Use [`try_add_vertex`](Self::try_add_vertex) for higher flexibility
+    /// (specifying edge attribute, handling errors).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use gryf::domain::{Graph, Path};
+    ///
+    /// let mut graph = Graph::new_directed();
+    /// let a = graph.add_vertex("a");
+    /// let b = graph.add_vertex("b");
+    /// graph.add_edge(a, b, 42);
+    ///
+    /// let mut graph = Path::new_directed_in(graph).unwrap();
+    ///
+    /// let c = graph.add_vertex("c", b);
+    ///
+    /// let ab = graph.edge_id_any(a, b).unwrap();
+    /// let bc = graph.edge_id_any(b, c).unwrap();
+    ///
+    /// assert_eq!(graph.edge(ab), Some(&42));
+    /// assert_eq!(graph.edge(bc), Some(&0));
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// Panics if the underlying storage fails to add the vertex.
     pub fn add_vertex<VI>(&mut self, vertex: V, end: VI) -> G::VertexId
     where
         E: Default,
@@ -395,6 +493,11 @@ where
         }
     }
 
+    /// Removes a vertex from the graph, connecting thr two neighbors with given
+    /// edge if the removed vertex was an inner vertex.
+    ///
+    /// Returns the vertex attribute if the vertex was present, or `None`
+    /// otherwise.
     pub fn remove_vertex<VI>(&mut self, id: VI, edge: Option<E>) -> Option<V>
     where
         G: Neighbors + GraphFull<V, E>,
@@ -473,6 +576,7 @@ where
         }
     }
 
+    #[doc = include_str!("../../docs/include/graph_mut.replace_vertex.md")]
     pub fn replace_vertex<VI>(&mut self, id: VI, vertex: V) -> V
     where
         G: GraphMut<V, E>,
@@ -481,6 +585,7 @@ where
         self.storage.replace_vertex(id.as_id().as_ref(), vertex)
     }
 
+    #[doc = include_str!("../../docs/include/graph_mut.try_replace_vertex.md")]
     pub fn try_replace_vertex<VI>(&mut self, id: VI, vertex: V) -> Result<V, ReplaceVertexError<V>>
     where
         G: GraphMut<V, E>,
@@ -489,6 +594,7 @@ where
         self.storage.try_replace_vertex(id.as_id().as_ref(), vertex)
     }
 
+    #[doc = include_str!("../../docs/include/graph_full.clear.md")]
     pub fn clear(&mut self)
     where
         G: GraphFull<V, E>,
@@ -497,6 +603,7 @@ where
         self.ends = None;
     }
 
+    #[doc = include_str!("../../docs/include/edge_set.edge_count.md")]
     pub fn edge_count(&self) -> usize
     where
         G: EdgeSet,
@@ -504,6 +611,7 @@ where
         self.storage.edge_count()
     }
 
+    #[doc = include_str!("../../docs/include/graph_base.edge_count_hint.md")]
     pub fn edge_count_hint(&self) -> Option<usize>
     where
         G: GraphBase,
@@ -511,6 +619,7 @@ where
         self.storage.edge_count_hint()
     }
 
+    #[doc = include_str!("../../docs/include/edge_set.edge_bound.md")]
     pub fn edge_bound(&self) -> usize
     where
         G: EdgeSet,
@@ -519,6 +628,7 @@ where
         self.storage.edge_bound()
     }
 
+    #[doc = include_str!("../../docs/include/edge_set.endpoints.md")]
     pub fn endpoints<EI>(&self, id: EI) -> Option<(G::VertexId, G::VertexId)>
     where
         G: EdgeSet,
@@ -527,6 +637,7 @@ where
         self.storage.endpoints(id.as_id().as_ref())
     }
 
+    #[doc = include_str!("../../docs/include/edge_set.edge_id.md")]
     pub fn edge_id<VI>(&self, from: VI, to: VI) -> G::EdgeIdIter<'_>
     where
         G: EdgeSet,
@@ -536,6 +647,7 @@ where
             .edge_id(from.as_id().as_ref(), to.as_id().as_ref())
     }
 
+    #[doc = include_str!("../../docs/include/edge_set.edge_id_any.md")]
     pub fn edge_id_any<VI>(&self, from: VI, to: VI) -> Option<G::EdgeId>
     where
         G: EdgeSet,
@@ -545,6 +657,7 @@ where
             .edge_id_any(from.as_id().as_ref(), to.as_id().as_ref())
     }
 
+    #[doc = include_str!("../../docs/include/edge_set.edges_by_id.md")]
     pub fn edges_by_id(&self) -> G::EdgesByIdIter<'_>
     where
         G: EdgeSet,
@@ -552,6 +665,7 @@ where
         self.storage.edges_by_id()
     }
 
+    #[doc = include_str!("../../docs/include/edge_set.contains_edge.md")]
     pub fn contains_edge<EI>(&self, id: EI) -> bool
     where
         G: EdgeSet,
@@ -560,6 +674,7 @@ where
         self.storage.contains_edge(id.as_id().as_ref())
     }
 
+    #[doc = include_str!("../../docs/include/edge_set.contains_edge_between.md")]
     pub fn contains_edge_between<VI>(&self, from: VI, to: VI) -> bool
     where
         G: EdgeSet,
@@ -569,6 +684,7 @@ where
             .contains_edge_between(from.as_id().as_ref(), to.as_id().as_ref())
     }
 
+    #[doc = include_str!("../../docs/include/graph_base.is_directed.md")]
     pub fn is_directed(&self) -> bool
     where
         G: GraphBase,
@@ -576,6 +692,7 @@ where
         self.storage.is_directed()
     }
 
+    #[doc = include_str!("../../docs/include/graph_ref.edge.md")]
     pub fn edge<EI>(&self, id: EI) -> Option<&E>
     where
         G: GraphRef<V, E>,
@@ -584,6 +701,7 @@ where
         self.storage.edge(id.as_id().as_ref())
     }
 
+    #[doc = include_str!("../../docs/include/graph_ref.edges.md")]
     pub fn edges(&self) -> G::EdgesIter<'_>
     where
         G: GraphRef<V, E>,
@@ -591,6 +709,7 @@ where
         self.storage.edges()
     }
 
+    #[doc = include_str!("../../docs/include/graph_mut.edge_mut.md")]
     pub fn edge_mut<EI>(&mut self, id: EI) -> Option<&mut E>
     where
         G: GraphMut<V, E>,
@@ -599,6 +718,7 @@ where
         self.storage.edge_mut(id.as_id().as_ref())
     }
 
+    #[doc = include_str!("../../docs/include/graph_mut.replace_edge.md")]
     pub fn replace_edge<EI>(&mut self, id: EI, edge: E) -> E
     where
         G: GraphMut<V, E>,
@@ -607,6 +727,7 @@ where
         self.storage.replace_edge(id.as_id().as_ref(), edge)
     }
 
+    #[doc = include_str!("../../docs/include/graph_mut.try_replace_edge.md")]
     pub fn try_replace_edge<EI>(&mut self, id: EI, edge: E) -> Result<E, ReplaceEdgeError<E>>
     where
         G: GraphMut<V, E>,
@@ -615,6 +736,7 @@ where
         self.storage.try_replace_edge(id.as_id().as_ref(), edge)
     }
 
+    #[doc = include_str!("../../docs/include/neighbors.neighbors_undirected.md")]
     pub fn neighbors_undirected<VI>(&self, from: VI) -> G::NeighborsIter<'_>
     where
         G: Neighbors,
@@ -623,6 +745,7 @@ where
         self.storage.neighbors_undirected(from.as_id().as_ref())
     }
 
+    #[doc = include_str!("../../docs/include/neighbors.neighbors_directed.md")]
     pub fn neighbors_directed<VI>(&self, from: VI, dir: Direction) -> G::NeighborsIter<'_>
     where
         G: Neighbors,
@@ -631,6 +754,7 @@ where
         self.storage.neighbors_directed(from.as_id().as_ref(), dir)
     }
 
+    #[doc = include_str!("../../docs/include/neighbors.degree_undirected.md")]
     pub fn degree_undirected<VI>(&self, from: VI) -> usize
     where
         G: Neighbors,
@@ -639,6 +763,7 @@ where
         self.storage.degree_undirected(from.as_id().as_ref())
     }
 
+    #[doc = include_str!("../../docs/include/neighbors.degree_directed.md")]
     pub fn degree_directed<VI>(&self, from: VI, dir: Direction) -> usize
     where
         G: Neighbors,
@@ -647,10 +772,15 @@ where
         self.storage.degree_directed(from.as_id().as_ref(), dir)
     }
 
+    /// Returns the pair of path ends, if the path is not empty.
+    ///
+    /// Note that if there is only one vertex v in the path, then (v, v) is
+    /// returned.
     pub fn ends(&self) -> Option<&[G::VertexId; 2]> {
         self.ends.as_ref()
     }
 
+    /// Makes the vertex and edge IDs [stable](crate::core::props::Stability).
     pub fn stabilize(self) -> Path<V, E, G::EdgeType, Stable<G>> {
         Path::new_unchecked(Stable::new(self.storage), self.ends)
     }

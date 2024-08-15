@@ -1,12 +1,31 @@
+//! Implementations of graph traversal methods.
+//!
+//! All traversal implementations in this module are **iterative**, that is,
+//! they don't use recursion. This means that
+//!
+//! * &#128077; visitor is lazy and can be stopped without tricks,
+//! * &#128077; visitor state is independent on the graph itself, allowing
+//!   mutations during traversal,
+//! * &#128077; traversal is not limited by the size of the program stack,
+//! * &#128078; there is sometimes extra cost if the [traversal semantics ought
+//!   to be
+//!   respected](https://11011110.github.io/blog/2013/12/17/stack-based-graph-traversal.html).
+//!
+//! The order in which the neighbors of a vertex are discovered is not specified
+//! and should not be relied upon.
+
 pub mod bfs;
 pub mod dfs;
 
 pub(crate) mod raw;
 mod visit_set;
 
-pub use bfs::Bfs;
-pub use dfs::{Dfs, DfsEvents, DfsNoBacktrack, DfsPostOrder};
-pub use visit_set::{TypedBitSet, VisitSet};
+#[doc(inline)]
+pub use self::{
+    bfs::Bfs,
+    dfs::{Dfs, DfsEvents, DfsNoBacktrack, DfsPostOrder},
+    visit_set::{TypedBitSet, VisitSet},
+};
 
 use std::collections::VecDeque;
 
@@ -19,11 +38,57 @@ use crate::core::{
     id::{IdType, UseVertexId},
 };
 
+/// Trait for a specific graph traversal approach.
 pub trait Visitor<G> {
+    /// The type of the elements being visited.
     type Item;
 
+    /// Advances the visitor and returns the next visited element in given
+    /// graph.
+    ///
+    /// The difference from the [`Iterator::next`] is that the visitor doesn't
+    /// hold a reference to the graph and thus allows modifications to the graph
+    /// between individual visitor steps or passing the visitor around without
+    /// lifetime problems.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use gryf::{
+    ///     algo::is_cyclic,
+    ///     visit::{DfsEvent, DfsEvents, Visitor},
+    ///     Graph,
+    /// };
+    ///
+    /// let mut graph = Graph::<_, (), _>::new_directed();
+    ///
+    /// graph.extend_with_vertices(["a", "b", "c", "d", "e", "f"]);
+    /// graph.extend_with_edges([(0, 1), (1, 2), (2, 3), (3, 0), (3, 4), (4, 5)]);
+    ///
+    /// // There is a cycle.
+    /// assert!(is_cyclic(&graph));
+    /// assert_eq!(graph.edge_count(), 6);
+    ///
+    /// let root = graph.find_vertex("a").unwrap();
+    ///
+    /// let mut dfs = DfsEvents::new(&graph);
+    /// let mut visitor = dfs.start(root);
+    ///
+    /// while let Some(event) = visitor.visit_next(&graph) {
+    ///     if let DfsEvent::BackEdge { edge, .. } = event {
+    ///         // Remove edge that would otherwise create a cycle in the graph.
+    ///         graph.remove_edge(edge);
+    ///     }
+    /// }
+    ///
+    /// // There is no cycle anymore.
+    /// assert!(!is_cyclic(&graph));
+    /// assert_eq!(graph.edge_count(), 5);
+    /// ```
     fn visit_next(&mut self, graph: &G) -> Option<Self::Item>;
 
+    /// Returns an [iterator](Iterator) that uses the visitor to iterate over
+    /// the elements in given graph.
     fn iter<'a>(&'a mut self, graph: &'a G) -> Iter<'a, Self, G>
     where
         Self: Sized,
@@ -34,6 +99,8 @@ pub trait Visitor<G> {
         }
     }
 
+    /// Converts the visitor into an [iterator](Iterator) to visit the elements
+    /// in given graph.
     fn into_iter(self, graph: &G) -> IntoIter<'_, Self, G>
     where
         Self: Sized,
@@ -45,6 +112,7 @@ pub trait Visitor<G> {
     }
 }
 
+/// Visitor iterator returned from [`Visitor::iter`].
 pub struct Iter<'a, V, G> {
     visitor: &'a mut V,
     graph: &'a G,
@@ -61,6 +129,7 @@ where
     }
 }
 
+/// Visitor iterator returned from [`Visitor::into_iter`].
 pub struct IntoIter<'a, V, G> {
     visitor: V,
     graph: &'a G,
@@ -77,12 +146,28 @@ where
     }
 }
 
+/// A collection of starting vertices for a graph traversal.
+///
+/// This trait is implemented for any [`Iterator`].
 pub trait VisitRoots<I: IdType> {
+    /// Returns next ID to start the traversal from.
+    ///
+    /// Note that the returned ID might have already been visited. It is the
+    /// responsibility of the visitor to ignore such elements.
     fn next_root(&mut self) -> Option<I>;
 
+    /// Returns `true` if the collection can determine that all remaining roots
+    /// have already been visited based on the currently visited set.
+    ///
+    /// This is an optimization for early return without the need of iterating
+    /// over all roots in cases where this can be determined to be unnecessary.
+    /// An example is [`VisitAll`] which checks for [`VisitSet::visited_count`]
+    /// being equal to the number of vertices in the original graph.
+    ///
+    /// By default, `false` is returned which effectively delegates the
+    /// indication of being done for [`VisitRoots::next_root`] by returning
+    /// `None`.
     fn is_done(&mut self, _visited: &impl VisitSet<I>) -> bool {
-        // By default, delegate the indication of being done for `Self::next` by
-        // returning `None`.
         false
     }
 }
@@ -96,6 +181,7 @@ where
     }
 }
 
+/// A [`VisitRoots`] collection for visiting all vertices in a graph.
 pub struct VisitAll<'a, G>
 where
     G: VertexSet,
@@ -108,6 +194,7 @@ impl<'a, G> VisitAll<'a, G>
 where
     G: VertexSet,
 {
+    /// Creates the collection from the given graph.
     pub fn new(graph: &'a G) -> Self {
         Self {
             graph,
@@ -135,35 +222,87 @@ where
     }
 }
 
+/// Strictly monotonically increasing numbering of graph traversal events.
+///
+/// This is useful to some algorithms that base their decision on the event time
+/// comparison.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Time(pub usize);
 
+/// Depth-first search visitor event.
+///
+/// Use [`DfsEvents`] visitor to traverse a graph by reporting DFS events.
+///
+/// # Examples
+///
+/// See [`DfsEvents`] for examples.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DfsEvent<G>
 where
     G: GraphBase,
 {
+    /// A new vertex was discovered.
     Open {
+        /// Discovered vertex.
         vertex: G::VertexId,
+
+        /// Discovering time.
         time: Time,
     },
+
+    /// An edge of the tree formed by the traversal.
     TreeEdge {
+        /// Source endpoint of the edge.
         from: G::VertexId,
+
+        /// Target endpoint of the edge.
         to: G::VertexId,
+
+        /// Edge ID.
         edge: G::EdgeId,
     },
+
+    /// An edge to an already [closed](DfsEvent::Close) vertex.
+    ///
+    /// Presence of a back edge indicates a cycle in the graph.
     BackEdge {
+        /// Source endpoint of the edge.
         from: G::VertexId,
+
+        /// Target (closed) endpoint of the edge.
         to: G::VertexId,
+
+        /// Edge ID.
         edge: G::EdgeId,
     },
+
+    /// An edge to an already [discovered](DfsEvent::Open) but not yet
+    /// [closed](DfsEvent::Close) vertex.
+    ///
+    /// Cross edge is an edge between vertices in different "branches" of the
+    /// traversal tree. Forward edge is an edge between vertices in the same
+    /// "branch" of the traversal tree. When the [discover
+    /// time](DfsEvent::Open::time) of the `from` vertex is higher than `to`
+    /// vertex, it's cross edge, otherwise it's forward edge.
+    ///
+    /// In undirected graphs there is no concept of cross or forward edges.
     CrossForwardEdge {
+        /// Source endpoint of the edge.
         from: G::VertexId,
+
+        /// Target (closed) endpoint of the edge.
         to: G::VertexId,
+
+        /// Edge ID.
         edge: G::EdgeId,
     },
+
+    /// All edges from the vertex have been reported.
     Close {
+        /// Closed vertex.
         vertex: G::VertexId,
+
+        /// Closing time.
         time: Time,
     },
 }

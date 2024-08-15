@@ -1,3 +1,12 @@
+//! Traits and types used for identifying vertices and edges in graphs.
+//!
+//! All types that are supposed to be used as vertex/edge identifiers must
+//! implement [`IdType`] trait. For better performance and more functionality,
+//! they should also implement [`IntegerIdType`] if possible.
+//!
+//! The default ID types are [`VertexId`] and [`EdgeId`]. They are of size `u64`
+//! by default, but this can be changed via their generic parameter `N`.
+
 mod compact_id_map;
 
 pub use compact_id_map::CompactIdMap;
@@ -8,63 +17,101 @@ use super::borrow::OwnableRef;
 
 /// A unique identification of a vertex or edge in a graph.
 ///
-/// In standard graph representations, the id type is an integer. Conceptually,
-/// such an integer id is of type `usize`, but one can choose a smaller integer
-/// type (such as u8 or u16) to lower the memory footprint. In these cases, the
-/// algorithms can treat the id as usize with all the benefits (e.g., indexing
-/// to a contiguous array).
+/// In standard graph representations, the ID type is an integer. Conceptually,
+/// such an integer ID is of type `usize`, but one can choose a smaller integer
+/// type (such as u8 or u16) to lower the memory footprint. In the cases of
+/// integer ID, the algorithms can treat the ID as usize with all the benefits
+/// (e.g., indexing to a contiguous array).
 ///
-/// For implicit graphs, an id can be of any form as long as it implements
-/// required interface and super traits. In general, such ids can't be treated
+/// For implicit graphs, an ID can be of any form as long as it implements
+/// required interface and super traits. In general, such IDs can't be treated
 /// as integers and require a different handling, usually with overhead.
 ///
-/// Any id must also have a representation for a "sentinel" value. For integers,
-/// we use the maximum value of the corresponding type for the sentinel, so we
-/// don't introduce the overhead of using `Option<int>` and can use 0 as the
-/// first index (as is natural).
+/// Any ID must also have a representation for a
+/// "[sentinel](https://en.wikipedia.org/wiki/Sentinel_value)" value. For
+/// integers, we use the maximum value of the corresponding type for the
+/// sentinel, so we don't introduce the overhead of using `Option<int>` and can
+/// use 0 as the first index as is natural.
 pub trait IdType: Clone + Ord + Hash + Debug {
-    /// Conceptually `None` in `Option<Id>`, but without using `Option`.
+    /// Conceptually `None` in `Option<ID>`, but without using `Option`.
     fn sentinel() -> Self;
 
-    /// Determines if the id type is `usize`-compatible.
+    /// Determines if the ID type is representable by an integer. See
+    /// [IntegerIdType] for more details.
     ///
-    /// Types that are not `usize`-compatible require a special, often less
-    /// efficient handling.
+    /// Types that are not integers require a special, often less efficient
+    /// handling.
     fn is_integer() -> bool;
 
-    /// Converts an id into the corresponding `u64`.
+    /// Converts an ID into the corresponding `u64`.
     ///
-    /// Types for which `is_integer() == false` should panic in this function.
+    /// # Panics
+    ///
+    /// Types for which [`Self::is_integer`](IdType::is_integer) returns `false`
+    /// should panic.
     fn as_bits(&self) -> u64;
 
-    /// Converts an `u64` into the corresponding id.
+    /// Converts an `u64` into the corresponding ID.
     ///
-    /// Types for which `is_integer() == false` should panic in this function.
+    /// # Panics
+    ///
+    /// Types for which [`Self::is_integer`](IdType::is_integer) returns `false`
+    /// should panic.
     fn from_bits(bits: u64) -> Self;
 
-    /// Converts an id into the corresponding `usize`.
+    /// Converts an ID into the corresponding `usize`.
     ///
-    /// Types for which `is_integer() == false` should panic in this function.
+    /// # Panics
+    ///
+    /// Types for which [`Self::is_integer`](IdType::is_integer) returns `false`
+    /// should panic.
     fn as_usize(&self) -> usize {
         self.as_bits() as usize
     }
 
-    /// Converts an `usize` into the corresponding id.
+    /// Converts an `usize` into the corresponding ID.
     ///
-    /// Types for which `is_integer() == false` should panic in this function.
-    fn from_usize(index: usize) -> Self {
-        Self::from_bits(index as u64)
+    /// # Panics
+    ///
+    /// Types for which [`Self::is_integer`](IdType::is_integer) returns `false`
+    /// should panic.
+    fn from_usize(id: usize) -> Self {
+        Self::from_bits(id as u64)
     }
 
+    /// Returns `true` if the value represents the sentinel value.
     fn is_sentinel(&self) -> bool {
         self == &Self::sentinel()
     }
 }
 
-/// Type-level specification that an id type is integer-like.
+/// Type-level specification that an ID type is representable by integer.
 ///
-/// All types that implement this trait must return `true` in
-/// `IdType::is_integer`.
+/// Types that implement this trait must return `true` in [`IdType::is_integer`]
+/// and support all integer-related conversions.
+///
+/// All integer values up to some upper bound should be valid IDs and there
+/// should be no discontinuity. For example, check the two integer conversions
+/// of a chess square below, where one is correct and one is wrong.
+///
+/// ```
+/// struct ChessSquare {
+///     file: u8,
+///     rank: u8
+/// }
+///
+/// impl ChessSquare {
+///     fn as_bits_good(&self) -> u64 {
+///         // Continuous space up to 63
+///         (self.rank * 8 + self.file) as u64
+///     }
+///
+///     fn as_bits_bad(&self) -> u64 {
+///         // Discontinuity between (7, 0) == 7 and (0, 1) == 256.
+///         (self.rank as u64) << 8 | (self.file as u64)
+///     }
+/// }
+/// ```
 pub trait IntegerIdType: IdType + Copy + From<usize> + Into<usize> {}
 
 // For edge ids that are represented as a pair of vertex ids.
@@ -86,16 +133,54 @@ impl<T: IdType, U: IdType> IdType for (T, U) {
     }
 }
 
+/// Used to support `I`, `&I` and `usize` as vertex/edge IDs in function
+/// arguments.
+///
+/// For integer ID types, passing the ID by value feels more natural and can
+/// possibly lead to a more efficient generated code. For non-integer ID types,
+/// cloning is an unnecessary and potentially costly operation and passing by
+/// reference is preferred.
+///
+/// Using `usize` as the ID value is supported mainly for convenience during
+/// graph building, but should be avoided after that.
+///
+/// Types in [`domain`](crate::domain) module use this trait for the ID
+/// parameters so that the following works:
+///
+/// ```
+/// use gryf::Graph;
+///
+/// let mut graph = Graph::<_, (), _>::new_undirected();
+///
+/// let v = graph.add_vertex(42);
+///
+/// graph.vertex(v); // by value
+/// graph.vertex(&v); // by reference
+/// graph.vertex(0); // usize
+/// ```
 pub trait AsIdRef<I: IdType> {
+    /// Converts itself to the ID type `I`, either as owned value or a
+    /// reference.
     fn as_id(&self) -> OwnableRef<'_, I>;
 }
 
+/// The default representation of an integer index for vertices. Generic type
+/// `N` can be used to control the byte size of the backing integer (`u64` by
+/// default).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VertexId<N = u64>(N);
 
+/// The default representation of an integer index for edges. Generic type `N`
+/// can be used to control the byte size of the backing integer (`u64` by
+/// default).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct EdgeId<N = u64>(N);
 
+/// An alternative representation of an real ID in specific contexts. It is
+/// always an integer type, even if the real ID is not.
+///
+/// In [`CompactIdMap`], it is used to represent a contiguous array of IDs of a
+/// graph, even if the numbering of vertices or edges in the graph has "holes".
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Virtual<I>(u64, PhantomData<I>);
 
@@ -143,11 +228,19 @@ impl<I: IntegerIdType> From<Virtual<I>> for u64 {
 
 impl<I: IntegerIdType> IntegerIdType for Virtual<I> {}
 
+/// Specification of vertex and edge ID types pair.
+///
+/// The main purpose is a reduction of the number of generic parameters from two
+/// to one (accepting the increase of associated types).
 pub trait IdPair {
+    /// ID type for vertices.
     type VertexId: IdType;
+
+    /// ID type for edges.
     type EdgeId: IdType;
 }
 
+/// Default indexing using [`VertexId`] and [`EdgeId`] as the ID pair.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum DefaultId {}
 
@@ -156,6 +249,25 @@ impl IdPair for DefaultId {
     type EdgeId = EdgeId;
 }
 
+/// Custom indexing using `VI` and `EI` generic types as the ID pair.
+///
+/// # Examples
+///
+/// ```
+/// use gryf::{
+///     core::id::{CustomId, EdgeId, VertexId},
+///     storage::AdjList,
+///     Graph,
+/// };
+///
+/// let mut graph =
+///     Graph::new_directed_in(AdjList::with_id::<CustomId<VertexId<u8>, EdgeId<u16>>>());
+///
+/// let hello = graph.add_vertex("hello");
+/// let world = graph.add_vertex("world");
+///
+/// graph.add_edge(hello, world, ());
+/// ```
 pub struct CustomId<VI, EI> {
     ty: PhantomData<fn() -> (VI, EI)>,
 }

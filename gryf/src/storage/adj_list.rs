@@ -1,3 +1,10 @@
+//! [Adjacency list] graph representation.
+//!
+//! See [module](crate::storage) documentation for comparison with other
+//! storages.
+//!
+//! [Adjacency list]: https://en.wikipedia.org/wiki/Adjacency_list
+
 use std::marker::PhantomData;
 
 use crate::core::{
@@ -17,6 +24,9 @@ pub use super::shared::{
     RangeIds as VertexIds,
 };
 
+/// [Adjacency list] graph representation.
+///
+/// [Adjacency list]: https://en.wikipedia.org/wiki/Adjacency_list
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AdjList<V, E, Ty, Id: IdPair> {
     vertices: Vec<Vertex<Id, V>>,
@@ -26,6 +36,7 @@ pub struct AdjList<V, E, Ty, Id: IdPair> {
 }
 
 impl<V, E, Ty: EdgeType, Id: IdPair> AdjList<V, E, Ty, Id> {
+    /// Creates a new empty storage.
     pub fn new() -> Self {
         Self {
             vertices: Vec::new(),
@@ -37,6 +48,7 @@ impl<V, E, Ty: EdgeType, Id: IdPair> AdjList<V, E, Ty, Id> {
 }
 
 impl<V, E, Ty: EdgeType> AdjList<V, E, Ty, DefaultId> {
+    /// Creates a new empty storage with given ID pair.
     pub fn with_id<Id: IdPair>() -> AdjList<V, E, Ty, Id> {
         AdjList::new()
     }

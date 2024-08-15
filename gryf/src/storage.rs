@@ -1,3 +1,44 @@
+//! Implementations of various graph storages.
+//!
+//! A _storage_ is an implementation of the graph representation. It implements
+//! traits from the [`core`](crate::core) module to provide the needed
+//! functionality. On top of storage, there is usually an
+//! [encapsulation](crate::domain) that provides additional, higher-level
+//! semantics.
+//!
+//! # Storages and their properties
+//!
+//! The available storages are:
+//!
+//! * [Adjacency list](adj_list)
+//! * [Adjacency matrix](adj_matrix)
+//! * [Edge list](edge_list)
+//!
+//! The **adjacency list** provides fast vertex and edge insertion and very fast
+//! graph traversal algorithms, especially on sparser graphs. The **adjacency
+//! matrix** provides very fast edge insertion and removal and efficient
+//! algorithms on dense graphs. The **edge list** is generally not recommended.
+//!
+//! Available storages and their properties are summarized in the table below.
+//!
+//! |                | **[AdjList]**  | **[AdjMatrix]** | **[EdgeList]** |
+//! |----------------|----------------|-----------------|----------------|
+//! | add vertex     | _O*(1)_        | _O*(1)_         | _O*(1)_        |
+//! | add edge       | _O*(1)_        | _O(1)_          | _O*(1)_        |
+//! | get neighbors  | _O(d)_         | _O(V)_          | _O(E)_         |
+//! | lookup vertex  | _O(1)_         | _O(1)_          | _O(1)_         |
+//! | lookup edge    | _O(1)_         | _O(1)_          | _O(1)_         |
+//! | remove vertex  | _O(V + E)_     | _O(V)_          | _O(E)_         |
+//! | remove edge    | _O(d)_         | _O(1)_          | _O(E)_         |
+//! | space          | _O(V + E)_     | _O(V²)_         | _O(V + E)_     |
+//! | multi edge     | YES            | NO              | YES            |
+//! | stable IDs     | NO             | NO              | NO             |
+//!
+//! * _V_ – vertex count
+//! * _E_ – edge count
+//! * _d_ – vertex degree
+//! * _O*(..)_ – amortized complexity
+
 pub mod adj_list;
 pub mod adj_matrix;
 pub mod edge_list;
@@ -6,11 +47,8 @@ pub mod stable;
 
 #[doc(hidden)]
 pub mod frozen;
-
-pub use adj_list::AdjList;
-pub use adj_matrix::AdjMatrix;
-pub use edge_list::EdgeList;
-pub use stable::Stable;
+#[doc(inline)]
+pub use self::{adj_list::AdjList, adj_matrix::AdjMatrix, edge_list::EdgeList, stable::Stable};
 
 #[doc(hidden)]
 pub use frozen::Frozen;

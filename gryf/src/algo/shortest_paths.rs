@@ -1,3 +1,54 @@
+//! Find [single source shortest paths] and their distances in a graph.
+//!
+//! See available parameters [here](ShortestPathsBuilder#implementations).
+//!
+//! Note that more efficient algorithms can be applied if the edges do not have
+//! negative weights. If you have a graph where nonnegative weights can be
+//! guaranteed at compile time, make sure to use an [unsigned
+//! type](crate::core::weight::Weight::is_unsigned) like `u8`, `u32` or
+//! [`uf64`](crate::core::weight::uf64).
+//!
+//! [single source shortest paths]:
+//!     https://en.wikipedia.org/wiki/Shortest_path_problem#Single-source_shortest_paths
+//!
+//! # Examples
+//!
+//! ```
+//! use gryf::{algo::ShortestPaths, Graph};
+//!
+//! let mut graph = Graph::new_undirected();
+//!
+//! let prague = graph.add_vertex("Prague");
+//! let bratislava = graph.add_vertex("Bratislava");
+//! let vienna = graph.add_vertex("Vienna");
+//! let munich = graph.add_vertex("Munich");
+//! let nuremberg = graph.add_vertex("Nuremberg");
+//! let florence = graph.add_vertex("Florence");
+//! let rome = graph.add_vertex("Rome");
+//!
+//! graph.extend_with_edges([
+//!     (prague, bratislava, 328u32),
+//!     (prague, nuremberg, 297),
+//!     (prague, vienna, 293),
+//!     (bratislava, vienna, 79),
+//!     (nuremberg, munich, 170),
+//!     (vienna, munich, 402),
+//!     (vienna, florence, 863),
+//!     (munich, florence, 646),
+//!     (florence, rome, 278),
+//! ]);
+//!
+//! let shortest_paths = ShortestPaths::on(&graph).goal(prague).run(rome).unwrap();
+//! let distance = shortest_paths[prague];
+//! let path = shortest_paths
+//!     .reconstruct(prague)
+//!     .map(|v| graph[v])
+//!     .collect::<Vec<_>>()
+//!     .join(" - ");
+//!
+//! println!("{distance} km from Prague through {path}");
+//! ```
+
 use std::{borrow::Borrow, ops::Index};
 
 use rustc_hash::FxHashMap;
@@ -12,6 +63,9 @@ mod dijkstra;
 
 pub use builder::ShortestPathsBuilder;
 
+/// Shortest paths and their distances from a single source vertex.
+///
+/// See [module](self) documentation for more details and example.
 #[derive(Debug)]
 pub struct ShortestPaths<W, G: GraphBase> {
     source: G::VertexId,
@@ -26,10 +80,18 @@ impl<W, G> ShortestPaths<W, G>
 where
     G: GraphBase,
 {
+    /// Source vertex where the search was started.
     pub fn source(&self) -> &G::VertexId {
         &self.source
     }
 
+    /// Returns the path distance between the source vertex and the given
+    /// vertex, or `None` if it's not known.
+    ///
+    /// There are two causes why the distance between two vertices is not known:
+    /// (1) the vertices are not connected, or (2) the
+    /// [goal](ShortestPathsBuilder::goal) was reached before visiting the given
+    /// vertex.
     pub fn dist<VI>(&self, to: VI) -> Option<&W>
     where
         VI: Borrow<G::VertexId>,
@@ -37,6 +99,13 @@ where
         self.dist.get(to.borrow())
     }
 
+    /// Returns an iterator over vertices on the path between the given vertex
+    /// and the source vertex, in this order, or `None` if it wasn't found.
+    ///
+    /// There are two causes why the distance between two vertices is not known:
+    /// (1) the vertices are not connected, or (2) the
+    /// [goal](ShortestPathsBuilder::goal) was reached before visiting the given
+    /// vertex.
     pub fn reconstruct(&self, to: G::VertexId) -> PathReconstruction<'_, G> {
         PathReconstruction {
             curr: to,
@@ -57,10 +126,38 @@ where
     }
 }
 
+/// Algorithm for [`ShortestPaths`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Algo {
+    /// [Dijkstra's
+    /// algorithm](https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm)
+    ///
+    /// Dijkstra's algorithm is a popular method on a graph with non-negative
+    /// edge weights. It operates by iteratively selecting the vertex with the
+    /// smallest known distance from the source and updating the distances of
+    /// its neighbors.
+    ///
+    /// # Use cases
+    ///
+    /// * Finding the shortest path in road networks.
+    /// * Optimizing routing in communication networks.
+    /// * Navigation and GPS systems.
     Dijkstra,
+
+    /// [Bellman–Ford
+    /// algorithm](https://en.wikipedia.org/wiki/Bellman%E2%80%93Ford_algorithm).
+    ///
+    /// The Bellman-Ford algorithm can handle graphs with negative edge weights
+    /// and can detect negative weight cycles in a graph. However, it is
+    /// generally slower than Dijkstra's algorithm.
+    ///
+    /// # Use cases
+    ///
+    /// * Finding shortest paths in graphs that may contain negative weight
+    ///   edges.
+    /// * Detecting negative weight cycles in financial models.
+    /// * Network routing protocols like RIP (Routing Information Protocol).
     BellmanFord,
 }
 
@@ -83,18 +180,32 @@ mod algo {
     pub struct Bfs;
 }
 
+/// The error encountered during a [`ShortestPaths`] run.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum Error {
+    /// An edge with negative weight encountered.
     #[error("edge with negative weight encountered")]
     NegativeWeight,
+
+    /// A negative cycle encountered.
     #[error("negative cycle encountered")]
     NegativeCycle,
+
+    /// The specified goal not reached.
+    #[error("specified goal not reached")]
+    GoalNotReached,
+
+    /// An edge not available.
+    ///
+    /// This error should not happen in normal circumstances. If it does, it
+    /// indicates a bad implementation of the graph.
     #[error("edge not available")]
     EdgeNotAvailable,
-    #[error("goal not reached")]
-    GoalNotReached,
 }
 
+/// Iterator over the vertices on the path from a vertex to the source vertex.
+///
+/// Returned by [`ShortestPaths::reconstruct`].
 pub struct PathReconstruction<'a, G: GraphBase> {
     curr: G::VertexId,
     pred: &'a FxHashMap<G::VertexId, G::VertexId>,

@@ -1,18 +1,26 @@
+//! Initialization of graphs.
+
 use super::{base::IntoEdge, graph::GraphAdd};
 
+/// Trait for creating a graph with known or estimated capacity.
 pub trait Create<V, E>: GraphAdd<V, E> + Sized {
+    #[doc = include_str!("../../docs/include/create.with_capacity.md")]
     fn with_capacity(vertex_capacity: usize, edge_capacity: usize) -> Self;
 
+    #[doc = include_str!("../../docs/include/create.empty.md")]
     fn empty() -> Self {
         Self::with_capacity(0, 0)
     }
 }
 
+/// Trait for extending graph with or creating graph from an iterator of vertices.
 pub trait ExtendWithVertices<V, E>: Create<V, E> {
+    #[doc = include_str!("../../docs/include/extend_with_vertices.extend_with_vertices.md")]
     fn extend_with_vertices<I>(&mut self, iter: I)
     where
         I: IntoIterator<Item = V>;
 
+    #[doc = include_str!("../../docs/include/extend_with_vertices.from_vertices.md")]
     fn from_vertices<I>(iter: I) -> Self
     where
         I: IntoIterator<Item = V>,
@@ -40,10 +48,12 @@ where
     }
 }
 
+/// Trait for extending graph with an iterator of edges.
 pub trait ExtendWithEdges<T, V, E>: Create<V, E>
 where
     T: IntoEdge<Self, E>,
 {
+    #[doc = include_str!("../../docs/include/extend_with_edges.extend_with_edges.md")]
     fn extend_with_edges<I>(&mut self, iter: I)
     where
         I: IntoIterator<Item = T>;

@@ -1,3 +1,32 @@
+//! Find a [cycle] in a graph.
+//!
+//! See available parameters [here](CycleBuilder#implementations).
+//!
+//! [cycle]: https://en.wikipedia.org/wiki/Cycle_(graph_theory)
+//!
+//! # Examples
+//!
+//! ```
+//! use gryf::{algo::is_cyclic, Graph};
+//!
+//! let mut graph = Graph::new_undirected();
+//!
+//! let a = graph.add_vertex("a");
+//! let b = graph.add_vertex("b");
+//! let c = graph.add_vertex("c");
+//! let d = graph.add_vertex("d");
+//!
+//! graph.add_edge(a, b, ());
+//! graph.add_edge(b, c, ());
+//! graph.add_edge(c, d, ());
+//!
+//! assert!(!is_cyclic(&graph));
+//!
+//! graph.add_edge(d, a, ());
+//!
+//! assert!(is_cyclic(&graph));
+//! ```
+
 use std::fmt;
 
 use crate::core::{EdgeSet, GraphBase, Neighbors, VertexSet};
@@ -10,7 +39,11 @@ mod dfs;
 
 pub use builder::CycleBuilder;
 
+/// Cycle in a graph.
+///
+/// See [module](self) documentation for more details and example.
 pub struct Cycle<G: GraphBase> {
+    /// An edge that is part of the cycle.
     pub edge: G::EdgeId,
     as_undirected: bool,
 }
@@ -58,6 +91,7 @@ impl<G: GraphBase> Cycle<G> {
         }
     }
 
+    /// Collects the whole cycle in the graph.
     pub fn collect(self, graph: &G) -> Vec<G::EdgeId>
     where
         G: Neighbors + VertexSet + EdgeSet,
@@ -67,6 +101,7 @@ impl<G: GraphBase> Cycle<G> {
     }
 }
 
+/// Returns `true` if the graph is cyclic.
 pub fn is_cyclic<G>(graph: &G) -> bool
 where
     G: Neighbors + VertexSet + EdgeSet,
@@ -74,6 +109,7 @@ where
     Cycle::on(graph).run().is_some()
 }
 
+/// Returns `true` if the graph is cyclic, ignoring the direction of the edges.
 pub fn is_cyclic_undirected<G>(graph: &G) -> bool
 where
     G: Neighbors + VertexSet + EdgeSet,

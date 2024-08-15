@@ -2,10 +2,20 @@ use std::cmp::min;
 
 use crate::core::id::{IdType, IntegerIdType, Virtual};
 
-// For compact storages, the space and time for both directions is constant (use
-// `isomorphic`). For storages with holes, the space is O(|V|), virtual to real
-// is O(1) and real to virtual is O(log(|V|)) with heuristics that make it O(1)
-// in many cases.
+/// Mapping from graph IDs to a contiguous sequence of [virtual](Virtual) IDs
+/// that can be used in algorithms.
+///
+/// For compact storages (e.g., [`AdjList`](crate::storage::AdjList)) that do
+/// not have any holes in ID sequences even after removing, the mapping is a
+/// noop and doesn't take any memory. Use [`CompactIdMap::isomorphic`]
+/// constructor in these cases.
+///
+/// For storages with holes and _N_ vertices or edges, the time and space
+/// properties are:
+///
+/// * memory used: _O(N)_
+/// * virtual to real mapping: _O(1)_
+/// * real to virtual mapping: _O(log(N))_
 #[derive(Debug)]
 pub struct CompactIdMap<I> {
     map: Vec<I>,
@@ -13,6 +23,7 @@ pub struct CompactIdMap<I> {
 }
 
 impl<I: IntegerIdType> CompactIdMap<I> {
+    /// Constructs the map from the iterator of IDs.
     pub fn new<A>(iter: A) -> Self
     where
         A: Iterator<Item = I>,
@@ -24,6 +35,7 @@ impl<I: IntegerIdType> CompactIdMap<I> {
         Self { map, len }
     }
 
+    /// Constructs a noop map where real IDs are already in contiguous sequence.
     pub fn isomorphic(len: usize) -> Self {
         Self {
             map: Vec::new(),
@@ -31,22 +43,27 @@ impl<I: IntegerIdType> CompactIdMap<I> {
         }
     }
 
+    /// Returns the number of IDs in the map.
     pub fn len(&self) -> usize {
         self.len
     }
 
+    /// Returns `true` if the map contains no IDs.
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
+    /// Returns `true` if the mapping is noop.
     pub fn is_isomorphic(&self) -> bool {
         self.map.len() != self.len
     }
 
+    /// Maps given virtual ID to the corresponding real ID in the original graph.
+    ///
+    /// `Into<Virtual<I>>` is used instead of `Virtual<I>` because the
+    /// algorithms often work with `usize` and that can be used instead of
+    /// explicitly constructing the `Virtual` type.
     pub fn to_real<V: Into<Virtual<I>>>(&self, id: V) -> Option<I> {
-        // Into<Virtual<I>> is used instead of Virtual<I> because the algorithms
-        // will usually work with numeric ids with their data structures and so
-        // it is more convenient to use this.
         let id: Virtual<I> = id.into();
 
         if self.is_isomorphic() {
@@ -56,6 +73,8 @@ impl<I: IntegerIdType> CompactIdMap<I> {
         }
     }
 
+    /// Maps given real ID from the original graph to a virtual ID in the
+    /// contiguous sequence.
     pub fn to_virt(&self, id: I) -> Option<Virtual<I>> {
         if self.is_isomorphic() {
             (id.as_usize() < self.len()).then(|| Virtual::from_bits(id.as_bits()))

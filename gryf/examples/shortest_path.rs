@@ -15,10 +15,12 @@ fn main() {
 
     graph.extend_with_edges([
         (prague, bratislava, 328u32),
-        (prague, nuremberg, 293),
+        (prague, nuremberg, 297),
+        (prague, vienna, 293),
         (bratislava, vienna, 79),
         (nuremberg, munich, 170),
         (vienna, munich, 402),
+        (vienna, florence, 863),
         (munich, florence, 646),
         (florence, rome, 278),
     ]);
@@ -34,5 +36,5 @@ fn main() {
         .join(" - ");
 
     println!("{distance} km from Prague through {path}");
-    // 1387 km from Prague through Nuremberg - Munich - Florence - Rome
+    // 1391 km from Prague through Nuremberg - Munich - Florence - Rome
 }

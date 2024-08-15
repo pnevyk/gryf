@@ -1,14 +1,42 @@
+//! Helper utilities for managing an adjacency matrix representation.
+
 use crate::core::marker::EdgeType;
 
+/// Underlying storage for the adjacency matrix.
+///
+/// This trait allows different "backends" for an adjacency matrix abstraction
+/// tailored to a specific use case (e.g., bit vector for binary adjacency
+/// matrix or special representations for large sparse matrices).
 #[allow(clippy::len_without_is_empty)]
 pub trait MatrixLinearStorage<E>: Default {
+    /// Initializes the storage with given capacity for entries.
+    ///
+    /// Note that the entries capacity value of the _linear_ storage is
+    /// expected, not a higher-level value like the number of vertices. It is
+    /// the responsibility of the caller to calculate the appropriate capacity
+    /// for given number of vertices.
     fn with_capacity(capacity: usize) -> Self;
+
+    /// Resizes the storage to the new length. If the new length is higher than
+    /// previous, "None" is used for filling the new entries.
     fn resize_with_none(&mut self, new_len: usize);
+
+    /// Appends the edge attribute to the back of the storage.
+    ///
+    /// The storage is automatically resized if is at full capacity before
+    /// appending the edge.
     fn push(&mut self, value: Option<E>);
+
+    /// Returns the number of entries in the storage.
     fn len(&self) -> usize;
+
+    /// Returns the iterator over all entries in the storage, being it `Some(E)`
+    /// or `None`.
     fn into_entries(self) -> impl Iterator<Item = Option<E>>;
 }
 
+/// Calculates the linear storage capacity needed to store a certain number of
+/// vertices, respecting the graph directionality.
 pub fn linear_len<Ty: EdgeType>(vertex_capacity: usize) -> usize {
     if Ty::is_directed() {
         vertex_capacity * vertex_capacity
@@ -17,6 +45,11 @@ pub fn linear_len<Ty: EdgeType>(vertex_capacity: usize) -> usize {
     }
 }
 
+/// Resizes the underlying matrix storage to a new capacity to hold a certain
+/// number of vertices, respecting the graph directionality, while correctly
+/// shifting existing entries to appropriate place.
+///
+/// If the new length is lower than the current length, nothing is done.
 pub fn resize<E, Ty: EdgeType, M: MatrixLinearStorage<E>>(prev: &mut M, vertex_capacity: usize) {
     let prev_len = prev.len();
     let len = linear_len::<Ty>(vertex_capacity);
@@ -51,6 +84,8 @@ pub fn resize<E, Ty: EdgeType, M: MatrixLinearStorage<E>>(prev: &mut M, vertex_c
     }
 }
 
+/// Returns the (linear) index of a matrix element coordinates, respecting the
+/// directionality of the graph.
 pub fn index<Ty: EdgeType>(row: usize, col: usize, vertex_capacity: usize) -> usize {
     if Ty::is_directed() {
         row * vertex_capacity + col
@@ -62,6 +97,8 @@ pub fn index<Ty: EdgeType>(row: usize, col: usize, vertex_capacity: usize) -> us
     }
 }
 
+/// Returns the matrix element coordinates from the (linear) index, respecting
+/// the directionality of the graph.
 pub fn coords<Ty: EdgeType>(index: usize, vertex_capacity: usize) -> (usize, usize) {
     if Ty::is_directed() {
         let col = index % vertex_capacity;

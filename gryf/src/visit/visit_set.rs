@@ -9,10 +9,20 @@ use fixedbitset::FixedBitSet;
 
 use crate::core::id::{IdType, IntegerIdType};
 
+/// A set of visited vertices or edges.
 pub trait VisitSet<I: IdType> {
+    /// Marks the element as visited.
+    ///
+    /// Returns `true` when this is the first time the element is visited.
     fn visit(&mut self, id: I) -> bool;
+
+    /// Returns `true` if the element is marked as visited.
     fn is_visited(&self, id: &I) -> bool;
+
+    /// Returns the number of visited elements.
     fn visited_count(&self) -> usize;
+
+    /// Resets the set of visited elements to be empty.
     fn reset_visited(&mut self);
 }
 
@@ -91,12 +101,15 @@ impl<I: IntegerIdType> VisitSet<I> for TypedBitSet<I> {
     }
 }
 
+/// Tiny [`FixedBitSet`] wrapper adding a generic type of the elements the set
+/// holds.
 pub struct TypedBitSet<T> {
     inner: FixedBitSet,
     ty: PhantomData<T>,
 }
 
 impl<T> TypedBitSet<T> {
+    /// Creates a new empty bit set.
     pub fn new() -> Self {
         Self {
             inner: FixedBitSet::new(),
@@ -104,6 +117,7 @@ impl<T> TypedBitSet<T> {
         }
     }
 
+    /// Creates a new empty bit set with given capacity.
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             inner: FixedBitSet::with_capacity(capacity),

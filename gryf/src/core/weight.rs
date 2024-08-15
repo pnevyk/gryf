@@ -14,6 +14,7 @@ use ordered_float::OrderedFloat;
 pub use unsigned_float::*;
 
 /// Type that can be treated as a weight.
+#[doc(alias = "Measure")]
 pub trait Weight: PartialOrd + Add<Self, Output = Self> + Clone + Sized {
     /// Associated type that is equivalent to `Self` but implements the [`Ord`]
     /// trait as the weight itself is required to implement only [`PartialOrd`].

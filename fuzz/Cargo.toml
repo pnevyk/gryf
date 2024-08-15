@@ -68,3 +68,15 @@ name = "stable_directed"
 path = "fuzz_targets/stable_directed.rs"
 test = false
 doc = false
+
+[[bin]]
+name = "storages_isomorphic_undirected"
+path = "fuzz_targets/storages_isomorphic_undirected.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "storages_isomorphic_directed"
+path = "fuzz_targets/storages_isomorphic_directed.rs"
+test = false
+doc = false

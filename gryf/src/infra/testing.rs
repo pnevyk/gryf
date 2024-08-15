@@ -296,18 +296,37 @@ where
     Ok(())
 }
 
+#[derive(Debug, Clone, PartialEq, Error)]
+pub enum PotentialIsomorphismCheckError {
+    #[error("vertex counts ({0}, {1}) are not equal")]
+    VertexCountMismatch(usize, usize),
+    #[error("edge counts ({0}, {1}) are not equal")]
+    EdgeCountMismatch(usize, usize),
+    #[error("degree sequences ({0:?}, {1:?}) are not the same")]
+    DegreeMismatch(Vec<usize>, Vec<usize>),
+}
+
 // A fast check for graphs similarity. This is not a full isomorphism check!
-pub fn check_potential_isomorphism<V, E, G1, G2>(lhs: &G1, rhs: &G2) -> bool
+pub fn check_potential_isomorphism<V, E, G1, G2>(
+    lhs: &G1,
+    rhs: &G2,
+) -> Result<(), PotentialIsomorphismCheckError>
 where
     G1: GraphRef<V, E> + Neighbors,
     G2: GraphRef<V, E> + Neighbors,
 {
     if lhs.vertex_count() != rhs.vertex_count() {
-        return false;
+        return Err(PotentialIsomorphismCheckError::VertexCountMismatch(
+            lhs.vertex_count(),
+            rhs.vertex_count(),
+        ));
     }
 
     if lhs.edge_count() != rhs.edge_count() {
-        return false;
+        return Err(PotentialIsomorphismCheckError::EdgeCountMismatch(
+            lhs.edge_count(),
+            rhs.edge_count(),
+        ));
     }
 
     let mut deg_seq_lhs = lhs
@@ -323,7 +342,14 @@ where
     deg_seq_lhs.sort_unstable();
     deg_seq_rhs.sort_unstable();
 
-    deg_seq_lhs == deg_seq_rhs
+    if deg_seq_lhs != deg_seq_rhs {
+        return Err(PotentialIsomorphismCheckError::DegreeMismatch(
+            deg_seq_lhs,
+            deg_seq_rhs,
+        ));
+    }
+
+    Ok(())
 }
 
 #[derive(

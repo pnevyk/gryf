@@ -54,6 +54,18 @@ jobs:
         run: cargo check
         working-directory: fuzz
 
+  check-doc:
+    name: Rustdoc check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Cargo doc
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --no-deps --document-private-items --workspace
+
   test:
     name: Test (${{ matrix.rust }})
     runs-on: ubuntu-latest

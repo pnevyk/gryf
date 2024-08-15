@@ -1,6 +1,6 @@
 <div align="center">
 
-# gryf
+<img src="https://raw.githubusercontent.com/pnevyk/gryf/main/assets/logo-gryf-text.png" width="400px" />
 
 > Graph data structure library aspiring to be convenient, versatile, correct and performant.
 

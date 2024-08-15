@@ -1,3 +1,10 @@
+//! [Edge list] graph representation.
+//!
+//! See [module](crate::storage) documentation for comparison with other
+//! storages.
+//!
+//! [Edge list]: https://en.wikipedia.org/wiki/Edge_list
+
 use std::{iter::Enumerate, marker::PhantomData, slice};
 
 use crate::core::{
@@ -14,6 +21,9 @@ use crate::core::{
 use super::shared;
 pub use super::shared::{EdgesIter, RangeIds as VertexIds, RangeIds as EdgeIds, VerticesIter};
 
+/// [Edge list] graph representation.
+///
+/// [Edge list]: https://en.wikipedia.org/wiki/Edge_list
 #[derive(Debug)]
 pub struct EdgeList<V, E, Ty, Id: IdPair> {
     vertices: Vec<V>,
@@ -23,6 +33,7 @@ pub struct EdgeList<V, E, Ty, Id: IdPair> {
 }
 
 impl<V, E, Ty: EdgeType, Id: IdPair> EdgeList<V, E, Ty, Id> {
+    /// Creates a new empty storage.
     pub fn new() -> Self {
         Self {
             vertices: Vec::new(),
@@ -34,6 +45,7 @@ impl<V, E, Ty: EdgeType, Id: IdPair> EdgeList<V, E, Ty, Id> {
 }
 
 impl<V, E, Ty: EdgeType> EdgeList<V, E, Ty, DefaultId> {
+    /// Creates a new empty storage with given ID pair.
     pub fn with_id<Id: IdPair>() -> EdgeList<V, E, Ty, Id> {
         EdgeList::new()
     }

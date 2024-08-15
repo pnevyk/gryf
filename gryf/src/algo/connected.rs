@@ -1,3 +1,31 @@
+//! Determine whether a graph is [connected].
+//!
+//! See available parameters [here](ConnectedBuilder#implementations).
+//!
+//! [connected]: https://en.wikipedia.org/wiki/Connectivity_(graph_theory)
+//!
+//! # Examples
+//!
+//! ```
+//! use gryf::{algo::is_connected, Graph};
+//!
+//! let mut graph = Graph::new_undirected();
+//!
+//! let a = graph.add_vertex("a");
+//! let b = graph.add_vertex("b");
+//! let c = graph.add_vertex("c");
+//! let d = graph.add_vertex("d");
+//!
+//! graph.add_edge(a, b, ());
+//! graph.add_edge(c, d, ());
+//!
+//! assert!(!is_connected(&graph));
+//!
+//! graph.add_edge(b, c, ());
+//!
+//! assert!(is_connected(&graph));
+//! ```
+
 use crate::core::{GraphBase, Neighbors, VertexSet};
 
 mod builder;
@@ -5,6 +33,9 @@ mod dfs;
 
 pub use builder::ConnectedBuilder;
 
+/// Information whether a graph or two vertices are connected.
+///
+/// See [module](self) documentation for more details and example.
 pub struct Connected<G>
 where
     G: GraphBase,
@@ -17,19 +48,25 @@ impl<G> Connected<G>
 where
     G: GraphBase,
 {
+    /// Returns `true` if the graph is connected.
     pub fn is(&self) -> bool {
         self.disconnected_any.is_none()
     }
 
+    /// If the graph is not connected, returns a pair of vertices from
+    /// disconnected components.
     pub fn disconnected_any(&self) -> Option<(&G::VertexId, &G::VertexId)> {
         self.disconnected_any.as_ref().map(|(u, v)| (u, v))
     }
 
+    /// Returns `true` if the connectivity was determined with the information
+    /// about edge directions ignored.
     pub fn as_undirected(&self) -> bool {
         self.as_undirected
     }
 }
 
+/// Returns `true` if the graph is connected.
 pub fn is_connected<G>(graph: &G) -> bool
 where
     G: Neighbors + VertexSet,
@@ -37,6 +74,7 @@ where
     Connected::on(graph).run().is()
 }
 
+/// Returns `true` if there is a path between given vertices.
 pub fn is_path_between<G>(graph: &G, from: &G::VertexId, to: &G::VertexId) -> bool
 where
     G: Neighbors + VertexSet,

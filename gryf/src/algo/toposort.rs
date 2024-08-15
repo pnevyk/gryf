@@ -1,3 +1,48 @@
+//! Find a [topologically sorted] collection of vertices on a [directed acyclic
+//! graph] (DAG).
+//!
+//! See available parameters [here](TopoSortBuilder#implementations).
+//!
+//! The exact order in which the vertices are reported is not specified and
+//! should not be relied upon.
+//!
+//! [topologically sorted]: https://en.wikipedia.org/wiki/Topological_sorting
+//! [directed acyclic graph]:
+//!     https://en.wikipedia.org/wiki/Directed_acyclic_graph
+//!
+//! # Examples
+//!
+//! ```
+//! use gryf::{algo::TopoSort, Graph};
+//!
+//! let mut dependency_tree = Graph::<_, (), _>::new_directed();
+//!
+//! let cargo = dependency_tree.add_vertex("cargo");
+//! let cargo_credential = dependency_tree.add_vertex("cargo_credential");
+//! let serde = dependency_tree.add_vertex("serde");
+//! let serde_json = dependency_tree.add_vertex("serde_json");
+//! let time = dependency_tree.add_vertex("time");
+//! let cargo_util = dependency_tree.add_vertex("cargo_util");
+//! let libc = dependency_tree.add_vertex("libc");
+//!
+//! // Edge direction in "must be compiled before" relation.
+//! dependency_tree.extend_with_edges([
+//!     (cargo_credential, cargo),
+//!     (serde, cargo_credential),
+//!     (serde_json, cargo_credential),
+//!     (serde, serde_json),
+//!     (time, cargo_credential),
+//!     (libc, time),
+//!     (serde, time),
+//!     (cargo_util, cargo),
+//!     (libc, cargo_util),
+//! ]);
+//!
+//! for package in TopoSort::on(&dependency_tree).run().map(Result::unwrap) {
+//!     // Compile package
+//! }
+//! ```
+
 use std::fmt;
 
 use thiserror::Error;
@@ -17,6 +62,14 @@ pub use builder::TopoSortBuilder;
 pub use dfs::DfsVisit;
 use kahn::KahnIter;
 
+/// Topologically sorted collection of vertices on a directed acyclic graph
+/// (DAG).
+///
+/// See [module](self) documentation for more details and example.
+///
+/// This type implements the [`Iterator`] trait and, depending on the
+/// [algorithm](Algo), it could be **lazy**. If you want the resulting [`Vec`]
+/// of the vertices, use [`into_vec`](TopoSort::into_vec).
 pub struct TopoSort<'a, G>
 where
     G: VertexSet,
@@ -41,16 +94,49 @@ where
     G: GraphBase<EdgeType = Directed> + Neighbors + VertexSet,
     G::VertexId: IntegerIdType,
 {
+    /// Returns the topologically sorted collection of vertices as [`Vec`],
+    /// `Err` if a cycle is detected.
     pub fn into_vec(self) -> Result<Vec<G::VertexId>, Error<G>> {
         self.collect()
     }
 }
 
+/// Algorithm for [`TopoSort`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Algo {
-    Dfs,
+    /// [Kahn's
+    /// algorithm](https://en.wikipedia.org/wiki/Topological_sorting#Kahn's_algorithm).
+    ///
+    /// Kahn's algorithm is a method that iteratively removes vertices with no
+    /// incoming edges (indegree of zero) and adds them to the sorted
+    /// collection. This algorithm is generally the most efficient from
+    /// available options.
+    ///
+    /// The implementation is **lazy** and produces an [iterator](Iterator).
+    ///
+    /// # Use cases
+    ///
+    /// * Scheduling tasks that have dependencies.
+    /// * Determining the order of compilation in build systems.
     Kahn,
+
+    /// A variation on the [depth-first
+    /// search](https://en.wikipedia.org/wiki/Depth-first_search) traversal.
+    ///
+    /// This implementation visits all vertices in reverse direction of all
+    /// edges and reports vertices when they are being
+    /// [closed](crate::visit::DfsEvent::Close).
+    ///
+    /// The implementation is **lazy** and produces an [iterator](Iterator).
+    /// Moreover, it can also produce a [visitor](crate::visit::Visitor) with
+    /// all its advantages. To utilize this possibility, make sure to [choose
+    /// the DFS algorithm](TopoSortBuilder::dfs) specifically.
+    ///
+    /// # Use cases
+    ///
+    /// * Same as Kahn's algorithm.
+    Dfs,
 }
 
 mod algo {
@@ -69,12 +155,16 @@ mod algo {
     pub struct Kahn;
 }
 
+/// The error encountered during a [`TopoSort`] run.
 #[derive(Error)]
 pub enum Error<G>
 where
     G: GraphBase,
 {
-    #[error("the graph contains cycle")]
+    /// The graph contains a cycle.
+    ///
+    /// Graphs with cycles don't have a topological order.
+    #[error("graph contains cycle")]
     Cycle(Cycle<G>),
 }
 

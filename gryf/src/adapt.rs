@@ -1,3 +1,5 @@
+//! Various graph adapters.
+
 #[doc(hidden)]
 pub mod complement;
 #[doc(hidden)]

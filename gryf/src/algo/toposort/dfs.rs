@@ -24,6 +24,10 @@ where
     }
 }
 
+/// A [visitor](Visitor) that visits the vertices in topological order.
+///
+/// Returned from running the [`TopoSort`](crate::algo::TopoSort) with
+/// [DFS](crate::algo::toposort::TopoSortBuilder::dfs) algorithm.
 pub struct DfsVisit<'a, G>
 where
     G: VertexSet + 'a,

@@ -1,6 +1,15 @@
+//! Convenient and efficient insertion of edges between vertices.
+
 use super::graph::GraphAdd;
 
+/// Trait for convenient and efficient insertion of edges between vertices using
+/// a predicate.
 pub trait ConnectVertices<V, E>: GraphAdd<V, E> {
+    #[doc = include_str!("../../docs/include/connect_vertices.connect_vertices.md")]
+    ///
+    /// # Examples
+    ///
+    /// See [Graph::connect_vertices](crate::domain::Graph::connect_vertices).
     fn connect_vertices<F>(&mut self, connect: F)
     where
         // NOTE: Ideally the API here would be `F: FnMut(Self::VertexRef<'_>, Self::VertexRef<'_>) -> Option<E>`,

@@ -34,10 +34,12 @@ fn main() {
 
     graph.extend_with_edges([
         (prague, bratislava, 328u32),
-        (prague, nuremberg, 293),
+        (prague, nuremberg, 297),
+        (prague, vienna, 293),
         (bratislava, vienna, 79),
         (nuremberg, munich, 170),
         (vienna, munich, 402),
+        (vienna, florence, 863),
         (munich, florence, 646),
         (florence, rome, 278),
     ]);
@@ -53,43 +55,38 @@ fn main() {
         .join(" - ");
 
     println!("{distance} km from Prague through {path}");
-    // 1387 km from Prague through Nuremberg - Munich - Florence - Rome
+    // 1391 km from Prague through Nuremberg - Munich - Florence - Rome
 }
 ```
 
-## Overview
+##  Goals
 
-The main goal of gryf is to be
+The main goals of gryf are to be
 
-* **convenient** -- "make the common case straightforward and natural<sup>1</sup>",
-* **versatile** -- "offer simplicity as well as flexibility and strive for a
-  good balance if in conflict",
-* **correct** -- "use extensive fuzzing and property-based testing to increase
-  confidence about correctness", and
-* **performant** -- "write the code with performance and memory efficiency in
-  mind".
+* _convenient_, that is, "making the common case straightforward and natural",
+* _versatile_, that is, "offering simplicity as well as flexibility and striving
+  for a good balance if in conflict",
+* _correct_, that is, "using extensive fuzzing and property-based testing to
+  increase confidence about correctness", and
+* _performant_, that is, "writing the code with performance and memory
+  efficiency in mind".
 
-The algorithms are [organized into the
-problems](#problems-instead-of-algorithms) they solve. For specifying the
-options of an algorithm the [builder pattern](#builder-pattern-for-algorithms)
-is utilized. Graphs can use different storage [under the
-hood](#separation-of-graph-storage-and-semantics).
+Failing in any of these should be considered an issue to be reported.
 
-<sup>1</sup>Failing in this should be considered a bug and reported.
-
-## Details
+## Design
 
 _For more details, see the [design doc](./DESIGN.md)._
 
 ### Problems instead of algorithms
 
-For users without much experience or knowledge in graph theory and algorithms,
-it may not be obvious which algorithm should (or even can) be used to solve the
-given problem at hand. Instead, gryf organizes the algorithms into the problem
-they solve (e.g., `ShortestPaths`) instead of exposing the algorithms directly
-(`dijkstra`, `bellman_ford`).
+It may not be obvious which algorithm should (or even can) be used to solve the
+given problem at hand, especially for users without much experience or knowledge
+in graph theory and algorithms. Instead, gryf organizes the algorithms into the
+problem they solve (e.g., `ShortestPaths`) instead of requiring to call the
+algorithms directly (`dijkstra`, `bellman_ford`).
 
-This brings a number of benefits, among which the most important are:
+Organizing algorithms into problems brings a number of benefits, among which the
+most important are:
 
 * It is convenient for the user, especially if they are a beginner. It allows
   them not to care about details if they don't want to care.
@@ -107,7 +104,7 @@ let shortest_paths = ShortestPaths::on(&graph).run(rome).unwrap();
 ### Builder pattern for algorithms
 
 Specifying arguments for algorithms is done using the builder pattern. This
-avoids the need of passing dummy values (like `None`) to parameters that are not
+avoids the need to pass dummy values (like `None`) to parameters that are not
 useful for the use case. On the other hand, it allows tweaking the algorithm
 with many optional arguments. Moreover, new optional parameters can be added in
 a backward-compatible way. A lot of care is taken to make the error feedback
@@ -123,15 +120,15 @@ let shortest_paths = ShortestPaths::on(&graph)
 
 ### Separation of graph storage and semantics
 
-In gryf, high-level semantics provided by user-facing types are strictly
-separated from the underlying storage/representation. The graph data can be
-stored in a common representation (e.g., adjacency list or adjacency matrix),
-but it can as well be stored in or represented by a custom, problem-tailored
-implementation, as long as it implements provided interfaces.
+High-level semantics provided by user-facing types are strictly separated from
+the underlying storage/representation. The graph data can be stored in a common
+representation (e.g., adjacency list or adjacency matrix), but it can also be
+stored in or represented by a custom, problem-tailored implementation, as long
+as it implements provided interfaces.
 
-On top of a storage, there is an encapsulation with clear semantics. The most
-general is a generic graph, but restricted forms include simple graph (without
-parallel edges), path, bipartite graph and so on. Among the advantages of
+On top of storage, there is an encapsulation with clear semantics. The most
+general is a generic graph, but restricted forms include simple graphs (without
+parallel edges), paths, bipartite graphs and so on. Among the advantages of
 restrictive encapsulations are:
 
 * The type of graph clearly communicates the intention and structure.
@@ -155,7 +152,9 @@ let mut graph = Graph::new_undirected_in(AdjMatrix::default());
 * [graphlib](https://crates.io/crates/graphlib)
 * [graphific](https://crates.io/crates/graphific)
 
-See the differences between them and gryf in [this comparison repository](https://github.com/pnevyk/rusty-graphs).
+Check the [rusty graphs](https://github.com/pnevyk/rusty-graphs) repository for
+a detailed comparison of gryf and other graph libraries available for Rust with
+examples and commentary.
 
 ## License
 

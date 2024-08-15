@@ -1,5 +1,10 @@
+//! Implementations of [depth-first search] (DFS) algorithm.
+//!
+//! [depth-first search]: https://en.wikipedia.org/wiki/Depth-first_search
+
 use super::*;
 
+/// Standard DFS traversal over the vertices of a graph.
 pub struct Dfs<G>
 where
     G: GraphBase,
@@ -7,6 +12,7 @@ where
     raw: RawVisit<G, UseVertexId, RawDfs>,
 }
 
+/// [`Dfs`] rooted in a single vertex.
 pub struct DfsRooted<'a, G>
 where
     G: GraphBase,
@@ -14,6 +20,7 @@ where
     raw: &'a mut RawVisit<G, UseVertexId, RawDfs>,
 }
 
+/// [`Dfs`] with possibly multiple roots.
 pub struct DfsMulti<'a, G, S>
 where
     G: GraphBase,
@@ -27,6 +34,7 @@ impl<G> Dfs<G>
 where
     G: GraphBase,
 {
+    #[doc = include_str!("../../docs/include/visit.new.md")]
     pub fn new(graph: &G) -> Self
     where
         G: GraphBase,
@@ -36,11 +44,13 @@ where
         }
     }
 
+    #[doc = include_str!("../../docs/include/visit.start.md")]
     pub fn start(&mut self, root: G::VertexId) -> DfsRooted<'_, G> {
         self.raw.start(root);
         DfsRooted { raw: &mut self.raw }
     }
 
+    #[doc = include_str!("../../docs/include/visit.start_all.md")]
     pub fn start_all<'a>(&'a mut self, graph: &'a G) -> DfsMulti<'a, G, VisitAll<'a, G>>
     where
         G: VertexSet,
@@ -51,6 +61,7 @@ where
         }
     }
 
+    #[doc = include_str!("../../docs/include/visit.start_multi.md")]
     pub fn start_multi<S>(&mut self, roots: S) -> DfsMulti<'_, G, S>
     where
         S: VisitRoots<G::VertexId>,
@@ -61,10 +72,12 @@ where
         }
     }
 
+    #[doc = include_str!("../../docs/include/visit.reset.md")]
     pub fn reset(&mut self) {
         self.raw.reset();
     }
 
+    #[doc = include_str!("../../docs/include/visit.visited.md")]
     pub fn visited(&self) -> &impl VisitSet<G::VertexId> {
         &self.raw.visited
     }
@@ -97,6 +110,60 @@ where
     }
 }
 
+/// Standard DFS traversal that produces [`DfsEvent`]s.
+///
+/// # Examples
+///
+/// ```
+/// use std::collections::BTreeSet;
+///
+/// use gryf::{
+///     adapt::Subgraph,
+///     algo::{is_connected, is_cyclic},
+///     visit::{DfsEvent, DfsEvents, Visitor},
+///     Graph,
+/// };
+///
+/// let mut graph = Graph::<_, (), _>::new_directed();
+///
+/// graph.extend_with_vertices(["a", "b", "c", "d", "e", "f", "g", "h"]);
+/// graph.extend_with_edges([
+///     (0, 1),
+///     (0, 2),
+///     (0, 7),
+///     (1, 3),
+///     (2, 4),
+///     (3, 5),
+///     (4, 3),
+///     (4, 6),
+///     (4, 7),
+///     (5, 1),
+/// ]);
+///
+/// // There is a cycle.
+/// assert!(is_cyclic(&graph));
+///
+/// let root = graph.find_vertex("a").unwrap();
+///
+/// let spanning_tree_edges = DfsEvents::new(&graph)
+///     .start(root)
+///     .into_iter(&graph)
+///     .filter_map(|event| {
+///         if let DfsEvent::TreeEdge { edge, .. } = event {
+///             Some(edge)
+///         } else {
+///             None
+///         }
+///     })
+///     .collect::<BTreeSet<_>>();
+///
+/// let spanning_tree = Subgraph::with_state(graph, spanning_tree_edges)
+///     .filter_edge(|edge, _, state| state.contains(edge));
+///
+/// // The subgraph is a spanning tree.
+/// assert!(!is_cyclic(&spanning_tree));
+/// assert!(is_connected(&spanning_tree));
+/// ```
 pub struct DfsEvents<G>
 where
     G: GraphBase,
@@ -106,6 +173,7 @@ where
     is_directed: bool,
 }
 
+/// [`DfsEvents`] rooted in a single vertex.
 pub struct DfsEventsRooted<'a, G>
 where
     G: GraphBase,
@@ -117,6 +185,7 @@ where
     is_directed: bool,
 }
 
+/// [`DfsEvents`] with possibly multiple roots.
 pub struct DfsEventsMulti<'a, G, S>
 where
     G: GraphBase,
@@ -134,6 +203,7 @@ impl<G> DfsEvents<G>
 where
     G: GraphBase,
 {
+    #[doc = include_str!("../../docs/include/visit.new.md")]
     pub fn new(graph: &G) -> Self
     where
         G: GraphBase,
@@ -158,6 +228,7 @@ where
         }
     }
 
+    #[doc = include_str!("../../docs/include/visit.start.md")]
     pub fn start(&mut self, root: G::VertexId) -> DfsEventsRooted<'_, G> {
         self.raw.start(RawDfsExtraItem::start(root));
         DfsEventsRooted {
@@ -169,6 +240,7 @@ where
         }
     }
 
+    #[doc = include_str!("../../docs/include/visit.start_all.md")]
     pub fn start_all<'a>(&'a mut self, graph: &'a G) -> DfsEventsMulti<'a, G, VisitAll<'a, G>>
     where
         G: VertexSet,
@@ -183,6 +255,7 @@ where
         }
     }
 
+    #[doc = include_str!("../../docs/include/visit.start_multi.md")]
     pub fn start_multi<S>(&mut self, roots: S) -> DfsEventsMulti<'_, G, S>
     where
         S: VisitRoots<G::VertexId>,
@@ -197,10 +270,12 @@ where
         }
     }
 
+    #[doc = include_str!("../../docs/include/visit.reset.md")]
     pub fn reset(&mut self) {
         self.raw.reset();
     }
 
+    #[doc = include_str!("../../docs/include/visit.visited.md")]
     pub fn visited(&self) -> &impl VisitSet<G::VertexId> {
         &self.raw.visited
     }
@@ -365,6 +440,33 @@ where
     }
 }
 
+/// [Post-order DFS] traversal over vertices of a graph.
+///
+/// [Post-order DFS]: https://en.wikipedia.org/wiki/Tree_traversal#Post-order,_LRN
+///
+/// # Examples
+///
+/// ```
+/// use gryf::{
+///     visit::{DfsPostOrder, Visitor},
+///     Graph,
+/// };
+///
+/// let mut graph = Graph::<_, (), _>::new_directed();
+///
+/// graph.extend_with_vertices(["a", "b", "c"]);
+/// graph.extend_with_edges([(0, 1), (0, 2)]);
+///
+/// let root = graph.find_vertex("a").unwrap();
+///
+/// let post_order_last = DfsPostOrder::new(&graph)
+///     .start(root)
+///     .into_iter(&graph)
+///     .last()
+///     .unwrap();
+///
+/// assert_eq!(post_order_last, root);
+/// ```
 pub struct DfsPostOrder<G>
 where
     G: GraphBase,
@@ -372,6 +474,7 @@ where
     raw: RawVisit<G, UseVertexId, RawDfsExtra>,
 }
 
+/// [`DfsPostOrder`] rooted in a single vertex.
 pub struct DfsPostOrderRooted<'a, G>
 where
     G: GraphBase,
@@ -379,6 +482,7 @@ where
     raw: &'a mut RawVisit<G, UseVertexId, RawDfsExtra>,
 }
 
+/// [`DfsPostOrder`] with possibly multiple roots.
 pub struct DfsPostOrderMulti<'a, G, S>
 where
     G: GraphBase,
@@ -392,6 +496,7 @@ impl<G> DfsPostOrder<G>
 where
     G: GraphBase,
 {
+    #[doc = include_str!("../../docs/include/visit.new.md")]
     pub fn new(graph: &G) -> Self
     where
         G: GraphBase,
@@ -401,11 +506,13 @@ where
         }
     }
 
+    #[doc = include_str!("../../docs/include/visit.start.md")]
     pub fn start(&mut self, root: G::VertexId) -> DfsPostOrderRooted<'_, G> {
         self.raw.start(RawDfsExtraItem::start(root));
         DfsPostOrderRooted { raw: &mut self.raw }
     }
 
+    #[doc = include_str!("../../docs/include/visit.start_all.md")]
     pub fn start_all<'a>(&'a mut self, graph: &'a G) -> DfsPostOrderMulti<'a, G, VisitAll<'a, G>>
     where
         G: VertexSet,
@@ -416,6 +523,7 @@ where
         }
     }
 
+    #[doc = include_str!("../../docs/include/visit.start_multi.md")]
     pub fn start_multi<S>(&mut self, roots: S) -> DfsPostOrderMulti<'_, G, S>
     where
         S: VisitRoots<G::VertexId>,
@@ -426,10 +534,12 @@ where
         }
     }
 
+    #[doc = include_str!("../../docs/include/visit.reset.md")]
     pub fn reset(&mut self) {
         self.raw.reset();
     }
 
+    #[doc = include_str!("../../docs/include/visit.visited.md")]
     pub fn visited(&self) -> &impl VisitSet<G::VertexId> {
         &self.raw.visited
     }
@@ -473,6 +583,15 @@ where
     }
 }
 
+/// DFS traversal that does not backtrack to explore other branches of the
+/// traversal tree after the first one is ended.
+///
+/// In other words, this traversal implementation always visits only a single
+/// neighbor of a vertex, ignoring the other neighbors. This means that visiting
+/// all vertices in the graph is **not guaranteed**.
+///
+/// This traversal algorithm is useful in a greedy initialization of some
+/// algorithms before switching to the proper yet costly procedure.
 pub struct DfsNoBacktrack<G>
 where
     G: GraphBase,
@@ -480,6 +599,7 @@ where
     raw: RawVisit<G, UseVertexId, RawDfsNoBacktrack>,
 }
 
+/// [`DfsNoBacktrack`] rooted in a single vertex.
 pub struct DfsNoBacktrackRooted<'a, G>
 where
     G: GraphBase,
@@ -487,6 +607,7 @@ where
     raw: &'a mut RawVisit<G, UseVertexId, RawDfsNoBacktrack>,
 }
 
+/// [`DfsNoBacktrack`] with possibly multiple roots.
 pub struct DfsNoBacktrackMulti<'a, G, S>
 where
     G: GraphBase,
@@ -500,6 +621,7 @@ impl<G> DfsNoBacktrack<G>
 where
     G: GraphBase,
 {
+    #[doc = include_str!("../../docs/include/visit.new.md")]
     pub fn new(graph: &G) -> Self
     where
         G: GraphBase,
@@ -509,11 +631,13 @@ where
         }
     }
 
+    #[doc = include_str!("../../docs/include/visit.start.md")]
     pub fn start(&mut self, root: G::VertexId) -> DfsNoBacktrackRooted<'_, G> {
         self.raw.start(root);
         DfsNoBacktrackRooted { raw: &mut self.raw }
     }
 
+    #[doc = include_str!("../../docs/include/visit.start_all.md")]
     pub fn start_all<'a>(&'a mut self, graph: &'a G) -> DfsNoBacktrackMulti<'a, G, VisitAll<'a, G>>
     where
         G: VertexSet,
@@ -524,6 +648,7 @@ where
         }
     }
 
+    #[doc = include_str!("../../docs/include/visit.start_multi.md")]
     pub fn start_multi<S>(&mut self, roots: S) -> DfsNoBacktrackMulti<'_, G, S>
     where
         S: VisitRoots<G::VertexId>,
@@ -534,10 +659,12 @@ where
         }
     }
 
+    #[doc = include_str!("../../docs/include/visit.reset.md")]
     pub fn reset(&mut self) {
         self.raw.reset();
     }
 
+    #[doc = include_str!("../../docs/include/visit.visited.md")]
     pub fn visited(&self) -> &impl VisitSet<G::VertexId> {
         &self.raw.visited
     }

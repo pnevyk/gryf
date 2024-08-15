@@ -1,5 +1,10 @@
+//! Implementations of [breadth-first search] (BFS) algorithm.
+//!
+//! [breadth-first search]: https://en.wikipedia.org/wiki/Breadth-first_search
+
 use super::*;
 
+/// Standard BFS traversal over the vertices of a graph.
 pub struct Bfs<G>
 where
     G: GraphBase,
@@ -7,6 +12,7 @@ where
     raw: RawVisit<G, UseVertexId, RawBfs>,
 }
 
+/// [`Bfs`] rooted in a single vertex.
 pub struct BfsRooted<'a, G>
 where
     G: GraphBase,
@@ -14,6 +20,7 @@ where
     raw: &'a mut RawVisit<G, UseVertexId, RawBfs>,
 }
 
+/// [`Bfs`] with possibly multiple roots.
 pub struct BfsMulti<'a, G, S>
 where
     G: GraphBase,
@@ -27,6 +34,7 @@ impl<G> Bfs<G>
 where
     G: GraphBase,
 {
+    #[doc = include_str!("../../docs/include/visit.new.md")]
     pub fn new(graph: &G) -> Self
     where
         G: GraphBase,
@@ -36,11 +44,13 @@ where
         }
     }
 
+    #[doc = include_str!("../../docs/include/visit.start.md")]
     pub fn start(&mut self, root: G::VertexId) -> BfsRooted<'_, G> {
         self.raw.start(root);
         BfsRooted { raw: &mut self.raw }
     }
 
+    #[doc = include_str!("../../docs/include/visit.start_all.md")]
     pub fn start_all<'a>(&'a mut self, graph: &'a G) -> BfsMulti<'a, G, VisitAll<'a, G>>
     where
         G: VertexSet,
@@ -51,6 +61,7 @@ where
         }
     }
 
+    #[doc = include_str!("../../docs/include/visit.start_multi.md")]
     pub fn start_multi<S>(&mut self, roots: S) -> BfsMulti<'_, G, S>
     where
         S: VisitRoots<G::VertexId>,
@@ -61,10 +72,12 @@ where
         }
     }
 
+    #[doc = include_str!("../../docs/include/visit.reset.md")]
     pub fn reset(&mut self) {
         self.raw.reset();
     }
 
+    #[doc = include_str!("../../docs/include/visit.visited.md")]
     pub fn visited(&self) -> &impl VisitSet<G::VertexId> {
         &self.raw.visited
     }

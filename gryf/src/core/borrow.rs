@@ -1,3 +1,5 @@
+//! Module for hiding the difference between owned and borrowed data.
+
 use core::{
     borrow::Borrow,
     cmp::Ordering,
@@ -5,6 +7,14 @@ use core::{
     ops::Deref,
 };
 
+/// `OwnableRef` is a type that represents either a
+/// [borrowed](OwnableRef::Borrowed) or [owned](OwnableRef::Owned) value of
+/// which a shared reference can be taken.
+///
+/// This type is very similar to [`std::borrow::Cow`] type, but is not intended
+/// for copy-on-write semantics. The main justification for using a custom type
+/// is that [`OwnableRef::into_owned`] requires `T: Clone` instead of `T:
+/// ToOwned`.
 #[derive(Debug, Clone)]
 pub enum OwnableRef<'a, T> {
     Borrowed(&'a T),
@@ -12,6 +22,7 @@ pub enum OwnableRef<'a, T> {
 }
 
 impl<T: Clone> OwnableRef<'_, T> {
+    /// Extracts the owned data or clones it in case of a borrow.
     pub fn into_owned(self) -> T {
         match self {
             OwnableRef::Borrowed(attr) => attr.clone(),

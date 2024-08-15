@@ -57,6 +57,8 @@ jobs:
           - edge_list_directed
           - stable_undirected
           - stable_directed
+          - storages_isomorphic_undirected
+          - storages_isomorphic_directed
     defaults:
       run:
         working-directory: fuzz

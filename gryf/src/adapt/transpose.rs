@@ -1,5 +1,5 @@
 use crate::core::{
-    base::{EdgeRef, NeighborRef},
+    base::{EdgeReference, NeighborReference},
     borrow::OwnableRef,
     id::IdType,
     marker::{Directed, Direction},
@@ -155,11 +155,11 @@ impl<R> TransposeRef<R> {
     }
 }
 
-impl<VI, EI, E, R> EdgeRef<VI, EI, E> for TransposeRef<R>
+impl<VI, EI, E, R> EdgeReference<VI, EI, E> for TransposeRef<R>
 where
     VI: IdType,
     EI: IdType,
-    R: EdgeRef<VI, EI, E>,
+    R: EdgeReference<VI, EI, E>,
 {
     fn id(&self) -> &EI {
         self.0.id()
@@ -178,11 +178,11 @@ where
     }
 }
 
-impl<VI, EI, R> NeighborRef<VI, EI> for TransposeRef<R>
+impl<VI, EI, R> NeighborReference<VI, EI> for TransposeRef<R>
 where
     VI: IdType,
     EI: IdType,
-    R: NeighborRef<VI, EI>,
+    R: NeighborReference<VI, EI>,
 {
     fn id(&self) -> OwnableRef<'_, VI> {
         self.0.id()

@@ -4,19 +4,38 @@ use super::{
     marker::Direction,
 };
 
-pub trait VertexRef<VI: IdType, V> {
+pub struct VertexRef<'a, VI: IdType, V> {
+    pub id: VI,
+    pub attr: &'a V,
+}
+
+pub trait VertexReference<VI: IdType, V> {
     fn id(&self) -> &VI;
     fn attr(&self) -> &V;
 }
 
-pub trait EdgeRef<VI: IdType, EI: IdType, E> {
+pub struct EdgeRef<'a, VI: IdType, EI: IdType, E> {
+    pub id: EI,
+    pub attr: &'a E,
+    pub from: VI,
+    pub to: VI,
+}
+
+pub trait EdgeReference<VI: IdType, EI: IdType, E> {
     fn id(&self) -> &EI;
     fn attr(&self) -> &E;
     fn from(&self) -> &VI;
     fn to(&self) -> &VI;
 }
 
-pub trait NeighborRef<VI: IdType, EI: IdType> {
+pub struct NeighborRef<VI: IdType, EI: IdType> {
+    pub id: VI,
+    pub edge: EI,
+    pub pred: VI,
+    pub dir: Direction,
+}
+
+pub trait NeighborReference<VI: IdType, EI: IdType> {
     fn id(&self) -> OwnableRef<'_, VI>;
     fn edge(&self) -> OwnableRef<'_, EI>;
     fn pred(&self) -> OwnableRef<'_, VI>;
@@ -30,49 +49,49 @@ pub trait IntoEdge<Id: IdPair, E> {
 mod imp {
     use super::*;
 
-    impl<'a, VI: IdType, V> VertexRef<VI, V> for (VI, &'a V) {
+    impl<'a, VI: IdType, V> VertexReference<VI, V> for VertexRef<'a, VI, V> {
         fn id(&self) -> &VI {
-            &self.0
+            &self.id
         }
 
         fn attr(&self) -> &V {
-            self.1
+            self.attr
         }
     }
 
-    impl<'a, VI: IdType, EI: IdType, E> EdgeRef<VI, EI, E> for (EI, &'a E, VI, VI) {
+    impl<'a, VI: IdType, EI: IdType, E> EdgeReference<VI, EI, E> for EdgeRef<'a, VI, EI, E> {
         fn id(&self) -> &EI {
-            &self.0
+            &self.id
         }
 
         fn attr(&self) -> &E {
-            self.1
+            self.attr
         }
 
         fn from(&self) -> &VI {
-            &self.2
+            &self.from
         }
 
         fn to(&self) -> &VI {
-            &self.3
+            &self.to
         }
     }
 
-    impl<VI: IdType, EI: IdType> NeighborRef<VI, EI> for (VI, EI, VI, Direction) {
+    impl<VI: IdType, EI: IdType> NeighborReference<VI, EI> for NeighborRef<VI, EI> {
         fn id(&self) -> OwnableRef<'_, VI> {
-            OwnableRef::Borrowed(&self.0)
+            OwnableRef::Borrowed(&self.id)
         }
 
         fn edge(&self) -> OwnableRef<'_, EI> {
-            OwnableRef::Borrowed(&self.1)
+            OwnableRef::Borrowed(&self.edge)
         }
 
         fn pred(&self) -> OwnableRef<'_, VI> {
-            OwnableRef::Borrowed(&self.2)
+            OwnableRef::Borrowed(&self.pred)
         }
 
         fn dir(&self) -> Direction {
-            self.3
+            self.dir
         }
     }
 

@@ -6,6 +6,7 @@ use std::{
 };
 
 use crate::core::{
+    base::{EdgeRef, VertexRef},
     id::{IdPair, IdType, IntegerIdType},
     marker::EdgeType,
 };
@@ -66,12 +67,13 @@ impl<'a, Id: IdPair, V> Iterator for VerticesIter<'a, Id, V>
 where
     Id::VertexId: IntegerIdType,
 {
-    type Item = (Id::VertexId, &'a V);
+    type Item = VertexRef<'a, Id::VertexId, V>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner
-            .next()
-            .map(|(id, vertex)| (IdType::from_usize(id), vertex))
+        self.inner.next().map(|(id, vertex)| VertexRef {
+            id: IdType::from_usize(id),
+            attr: vertex,
+        })
     }
 }
 
@@ -91,12 +93,13 @@ impl<'a, Id: IdPair, V> Iterator for AdjVerticesIter<'a, Id, V>
 where
     Id::VertexId: IntegerIdType,
 {
-    type Item = (Id::VertexId, &'a V);
+    type Item = VertexRef<'a, Id::VertexId, V>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner
-            .next()
-            .map(|(id, vertex)| (IdType::from_usize(id), &vertex.attr))
+        self.inner.next().map(|(id, vertex)| VertexRef {
+            id: IdType::from_usize(id),
+            attr: &vertex.attr,
+        })
     }
 }
 
@@ -118,11 +121,14 @@ where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
 {
-    type Item = (Id::EdgeId, &'a E, Id::VertexId, Id::VertexId);
+    type Item = EdgeRef<'a, Id::VertexId, Id::EdgeId, E>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next().map(|(index, (edge, endpoints))| {
-            (IdType::from_usize(index), edge, endpoints[0], endpoints[1])
+        self.inner.next().map(|(index, (attr, endpoints))| EdgeRef {
+            id: IdType::from_usize(index),
+            attr,
+            from: endpoints[0],
+            to: endpoints[1],
         })
     }
 }

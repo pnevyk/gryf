@@ -8,7 +8,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
     core::{
-        base::NeighborRef,
+        base::NeighborReference,
         marker::Direction,
         weight::{GetWeight, Weight, Weighted},
         GraphWeak, Neighbors,

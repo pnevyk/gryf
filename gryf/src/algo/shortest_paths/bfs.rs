@@ -6,7 +6,7 @@ use std::{
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
-    core::{base::NeighborRef, marker::Direction, weight::Weight, Neighbors},
+    core::{base::NeighborReference, marker::Direction, weight::Weight, Neighbors},
     visit::VisitSet,
 };
 

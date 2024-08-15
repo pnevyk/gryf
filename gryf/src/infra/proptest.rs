@@ -717,7 +717,7 @@ mod tests {
     use crate::{
         algo::is_connected,
         core::{
-            base::{EdgeRef, VertexRef},
+            base::{EdgeReference, VertexReference},
             EdgeSet, GraphRef, VertexSet,
         },
     };

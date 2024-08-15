@@ -1,7 +1,7 @@
 use std::mem;
 
 use super::{
-    base::{EdgeRef, NeighborRef, VertexRef},
+    base::{EdgeReference, NeighborReference, VertexReference},
     borrow::OwnableRef,
     error::{
         AddEdgeConnectingError, AddEdgeError, AddVertexError, ReplaceEdgeError,
@@ -32,7 +32,7 @@ pub trait GraphBase {
 }
 
 pub trait Neighbors: GraphBase {
-    type NeighborRef<'a>: NeighborRef<Self::VertexId, Self::EdgeId>
+    type NeighborRef<'a>: NeighborReference<Self::VertexId, Self::EdgeId>
     where
         Self: 'a;
 
@@ -159,7 +159,7 @@ pub trait EdgeSet: GraphBase {
 }
 
 pub trait GraphRef<V, E>: VertexSet + EdgeSet {
-    type VertexRef<'a>: VertexRef<Self::VertexId, V>
+    type VertexRef<'a>: VertexReference<Self::VertexId, V>
     where
         Self: 'a,
         V: 'a;
@@ -169,7 +169,7 @@ pub trait GraphRef<V, E>: VertexSet + EdgeSet {
         Self: 'a,
         V: 'a;
 
-    type EdgeRef<'a>: EdgeRef<Self::VertexId, Self::EdgeId, E>
+    type EdgeRef<'a>: EdgeReference<Self::VertexId, Self::EdgeId, E>
     where
         Self: 'a,
         E: 'a;

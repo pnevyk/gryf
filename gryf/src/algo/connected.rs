@@ -52,7 +52,7 @@ mod tests {
 
     use crate::{
         core::{
-            base::NeighborRef,
+            base::NeighborReference,
             id::{IdType, VertexId},
             marker::{Directed, Direction, Undirected},
             GraphAdd,

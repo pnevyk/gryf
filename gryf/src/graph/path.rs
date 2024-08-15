@@ -10,7 +10,7 @@ use thiserror::Error;
 
 use crate::{
     core::{
-        base::NeighborRef,
+        base::NeighborReference,
         create::Create,
         error::{AddEdgeError, AddVertexError, ReplaceEdgeError, ReplaceVertexError},
         id::{AsIdRef, DefaultId, IntegerIdType},

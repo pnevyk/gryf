@@ -4,7 +4,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
     adapt::Undirect,
-    core::{base::NeighborRef, marker::Direction, EdgeSet, Neighbors, VertexSet},
+    core::{base::NeighborReference, marker::Direction, EdgeSet, Neighbors, VertexSet},
     visit::VisitSet,
 };
 

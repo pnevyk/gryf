@@ -1,6 +1,7 @@
 use std::marker::PhantomData;
 
 use crate::core::{
+    base::{EdgeRef, NeighborRef, VertexRef},
     connect::ConnectVertices,
     create::Create,
     error::{AddEdgeError, AddEdgeErrorKind, AddVertexError},
@@ -53,7 +54,7 @@ where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
 {
-    type NeighborRef<'a> = (Self::VertexId, Self::EdgeId, Self::VertexId, Direction)
+    type NeighborRef<'a> = NeighborRef<Self::VertexId, Self::EdgeId>
     where
         Self: 'a;
 
@@ -200,7 +201,7 @@ where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
 {
-    type VertexRef<'a> = (Self::VertexId, &'a V)
+    type VertexRef<'a> = VertexRef<'a, Self::VertexId, V>
     where
         Self: 'a,
         V: 'a;
@@ -210,7 +211,7 @@ where
         Self: 'a,
         V: 'a;
 
-    type EdgeRef<'a> = (Self::EdgeId, &'a E, Self::VertexId, Self::VertexId)
+    type EdgeRef<'a> = EdgeRef<'a, Self::VertexId, Self::EdgeId, E>
     where
         Self: 'a,
         E: 'a;
@@ -457,7 +458,7 @@ where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
 {
-    type Item = (Id::EdgeId, &'a E, Id::VertexId, Id::VertexId);
+    type Item = EdgeRef<'a, Id::VertexId, Id::EdgeId, E>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -468,9 +469,14 @@ where
             let id = Id::EdgeId::from_usize(self.index);
             self.index += 1;
 
-            if let Some(edge) = self.matrix.get(id) {
+            if let Some(attr) = self.matrix.get(id) {
                 let (row, col) = self.matrix.coords(id);
-                return Some((id, edge, row.into(), col.into()));
+                return Some(EdgeRef {
+                    id,
+                    attr,
+                    from: row.into(),
+                    to: col.into(),
+                });
             }
         }
     }
@@ -490,7 +496,7 @@ where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
 {
-    type Item = (Id::VertexId, Id::EdgeId, Id::VertexId, Direction);
+    type Item = NeighborRef<Id::VertexId, Id::EdgeId>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -516,7 +522,12 @@ where
                 };
 
                 if self.matrix.contains(id) {
-                    return Some((Id::VertexId::from_usize(to), id, self.from, self.dir));
+                    return Some(NeighborRef {
+                        id: Id::VertexId::from_usize(to),
+                        edge: id,
+                        pred: self.from,
+                        dir: self.dir,
+                    });
                 }
             }
         }

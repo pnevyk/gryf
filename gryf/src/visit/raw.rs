@@ -7,7 +7,7 @@ use std::{
 use rustc_hash::FxHashSet;
 
 use crate::core::{
-    base::NeighborRef,
+    base::NeighborReference,
     id::{IdPair, IdType, UseId, UseVertexId},
     marker::Direction,
     GraphBase, Neighbors,

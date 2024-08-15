@@ -3,6 +3,7 @@ use std::fmt;
 use gryf::{
     algo::ShortestPaths,
     core::{
+        base::NeighborRef,
         id::{IdType, IntegerIdType},
         marker::{Direction, Undirected},
         GraphBase, Neighbors,
@@ -93,7 +94,7 @@ impl GraphBase for KingMove {
 }
 
 impl Neighbors for KingMove {
-    type NeighborRef<'a> = (ChessSquare, (ChessSquare, ChessSquare), ChessSquare, Direction)
+    type NeighborRef<'a> = NeighborRef<ChessSquare, (ChessSquare, ChessSquare)>
     where
         Self: 'a;
 
@@ -125,12 +126,7 @@ pub struct ChessNeighborsIter {
 }
 
 impl Iterator for ChessNeighborsIter {
-    type Item = (
-        ChessSquare,
-        (ChessSquare, ChessSquare),
-        ChessSquare,
-        Direction,
-    );
+    type Item = NeighborRef<ChessSquare, (ChessSquare, ChessSquare)>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -162,7 +158,12 @@ impl Iterator for ChessNeighborsIter {
             }
 
             let to = ChessSquare { file: x, rank: y };
-            return Some((to, (self.from, to), self.from, self.dir));
+            return Some(NeighborRef {
+                id: to,
+                edge: (self.from, to),
+                pred: self.from,
+                dir: self.dir,
+            });
         }
     }
 }

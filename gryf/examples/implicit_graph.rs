@@ -26,7 +26,7 @@ struct Neighbor {
     pred: VertexId,
 }
 
-impl NeighborRef<VertexId, EdgeId> for Neighbor {
+impl NeighborReference<VertexId, EdgeId> for Neighbor {
     fn id(&self) -> OwnableRef<'_, VertexId> {
         let n = self.pred.as_bits();
         let c = if n % 2 == 0 { n / 2 } else { 3 * n + 1 };

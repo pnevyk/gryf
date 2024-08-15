@@ -1,7 +1,7 @@
 use rustc_hash::FxHashSet;
 
 use crate::core::{
-    base::NeighborRef,
+    base::{NeighborRef, NeighborReference},
     borrow::OwnableRef,
     facts,
     id::{IdType, IntegerIdType},
@@ -69,7 +69,7 @@ where
     G: Neighbors + VertexSet,
     G::EdgeId: IntegerIdType,
 {
-    type NeighborRef<'a> = (G::VertexId, G::EdgeId, G::VertexId, Direction)
+    type NeighborRef<'a> = NeighborRef<G::VertexId, G::EdgeId>
     where
         Self: 'a;
 
@@ -119,14 +119,19 @@ where
     G: VertexSet + 'a,
     G::EdgeId: IntegerIdType,
 {
-    type Item = (G::VertexId, G::EdgeId, G::VertexId, Direction);
+    type Item = NeighborRef<G::VertexId, G::EdgeId>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             let v = self.vertices.next()?;
 
             if v != self.from && !self.neighbors.contains(&v) {
-                return Some((v, IdType::sentinel(), self.from.clone(), self.dir));
+                return Some(NeighborRef {
+                    id: v,
+                    edge: IdType::sentinel(),
+                    pred: self.from.clone(),
+                    dir: self.dir,
+                });
             }
         }
     }

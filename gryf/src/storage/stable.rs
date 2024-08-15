@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
 use crate::core::{
-    base::{EdgeRef, NeighborRef, VertexRef},
+    base::{EdgeReference, NeighborReference, VertexReference},
     connect::ConnectVertices,
     create::Create,
     error::{AddEdgeError, AddEdgeErrorKind, AddVertexError},

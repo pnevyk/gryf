@@ -3,6 +3,7 @@ use std::marker::PhantomData;
 use arbitrary::Arbitrary;
 
 use crate::core::{
+    base::{EdgeRef, NeighborRef, VertexRef},
     error::{AddEdgeError, AddEdgeErrorKind, AddVertexError, AddVertexErrorKind},
     id::{EdgeId, IdType, IntegerIdType, VertexId},
     marker::{Direction, EdgeType},
@@ -249,7 +250,7 @@ impl<V, E, Ty: EdgeType> EdgeSet for Model<V, E, Ty> {
 }
 
 impl<V, E, Ty: EdgeType> GraphRef<V, E> for Model<V, E, Ty> {
-    type VertexRef<'a> = (VertexId, &'a V)
+    type VertexRef<'a> = VertexRef<'a, VertexId, V>
     where
         Self: 'a,
         V: 'a;
@@ -259,7 +260,7 @@ impl<V, E, Ty: EdgeType> GraphRef<V, E> for Model<V, E, Ty> {
         Self: 'a,
         V: 'a;
 
-    type EdgeRef<'a> = (EdgeId, &'a E, VertexId, VertexId)
+    type EdgeRef<'a> = EdgeRef<'a, Self::VertexId, Self::EdgeId, E>
         where
             Self: 'a,
             E: 'a;
@@ -411,7 +412,7 @@ impl<V, E, Ty: EdgeType> GraphFull<V, E> for Model<V, E, Ty> {
 }
 
 impl<V, E, Ty: EdgeType> Neighbors for Model<V, E, Ty> {
-    type NeighborRef<'a> = (VertexId, EdgeId, VertexId, Direction)
+    type NeighborRef<'a> = NeighborRef<VertexId, EdgeId>
     where
         Self: 'a;
 
@@ -475,7 +476,7 @@ impl<'a, T> VerticesIter<'a, T> {
 }
 
 impl<'a, T> Iterator for VerticesIter<'a, T> {
-    type Item = (VertexId, &'a T);
+    type Item = VertexRef<'a, VertexId, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -485,8 +486,8 @@ impl<'a, T> Iterator for VerticesIter<'a, T> {
             let id = VertexId::from_usize(self.index);
             self.index += 1;
 
-            if let Some(value) = head {
-                return Some((id, value));
+            if let Some(attr) = head {
+                return Some(VertexRef { id, attr });
             }
         }
     }
@@ -510,7 +511,7 @@ impl<'a, T> EdgesIter<'a, T> {
 }
 
 impl<'a, T> Iterator for EdgesIter<'a, T> {
-    type Item = (EdgeId, &'a T, VertexId, VertexId);
+    type Item = EdgeRef<'a, VertexId, EdgeId, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -523,14 +524,14 @@ impl<'a, T> Iterator for EdgesIter<'a, T> {
             let id = EdgeId::from_usize(self.index);
             self.index += 1;
 
-            if let Some(value) = head {
+            if let Some(attr) = head {
                 let (from, to) = pair.unwrap();
-                return Some((
+                return Some(EdgeRef {
                     id,
-                    value,
-                    VertexId::from_usize(from),
-                    VertexId::from_usize(to),
-                ));
+                    attr,
+                    from: VertexId::from_usize(from),
+                    to: VertexId::from_usize(to),
+                });
             }
         }
     }
@@ -605,7 +606,7 @@ impl<'a, Ty> NeighborsIter<'a, Ty> {
 }
 
 impl<'a, Ty: EdgeType> Iterator for NeighborsIter<'a, Ty> {
-    type Item = (VertexId, EdgeId, VertexId, Direction);
+    type Item = NeighborRef<VertexId, EdgeId>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -626,22 +627,22 @@ impl<'a, Ty: EdgeType> Iterator for NeighborsIter<'a, Ty> {
                 | (Some(&(from, to)), Some(Direction::Outgoing), true)
                     if from == self.from =>
                 {
-                    return Some((
-                        VertexId::from_usize(to),
-                        id,
-                        VertexId::from_usize(from),
-                        Direction::Outgoing,
-                    ));
+                    return Some(NeighborRef{
+                        id: VertexId::from_usize(to),
+                        edge: id,
+                        pred: VertexId::from_usize(from),
+                        dir: Direction::Outgoing,
+                    });
                 }
                 // If the vertex matches destination and the graph is
                 // undirected, we still consider the edge outgoing.
                 (Some(&(from, to)), _, false) if to == self.from => {
-                    return Some((
-                        VertexId::from_usize(from),
-                        id,
-                        VertexId::from_usize(to),
-                        Direction::Outgoing,
-                    ));
+                    return Some(NeighborRef {
+                        id: VertexId::from_usize(from),
+                        edge: id,
+                        pred: VertexId::from_usize(to),
+                        dir: Direction::Outgoing,
+                    });
                 }
                 // If the vertex matches destination and the graph is directed
                 // but the direction does not matter.
@@ -651,12 +652,12 @@ impl<'a, Ty: EdgeType> Iterator for NeighborsIter<'a, Ty> {
                 | (Some(&(from, to)), Some(Direction::Incoming), true)
                     if to == self.from =>
                 {
-                    return Some((
-                        VertexId::from_usize(from),
-                        id,
-                        VertexId::from_usize(to),
-                        Direction::Incoming,
-                    ));
+                    return Some(NeighborRef {
+                        id: VertexId::from_usize(from),
+                        edge: id,
+                        pred: VertexId::from_usize(to),
+                        dir: Direction::Incoming,
+                    });
                 }
                 _ => {}
             }

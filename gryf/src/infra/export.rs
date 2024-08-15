@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::core::{
-    base::{EdgeRef, VertexRef},
+    base::{EdgeReference, VertexReference},
     id::IdType,
     GraphRef,
 };

@@ -1,5 +1,5 @@
 use crate::core::{
-    base::{EdgeRef, NeighborRef, VertexRef},
+    base::{EdgeReference, NeighborReference, VertexReference},
     id::IntegerIdType,
     marker::Direction,
     EdgeSet, GraphBase, GraphRef, Neighbors, VertexSet,

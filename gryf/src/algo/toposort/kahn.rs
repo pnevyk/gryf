@@ -1,7 +1,7 @@
 use crate::{
     algo::Cycle,
     core::{
-        base::NeighborRef,
+        base::NeighborReference,
         id::{CompactIdMap, IdType, IntegerIdType, Virtual},
         marker::Direction,
         GraphBase, Neighbors, VertexSet,

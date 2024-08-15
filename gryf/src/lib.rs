@@ -9,7 +9,7 @@ pub mod visit;
 pub mod prelude {
     #[doc(hidden)]
     pub use crate::{
-        core::base::{EdgeRef, NeighborRef, VertexRef},
+        core::base::{EdgeReference, NeighborReference, VertexReference},
         visit::Visitor,
     };
 }

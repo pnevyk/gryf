@@ -1,7 +1,7 @@
 use crate::{
     adapt::transpose::TransposeRef,
     core::{
-        base::EdgeRef,
+        base::EdgeReference,
         id::{CompactIdMap, IdType, IntegerIdType, Virtual},
         weight::{GetWeight, Weight},
         GraphRef,
@@ -128,7 +128,7 @@ fn process_edge<VI, EI, ER, E, W, F>(
 where
     VI: IntegerIdType,
     EI: IdType,
-    ER: EdgeRef<VI, EI, E>,
+    ER: EdgeReference<VI, EI, E>,
     W: Weight,
     F: GetWeight<E, W>,
 {

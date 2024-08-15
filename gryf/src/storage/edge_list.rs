@@ -1,6 +1,7 @@
 use std::{iter::Enumerate, marker::PhantomData, slice};
 
 use crate::core::{
+    base::{EdgeRef, NeighborRef, VertexRef},
     connect::ConnectVertices,
     create::Create,
     error::{AddEdgeError, AddEdgeErrorKind, AddVertexError},
@@ -70,7 +71,7 @@ where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
 {
-    type NeighborRef<'a> = (Id::VertexId, Id::EdgeId, Id::VertexId, Direction)
+    type NeighborRef<'a> = NeighborRef<Self::VertexId, Self::EdgeId>
     where
         Self: 'a;
 
@@ -231,7 +232,7 @@ where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
 {
-    type VertexRef<'a> = (Self::VertexId, &'a V)
+    type VertexRef<'a> = VertexRef<'a, Self::VertexId, V>
     where
         Self: 'a,
         V: 'a;
@@ -241,7 +242,7 @@ where
         Self: 'a,
         V: 'a;
 
-    type EdgeRef<'a> = (Self::EdgeId, &'a E, Self::VertexId, Self::VertexId)
+    type EdgeRef<'a> = EdgeRef<'a, Self::VertexId, Self::EdgeId, E>
     where
         Self: 'a,
         E: 'a;
@@ -452,12 +453,17 @@ where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
 {
-    type Item = (Id::VertexId, Id::EdgeId, Id::VertexId, Direction);
+    type Item = NeighborRef<Id::VertexId, Id::EdgeId>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if Ty::is_directed() {
             if let Some((id, dir)) = self.self_loop.take() {
-                return Some((self.from, id, self.from, dir));
+                return Some(NeighborRef {
+                    id: self.from,
+                    edge: id,
+                    pred: self.from,
+                    dir,
+                });
             }
         }
 
@@ -511,7 +517,12 @@ where
                     self.self_loop = Some((id, dir.opposite()));
                 }
 
-                return Some((neighbor, id, self.from, dir));
+                return Some(NeighborRef {
+                    id: neighbor,
+                    edge: id,
+                    pred: self.from,
+                    dir,
+                });
             }
         }
     }

@@ -32,6 +32,7 @@ use super::borrow::OwnableRef;
 /// integers, we use the maximum value of the corresponding type for the
 /// sentinel, so we don't introduce the overhead of using `Option<int>` and can
 /// use 0 as the first index as is natural.
+#[doc(alias = "IndexType")]
 pub trait IdType: Clone + Ord + Hash + Debug {
     /// Conceptually `None` in `Option<ID>`, but without using `Option`.
     fn sentinel() -> Self;
@@ -167,12 +168,14 @@ pub trait AsIdRef<I: IdType> {
 /// The default representation of an integer index for vertices. Generic type
 /// `N` can be used to control the byte size of the backing integer (`u64` by
 /// default).
+#[doc(alias = "NodeIndex")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VertexId<N = u64>(N);
 
 /// The default representation of an integer index for edges. Generic type `N`
 /// can be used to control the byte size of the backing integer (`u64` by
 /// default).
+#[doc(alias = "EdgeIndex")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct EdgeId<N = u64>(N);
 

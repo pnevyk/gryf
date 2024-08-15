@@ -2,13 +2,13 @@ use std::iter;
 
 use gryf::{
     core::{
+        base::NeighborReference,
         borrow::OwnableRef,
         id::{EdgeId, IdType, VertexId},
         marker::{Directed, Direction},
         GraphBase, Neighbors,
     },
-    prelude::*,
-    visit::dfs::Dfs,
+    visit::{dfs::Dfs, Visitor},
 };
 
 // https://stackoverflow.com/questions/58870416/can-you-explain-implicit-graphsin-graph-theory-with-a-simple-example/58887179#58887179

@@ -6,14 +6,6 @@ pub mod infra;
 pub mod storage;
 pub mod visit;
 
-pub mod prelude {
-    #[doc(hidden)]
-    pub use crate::{
-        core::base::{EdgeReference, NeighborReference, VertexReference},
-        visit::Visitor,
-    };
-}
-
 #[cfg(feature = "derive")]
 pub mod derive {
     pub use gryf_derive::*;

@@ -95,6 +95,21 @@ mod tests {
         graph.clear();
         assert_eq!(graph.vertex_count(), 0);
         assert_eq!(graph.edge_count(), 0);
+
+        let v0 = graph.add_vertex(());
+        graph.add_edge(&v0, &v0, ());
+
+        assert_eq!(graph.degree_undirected(&v0), 2);
+
+        if graph.is_directed() {
+            assert_eq!(graph.degree_directed(&v0, Direction::Outgoing), 1);
+            assert_eq!(graph.degree_directed(&v0, Direction::Incoming), 1);
+        } else {
+            // In undirected graphs, degree_directed == degree_undirected
+            // regardless of the direction.
+            assert_eq!(graph.degree_directed(&v0, Direction::Outgoing), 2);
+            assert_eq!(graph.degree_directed(&v0, Direction::Incoming), 2);
+        }
     }
 
     pub fn test_multi<G>()

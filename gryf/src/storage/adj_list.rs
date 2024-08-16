@@ -117,11 +117,12 @@ where
     }
 
     fn disconnect(edges: &mut Vec<Id::EdgeId>, id: Id::EdgeId) {
-        for i in 0..edges.len() {
-            if edges[i] == id {
-                edges.swap_remove(i);
-                break;
-            }
+        if let Some(i) = edges
+            .iter()
+            .enumerate()
+            .find_map(|(i, edge_id)| (edge_id == &id).then_some(i))
+        {
+            edges.swap_remove(i);
         }
     }
 

@@ -47,21 +47,16 @@ where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
 {
-    fn remove_edge_inner(&mut self, id: Id::EdgeId, cause: Option<Id::VertexId>) -> Option<E> {
+    fn remove_edge_inner(&mut self, id: Id::EdgeId) -> Option<E> {
         let endpoints = self.endpoints.get(id.as_usize())?;
 
         for (i, dir) in Self::directions().iter().enumerate() {
             let endpoint = endpoints[i];
 
-            // If this endpoint is not the vertex causing this removal, we need
-            // to remove the edge from it. If is the cause, it is not necessary
-            // to remove it.
-            if Some(endpoint) != cause {
-                Self::disconnect(
-                    &mut self.vertices[endpoint.as_usize()].edges[dir.index()],
-                    id,
-                );
-            }
+            Self::disconnect(
+                &mut self.vertices[endpoint.as_usize()].edges[dir.index()],
+                id,
+            );
         }
 
         // Remove the edge from the graph.
@@ -438,7 +433,7 @@ where
                 // Remove the edge from the list of this vertex.
                 let edge_id = vertex.edges[dir.index()].swap_remove(0);
                 // Remove the edge from the whole graph.
-                self.remove_edge_inner(edge_id, Some(*id));
+                self.remove_edge_inner(edge_id);
             }
         }
 
@@ -455,7 +450,7 @@ where
     }
 
     fn remove_edge(&mut self, id: &Self::EdgeId) -> Option<E> {
-        self.remove_edge_inner(*id, None)
+        self.remove_edge_inner(*id)
     }
 
     fn clear(&mut self) {
@@ -680,5 +675,18 @@ mod tests {
         graph.clear_edges();
 
         check_consistency(&graph).unwrap();
+    }
+
+    #[test]
+    fn fuzz_trophy3() {
+        let mut graph = AdjList::<_, _, Directed, ArbitraryId>::new();
+
+        graph.add_vertex(126);
+        graph.add_edge(&Index(0), &Index(0), 0);
+        graph.add_vertex(55);
+        graph.add_edge(&Index(1), &Index(1), 0);
+        graph.remove_vertex(&Index(0));
+
+        assert_eq!(graph.edge_count(), 1);
     }
 }

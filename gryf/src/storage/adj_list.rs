@@ -267,7 +267,7 @@ where
     where
         Self: 'a;
 
-    type EdgeIdIter<'a> = EdgeIdIter<'a, Id>
+    type EdgeIdIter<'a> = EdgeIdIter<'a, Ty, Id>
     where
         Self: 'a;
 
@@ -282,12 +282,14 @@ where
                 to: *to,
                 edges: &vertex.edges[Direction::Outgoing.index()],
                 endpoints: self.endpoints.as_slice(),
+                ty: PhantomData,
             },
             None => EdgeIdIter {
                 from: *from,
                 to: *to,
                 edges: &[],
                 endpoints: &[],
+                ty: PhantomData,
             },
         }
     }
@@ -517,14 +519,15 @@ where
 
 impl<V, E, Ty: EdgeType, Id: IdPair> Guarantee for AdjList<V, E, Ty, Id> {}
 
-pub struct EdgeIdIter<'a, Id: IdPair> {
+pub struct EdgeIdIter<'a, Ty: EdgeType, Id: IdPair> {
     from: Id::VertexId,
     to: Id::VertexId,
     edges: &'a [Id::EdgeId],
     endpoints: &'a [[Id::VertexId; 2]],
+    ty: PhantomData<Ty>,
 }
 
-impl<'a, Id: IdPair> Iterator for EdgeIdIter<'a, Id>
+impl<'a, Ty: EdgeType, Id: IdPair> Iterator for EdgeIdIter<'a, Ty, Id>
 where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
@@ -538,7 +541,11 @@ where
 
             let endpoints = self.endpoints[edge.as_usize()];
 
-            if endpoints[0] == self.from && endpoints[1] == self.to {
+            let from_to = endpoints[0] == self.from && endpoints[1] == self.to;
+            let to_from =
+                !Ty::is_directed() && endpoints[0] == self.to && endpoints[1] == self.from;
+
+            if from_to || to_from {
                 return Some(*edge);
             }
         }
@@ -688,5 +695,22 @@ mod tests {
         graph.remove_vertex(&Index(0));
 
         assert_eq!(graph.edge_count(), 1);
+    }
+
+    #[test]
+    fn fuzz_trophy4() {
+        let mut graph = AdjList::<_, _, Undirected, ArbitraryId>::new();
+
+        graph.add_vertex(0);
+        graph.add_vertex(-49);
+        graph.add_vertex(1);
+        graph.add_edge(&Index(0), &Index(2), 0);
+
+        let edge = graph.edge_id_any(&Index(2), &Index(0));
+        println!("{edge:?}");
+
+        graph.remove_edge_any_between(&Index(2), &Index(0));
+
+        assert_eq!(graph.edge_count(), 0);
     }
 }

@@ -310,6 +310,26 @@ mod tests {
     }
 
     #[test]
+    fn bellman_ford_undirected_support() {
+        let mut graph = AdjList::<_, _, Undirected, _>::default();
+
+        let v0 = graph.add_vertex(());
+        let v1 = graph.add_vertex(());
+
+        graph.add_edge(&v0, &v1, 1);
+
+        let shortest_paths = ShortestPaths::on(&graph)
+            .using(Algo::BellmanFord)
+            .run(v1)
+            .unwrap();
+
+        // Assuming that the AdjList reports the edge with endpoints (v0, v1),
+        // Bellman-Ford algorithm needs a special support for undirected graphs
+        // to report the distance below correctly.
+        assert_eq!(shortest_paths.dist(v0), Some(&1));
+    }
+
+    #[test]
     fn bfs_basic() {
         let graph = create_basic_graph();
         let shortest_paths = ShortestPaths::on(&graph)
@@ -355,16 +375,20 @@ mod tests {
 
     #[test]
     fn prefer_dijkstra_for_undirected() {
-        let mut graph = AdjList::<_, _, Directed, _>::default();
+        let mut graph = AdjList::<_, _, Undirected, _>::default();
 
         let v0 = graph.add_vertex(());
         let v1 = graph.add_vertex(());
 
         graph.add_edge(&v0, &v1, -1);
 
-        let shortest_paths = ShortestPaths::on(&graph).goal(v(1)).run(v(1)).unwrap();
+        // Setting the goal vertex to be the same as the starting vertex makes
+        // Dijkstra's algorithm finish immediately with success where the
+        // Bellman-Ford would report "negative cycle" error because it doesn't
+        // consider the goal vertex.
+        let shortest_paths = ShortestPaths::on(&graph).goal(v1).run(v1).unwrap();
 
-        assert_eq!(shortest_paths.dist(v(1)), Some(&0));
+        assert_eq!(shortest_paths.dist(v1), Some(&0));
     }
 
     proptest! {

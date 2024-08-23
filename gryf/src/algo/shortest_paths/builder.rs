@@ -1,9 +1,9 @@
-use std::{cmp::max, marker::PhantomData};
+use std::marker::PhantomData;
 
 use crate::core::{
     id::IntegerIdType,
     weight::{self, GetWeight, IsConstWeight, Weight},
-    GraphBase, GraphRef, GraphWeak, Neighbors, VertexSet,
+    GraphBase, GraphRef, GraphWeak, Neighbors,
 };
 
 use super::{
@@ -295,10 +295,7 @@ where
         W: Weight,
     {
         let ShortestPathsBuilder {
-            graph,
-            goal,
-            edge_weight,
-            ..
+            graph, edge_weight, ..
         } = self;
 
         if W::is_unsigned() && edge_weight.get_const().is_some() {
@@ -318,21 +315,8 @@ where
                 // better runtime in the happy case.
                 AlgoExt::Algo(Algo::Dijkstra)
             }
-        } else if goal.is_some() {
-            // If the goal is specified, Dijkstra's algorithm likely finishes
-            // without the need of traversing the entire graph.
-            AlgoExt::Algo(Algo::Dijkstra)
         } else {
-            let v = graph.vertex_count();
-            let e = graph.edge_count();
-
-            // Compare the worst-case bounds. This will result in choosing
-            // Dijkstra in vast majority of cases.
-            if v * e < max(e, v * (v as f64).log2() as usize) {
-                AlgoExt::Algo(Algo::BellmanFord)
-            } else {
-                AlgoExt::Algo(Algo::Dijkstra)
-            }
+            AlgoExt::Algo(Algo::Dijkstra)
         }
     }
 }

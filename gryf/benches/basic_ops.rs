@@ -116,11 +116,8 @@ fn petgraph_graph_add_remove<const N: usize, Ty: petgraph::EdgeType>(density: f3
     let mut edges = RandomEdges::new(N / 4, density);
 
     while let Some((u, v)) = edges.next_edge(&mut rng) {
-        if let Some(e) = graph
-            .edges_connecting(NodeIndex::new(u), NodeIndex::new(v))
-            .next()
-        {
-            graph.remove_edge(e.id());
+        if let Some(e) = graph.find_edge(NodeIndex::new(u), NodeIndex::new(v)) {
+            graph.remove_edge(e);
         }
     }
 

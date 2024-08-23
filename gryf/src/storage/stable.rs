@@ -1,3 +1,9 @@
+//! Graph storage wrapper that makes the IDs
+//! [stable](crate::core::props::Stability).
+//!
+//! The performance properties are inherited from the underlying storage, with
+//! extra overhead of keeping track of removed elements.
+
 use std::collections::BTreeSet;
 
 use crate::core::{
@@ -13,6 +19,8 @@ use crate::core::{
 
 use gryf_derive::{GraphBase, Guarantee};
 
+/// Graph storage wrapper that makes the IDs
+/// [stable](crate::core::props::Stability).
 #[derive(Debug, GraphBase, Guarantee)]
 #[gryf_crate]
 pub struct Stable<G: GraphBase> {
@@ -26,6 +34,7 @@ impl<G> Stable<G>
 where
     G: GraphBase,
 {
+    /// Wraps a storage.
     pub fn new(inner: G) -> Self {
         Self {
             inner,
@@ -34,6 +43,10 @@ where
         }
     }
 
+    /// Returns the underlying storage with all operations properly applied.
+    ///
+    /// Note that there is no guarantee about ID stability of the returned
+    /// storage.
     pub fn apply<V, E>(self) -> G
     where
         G: GraphFull<V, E>,

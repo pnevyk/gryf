@@ -1,3 +1,10 @@
+//! [Adjacency matrix] graph representation.
+//!
+//! See [module](crate::storage) documentation for comparison with other
+//! storages.
+//!
+//! [Adjacency matrix]: https://en.wikipedia.org/wiki/Adjacency_matrix
+
 use std::marker::PhantomData;
 
 use crate::core::{
@@ -14,6 +21,9 @@ use crate::core::{
 use super::shared;
 pub use super::shared::{RangeIds as VertexIds, VerticesIter};
 
+/// [Adjacency matrix] graph representation.
+///
+/// [Adjacency matrix]: https://en.wikipedia.org/wiki/Adjacency_matrix
 #[derive(Debug)]
 pub struct AdjMatrix<V, E, Ty, Id> {
     matrix: raw::Matrix<E, Ty, Id>,
@@ -22,6 +32,7 @@ pub struct AdjMatrix<V, E, Ty, Id> {
 }
 
 impl<V, E, Ty: EdgeType, Id: IdPair> AdjMatrix<V, E, Ty, Id> {
+    /// Creates a new empty storage.
     pub fn new() -> Self {
         Self {
             matrix: raw::Matrix::with_capacity(8),
@@ -32,6 +43,7 @@ impl<V, E, Ty: EdgeType, Id: IdPair> AdjMatrix<V, E, Ty, Id> {
 }
 
 impl<V, E, Ty: EdgeType> AdjMatrix<V, E, Ty, DefaultId> {
+    /// Creates a new empty storage with given ID pair.
     pub fn with_id<Id: IdPair>() -> AdjMatrix<V, E, Ty, Id> {
         AdjMatrix::new()
     }

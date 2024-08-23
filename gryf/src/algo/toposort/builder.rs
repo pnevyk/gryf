@@ -76,9 +76,10 @@ where
     pub fn run(self) -> TopoSort<'a, G>
     where
         G: Neighbors,
+        G::VertexId: IntegerIdType,
     {
         TopoSort {
-            inner: TopoSortInner::Dfs(dfs_visit(self.graph).into_iter(self.graph)),
+            inner: TopoSortInner::Kahn(kahn(self.graph)),
         }
     }
 }

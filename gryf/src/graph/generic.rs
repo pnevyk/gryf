@@ -86,22 +86,28 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, G> Default for Graph<V, E, Ty, G>
+impl<V, E, G> Default for Graph<V, E, G::EdgeType, G>
 where
-    G: Default,
+    G: GraphBase + Default,
 {
     fn default() -> Self {
         Self::new_in(G::default())
     }
 }
 
-impl<V, E, Ty: EdgeType, G> From<G> for Graph<V, E, Ty, G> {
+impl<V, E, G> From<G> for Graph<V, E, G::EdgeType, G>
+where
+    G: GraphBase,
+{
     fn from(storage: G) -> Self {
         Self::new_in(storage)
     }
 }
 
-impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
+impl<V, E, G> Graph<V, E, G::EdgeType, G>
+where
+    G: GraphBase,
+{
     pub fn new_in(storage: G) -> Self {
         Self {
             storage,
@@ -491,7 +497,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
         self.storage.degree_directed(from.as_id().as_ref(), dir)
     }
 
-    pub fn stabilize(self) -> Graph<V, E, Ty, Stable<G>>
+    pub fn stabilize(self) -> Graph<V, E, G::EdgeType, Stable<G>>
     where
         G: GraphBase,
     {
@@ -499,7 +505,7 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
     }
 
     #[doc(hidden)]
-    pub fn freeze(self) -> Graph<V, E, Ty, Frozen<G>> {
+    pub fn freeze(self) -> Graph<V, E, G::EdgeType, Frozen<G>> {
         Graph::new_in(Frozen::new(self.storage))
     }
 
@@ -512,7 +518,10 @@ impl<V, E, Ty: EdgeType, G> Graph<V, E, Ty, G> {
     }
 }
 
-impl<V, E, Ty: EdgeType, G> Deref for Graph<V, E, Ty, G> {
+impl<V, E, G> Deref for Graph<V, E, G::EdgeType, G>
+where
+    G: GraphBase,
+{
     type Target = G;
 
     fn deref(&self) -> &Self::Target {
@@ -520,13 +529,16 @@ impl<V, E, Ty: EdgeType, G> Deref for Graph<V, E, Ty, G> {
     }
 }
 
-impl<V, E, Ty: EdgeType, G> DerefMut for Graph<V, E, Ty, G> {
+impl<V, E, G> DerefMut for Graph<V, E, G::EdgeType, G>
+where
+    G: GraphBase,
+{
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.storage
     }
 }
 
-impl<V, E, Ty: EdgeType, G> Create<V, E> for Graph<V, E, Ty, G>
+impl<V, E, G> Create<V, E> for Graph<V, E, G::EdgeType, G>
 where
     G: Create<V, E>,
 {
@@ -535,7 +547,7 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, G, VI> Index<VI> for Graph<V, E, Ty, G>
+impl<V, E, G, VI> Index<VI> for Graph<V, E, G::EdgeType, G>
 where
     G: GraphRef<V, E>,
     VI: AsIdRef<G::VertexId>,
@@ -547,7 +559,7 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, G, VI> IndexMut<VI> for Graph<V, E, Ty, G>
+impl<V, E, G, VI> IndexMut<VI> for Graph<V, E, G::EdgeType, G>
 where
     G: GraphMut<V, E>,
     VI: AsIdRef<G::VertexId>,

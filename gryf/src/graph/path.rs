@@ -106,16 +106,16 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, G> Default for Path<V, E, Ty, G>
+impl<V, E, G> Default for Path<V, E, G::EdgeType, G>
 where
-    G: Default + GraphBase,
+    G: GraphBase + Default,
 {
     fn default() -> Self {
         Self::new_unchecked(G::default(), None)
     }
 }
 
-impl<V, E, Ty: EdgeType, G> Path<V, E, Ty, G>
+impl<V, E, G> Path<V, E, G::EdgeType, G>
 where
     G: GraphBase,
 {
@@ -205,7 +205,7 @@ where
             return Err(PathError::Disconnected);
         }
 
-        if Ty::is_directed() {
+        if storage.is_directed() {
             let start = if storage.degree_directed(&ends[0], Direction::Outgoing) == 1 {
                 ends[0].clone()
             } else if storage.degree_directed(&ends[1], Direction::Outgoing) == 1 {
@@ -351,7 +351,7 @@ where
 
                 // For directed graph, the edge must have the correct
                 // direction.
-                let reverse = Ty::is_directed() && u == ends[0];
+                let reverse = self.storage.is_directed() && u == ends[0];
 
                 if reverse {
                     self.storage.try_add_edge(&v, &u, edge)?;
@@ -429,7 +429,7 @@ where
                 }
                 _ => {
                     // The removed vertex is an inner vertex.
-                    let (u, v) = if Ty::is_directed() {
+                    let (u, v) = if self.is_directed() {
                         let u = self
                             .storage
                             .neighbors_directed(id, Direction::Incoming)
@@ -654,26 +654,26 @@ where
         self.ends.as_ref()
     }
 
-    pub fn stabilize(self) -> Path<V, E, Ty, Stable<G>> {
+    pub fn stabilize(self) -> Path<V, E, G::EdgeType, Stable<G>> {
         Path::new_unchecked(Stable::new(self.storage), self.ends)
     }
 
     #[doc(hidden)]
-    pub fn freeze(self) -> Path<V, E, Ty, Frozen<G>> {
+    pub fn freeze(self) -> Path<V, E, G::EdgeType, Frozen<G>> {
         Path::new_unchecked(Frozen::new(self.storage), self.ends)
     }
 }
 
-impl<V, E, Ty: EdgeType, G> From<Path<V, E, Ty, G>> for Graph<V, E, Ty, G>
+impl<V, E, G> From<Path<V, E, G::EdgeType, G>> for Graph<V, E, G::EdgeType, G>
 where
     G: GraphBase,
 {
-    fn from(path: Path<V, E, Ty, G>) -> Self {
+    fn from(path: Path<V, E, G::EdgeType, G>) -> Self {
         Graph::new_in(path.storage)
     }
 }
 
-impl<V, E, Ty: EdgeType, G> Constrained<G> for Path<V, E, Ty, G>
+impl<V, E, G> Constrained<G> for Path<V, E, G::EdgeType, G>
 where
     G: Neighbors + VertexSet + Guarantee,
 {
@@ -696,7 +696,7 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, G> Deref for Path<V, E, Ty, G>
+impl<V, E, G> Deref for Path<V, E, G::EdgeType, G>
 where
     G: GraphBase,
 {
@@ -707,7 +707,7 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, G, VI> Index<VI> for Path<V, E, Ty, G>
+impl<V, E, G, VI> Index<VI> for Path<V, E, G::EdgeType, G>
 where
     G: GraphRef<V, E>,
     VI: AsIdRef<G::VertexId>,
@@ -719,7 +719,7 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, G, VI> IndexMut<VI> for Path<V, E, Ty, G>
+impl<V, E, G, VI> IndexMut<VI> for Path<V, E, G::EdgeType, G>
 where
     G: GraphMut<V, E>,
     VI: AsIdRef<G::VertexId>,
@@ -729,7 +729,7 @@ where
     }
 }
 
-impl<V, E, Ty: EdgeType, G> Guarantee for Path<V, E, Ty, G>
+impl<V, E, G> Guarantee for Path<V, E, G::EdgeType, G>
 where
     G: GraphBase,
 {

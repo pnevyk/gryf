@@ -53,6 +53,20 @@ where
     }
 }
 
+// Support for unit type which on its own doesn't implement the `Weight` trait.
+// This is useful because many algorithms might use `Identity` as the default
+// weight mapping and this allows to seamlessly support graphs with unit
+// attributes.
+impl GetWeight<(), u8> for Identity {
+    fn get(&self, _: &()) -> u8 {
+        1
+    }
+
+    fn get_const(&self) -> Option<u8> {
+        Some(1)
+    }
+}
+
 #[derive(Debug)]
 pub struct Unit;
 

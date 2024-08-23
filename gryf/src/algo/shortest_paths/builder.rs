@@ -298,7 +298,7 @@ where
             graph, edge_weight, ..
         } = self;
 
-        if W::is_unsigned() && edge_weight.get_const().is_some() {
+        if W::is_unsigned() && edge_weight.is_const() {
             // The weight is constant, we can use standard BFS algorithm without
             // any overhead.
             AlgoExt::Bfs

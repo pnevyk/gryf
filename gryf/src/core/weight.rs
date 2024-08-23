@@ -23,6 +23,10 @@ where
     fn get_const(&self) -> Option<W> {
         None
     }
+
+    fn is_const(&self) -> bool {
+        self.get_const().is_some()
+    }
 }
 
 pub trait IsConstWeight {}

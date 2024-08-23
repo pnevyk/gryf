@@ -159,6 +159,14 @@ mod tests {
     {
         let sorted = toposort.collect::<Result<Vec<_>, _>>();
 
+        if let Ok(ref sorted) = sorted {
+            assert_eq!(
+                sorted.len(),
+                graph.vertex_count(),
+                "sorted sequence length is not equal to vertex count"
+            );
+        }
+
         let cycle =
             DfsEvents::new(graph)
                 .start_all(graph)
@@ -178,13 +186,8 @@ mod tests {
                     .collect::<HashMap<_, _>>();
 
                 for (from, to) in graph.edges_by_id().map(|e| graph.endpoints(&e).unwrap()) {
-                    let i = map
-                        .get(&from)
-                        .unwrap_or_else(|| panic!("algorithm omitted vertex {from:?}"));
-
-                    let j = map
-                        .get(&to)
-                        .unwrap_or_else(|| panic!("algorithm omitted vertex {to:?}"));
+                    let i = map.get(&from).unwrap();
+                    let j = map.get(&to).unwrap();
 
                     assert!(i < j, "invalid topological order for {from:?} -> {to:?}");
                 }

@@ -1,9 +1,6 @@
-use std::{
-    collections::{hash_map::Entry, HashSet, VecDeque},
-    hash::BuildHasherDefault,
-};
+use std::collections::{hash_map::Entry, VecDeque};
 
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 
 use crate::{
     core::{base::NeighborReference, marker::Direction, weight::Weight, Neighbors},
@@ -39,10 +36,8 @@ where
     // early termination when reaching given goal. It is likely that reaching
     // goal means visiting a subgraph which is significantly smaller than the
     // original graph.
-    let mut visited: FxHashSet<_> = HashSet::with_capacity_and_hasher(
-        graph.vertex_count_hint().unwrap_or(32),
-        BuildHasherDefault::default(),
-    );
+    let mut visited =
+        FxHashSet::with_capacity_and_hasher(graph.vertex_count_hint().unwrap_or(32), FxBuildHasher);
 
     let mut dist = FxHashMap::default();
     let mut pred = FxHashMap::default();

@@ -1,6 +1,9 @@
 mod common;
 
-use std::collections::BTreeSet;
+use std::{
+    collections::BTreeSet,
+    hash::{BuildHasherDefault, DefaultHasher},
+};
 
 use common::{RandomEdges, RANDOM_SEED};
 use fastrand::Rng;
@@ -132,7 +135,12 @@ fn petgraph_graph_add_remove<const N: usize, Ty: petgraph::EdgeType>(density: f3
 fn petgraph_matrix_graph_add_remove<const N: usize, Ty: petgraph::EdgeType>(density: f32) {
     let mut rng = Rng::with_seed(RANDOM_SEED);
 
-    let mut graph = petgraph::matrix_graph::MatrixGraph::<_, _, Ty>::with_capacity(0);
+    let mut graph = petgraph::matrix_graph::MatrixGraph::<
+        _,
+        _,
+        BuildHasherDefault<DefaultHasher>,
+        Ty,
+    >::with_capacity(0);
 
     for _ in 0..N {
         graph.add_node(rng.u32(0..100));

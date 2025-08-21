@@ -12,9 +12,9 @@ keywords = ["graph", "algorithms", "data-structures"]
 categories = ["algorithms", "data-structures"]
 
 [dependencies]
-proc-macro2 = "1"
-quote = "1"
-syn = { version = "1", features = ["full"] }
+proc-macro2 = "1.0.0"
+quote = "1.0.0"
+syn = { version = "2.0.0", features = ["full"] }
 
 [lib]
 proc-macro = true

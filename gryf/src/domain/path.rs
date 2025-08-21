@@ -1,11 +1,10 @@
 use std::{
     borrow::Borrow,
-    hash::BuildHasherDefault,
     marker::PhantomData,
     ops::{Deref, Index, IndexMut},
 };
 
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxBuildHasher, FxHashSet};
 use thiserror::Error;
 
 use crate::{
@@ -137,10 +136,8 @@ where
             None => return Ok(None),
         };
 
-        let mut visited = FxHashSet::with_capacity_and_hasher(
-            storage.vertex_count(),
-            BuildHasherDefault::default(),
-        );
+        let mut visited =
+            FxHashSet::with_capacity_and_hasher(storage.vertex_count(), FxBuildHasher);
 
         visited.visit(v.clone());
 

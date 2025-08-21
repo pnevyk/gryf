@@ -11,7 +11,7 @@ pub fn get_gryf_path(input: &DeriveInput) -> Path {
     let is_gryf_crate = input
         .attrs
         .iter()
-        .any(|attr| attr.path.is_ident("gryf_crate"));
+        .any(|attr| attr.path().is_ident("gryf_crate"));
 
     if is_gryf_crate {
         parse_quote! { crate }
@@ -28,7 +28,7 @@ pub fn get_graph_field(input: &DeriveInput) -> &Field {
         }) => fields
             .named
             .iter()
-            .find(|field| field.attrs.iter().any(|attr| attr.path.is_ident("graph"))),
+            .find(|field| field.attrs.iter().any(|attr| attr.path().is_ident("graph"))),
         _ => panic!("unsupported type (use struct with named fields)"),
     };
 

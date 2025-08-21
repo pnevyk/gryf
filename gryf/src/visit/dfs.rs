@@ -142,13 +142,13 @@ where
 
         let raw = RawVisit::new(graph.vertex_count_hint());
         let closed = if is_directed {
-            HashSet::with_capacity_and_hasher(raw.visited.capacity(), BuildHasherDefault::default())
+            FxHashSet::with_capacity_and_hasher(raw.visited.capacity(), rustc_hash::FxBuildHasher)
         } else {
             // Discovered set (in raw) is used instead of closed set in
             // undirected graph because it is the only information needed for
             // back edge determination. See back edge signalling below for more
             // details.
-            HashSet::default()
+            FxHashSet::default()
         };
 
         Self {

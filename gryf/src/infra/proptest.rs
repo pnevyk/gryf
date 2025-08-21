@@ -260,8 +260,8 @@ where
         // disable shrinking.
         let mut no_shrink = false;
 
-        let n = runner.rng().gen_range(0..=self.params.max_size);
-        let p = runner.rng().gen::<f32>() * self.params.density;
+        let n = runner.rng().random_range(0..=self.params.max_size);
+        let p = runner.rng().random::<f32>() * self.params.density;
 
         // Efficient generation of large random networks
         // http://vlado.fmf.uni-lj.si/pub/networks/doc/ms/rndgen.pdf
@@ -283,7 +283,7 @@ where
         let mut w = usize::MAX; // -1
 
         while v < n {
-            let r: f32 = runner.rng().gen();
+            let r: f32 = runner.rng().random();
             w = w.wrapping_add(1) + ((1.0 - r).log10() / (1.0 - p).log10()).floor() as usize;
 
             if self.params.allow_loops {
@@ -314,7 +314,7 @@ where
                 // vertices such that v < w. In other cases, swap the vertices
                 // so that a directed cycle is possible.
                 let (s, t) =
-                    if Ty::is_directed() && self.params.acyclic || runner.rng().gen_bool(0.5) {
+                    if Ty::is_directed() && self.params.acyclic || runner.rng().random_bool(0.5) {
                         (w, v)
                     } else {
                         (v, w)
@@ -323,7 +323,7 @@ where
                 edges.push((s, t, e));
 
                 // Possibly add multi edges.
-                while runner.rng().gen_bool(self.params.multi_edge_prob as f64) {
+                while runner.rng().random_bool(self.params.multi_edge_prob as f64) {
                     let e = self.edge.new_tree(runner)?;
                     edges.push((s, t, e));
                 }

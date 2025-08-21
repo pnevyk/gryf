@@ -2,7 +2,7 @@
 name = "gryf"
 version = "0.1.0"
 authors = ["Petr Nevyhoštěný"]
-edition = "2021"
+edition = "2024"
 license = "MIT OR Unlicense"
 description = "Graph data structure library with focus on convenience, versatility, correctness and performance."
 homepage = "https://github.com/pnevyk/gryf"

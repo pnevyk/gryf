@@ -5,9 +5,9 @@ use std::{
 };
 
 use crate::core::{
+    GraphRef,
     base::{EdgeReference, VertexReference},
     id::IdType,
-    GraphRef,
 };
 
 pub trait Export<G> {

@@ -1,9 +1,9 @@
-use std::collections::{hash_map::Entry, VecDeque};
+use std::collections::{VecDeque, hash_map::Entry};
 
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 
 use crate::{
-    core::{base::NeighborReference, marker::Direction, weight::Weight, Neighbors},
+    core::{Neighbors, base::NeighborReference, marker::Direction, weight::Weight},
     visit::VisitSet,
 };
 
@@ -76,10 +76,10 @@ where
         visited.visit(vertex.clone());
     }
 
-    if let Some(ref goal) = goal {
-        if !visited.is_visited(goal) {
-            return Err(Error::GoalNotReached);
-        }
+    if let Some(ref goal) = goal
+        && !visited.is_visited(goal)
+    {
+        return Err(Error::GoalNotReached);
     }
 
     Ok(ShortestPaths { source, dist, pred })

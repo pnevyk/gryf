@@ -15,8 +15,8 @@ use rustc_hash::FxHashSet;
 use raw::*;
 
 use crate::core::{
-    id::{IdType, UseVertexId},
     GraphBase, Neighbors, VertexSet,
+    id::{IdType, UseVertexId},
 };
 
 pub trait Visitor<G> {
@@ -172,9 +172,9 @@ where
 mod tests {
     use crate::{
         core::{
+            GraphAdd, GraphFull,
             id::DefaultId,
             marker::{Directed, Undirected},
-            GraphAdd, GraphFull,
         },
         storage::{AdjList, Stable},
     };

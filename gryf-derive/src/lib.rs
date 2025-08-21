@@ -2,7 +2,7 @@ mod util;
 
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, DeriveInput};
+use syn::{DeriveInput, parse_macro_input};
 
 #[proc_macro_derive(GraphBase, attributes(graph, gryf_crate))]
 pub fn graph_base(tokens: TokenStream) -> TokenStream {

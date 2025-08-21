@@ -1,7 +1,7 @@
 use rustc_hash::FxHashSet;
 
 use crate::{
-    core::{base::NeighborReference, marker::Direction, Neighbors, VertexSet},
+    core::{Neighbors, VertexSet, base::NeighborReference, marker::Direction},
     visit::VisitSet,
 };
 

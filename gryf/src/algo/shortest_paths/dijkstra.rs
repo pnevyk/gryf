@@ -1,16 +1,16 @@
 use std::{
     cmp::Reverse,
-    collections::{hash_map::Entry, BinaryHeap},
+    collections::{BinaryHeap, hash_map::Entry},
 };
 
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 
 use crate::{
     core::{
+        GraphWeak, Neighbors,
         base::NeighborReference,
         marker::Direction,
         weight::{GetWeight, Weight, Weighted},
-        GraphWeak, Neighbors,
     },
     visit::VisitSet,
 };
@@ -111,10 +111,10 @@ where
         visited.visit(vertex.clone());
     }
 
-    if let Some(ref goal) = goal {
-        if !visited.is_visited(goal) {
-            return Err(Error::GoalNotReached);
-        }
+    if let Some(ref goal) = goal
+        && !visited.is_visited(goal)
+    {
+        return Err(Error::GoalNotReached);
     }
 
     Ok(ShortestPaths { source, dist, pred })

@@ -3,9 +3,9 @@ use std::fmt;
 use arbitrary::{Arbitrary, Unstructured};
 
 use crate::core::{
+    GraphFull,
     error::{AddEdgeError, AddVertexError},
     id::{IdPair, IdType, IntegerIdType},
-    GraphFull,
 };
 
 #[derive(Debug, Arbitrary, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
@@ -13,11 +13,7 @@ pub struct Index(pub usize);
 
 impl Index {
     pub fn get(&self, m: usize) -> Option<usize> {
-        if m > 0 {
-            Some(self.0 % m)
-        } else {
-            None
-        }
+        if m > 0 { Some(self.0 % m) } else { None }
     }
 
     pub fn map(self, m: usize) -> Option<Index> {

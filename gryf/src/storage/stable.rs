@@ -1,6 +1,7 @@
 use std::collections::BTreeSet;
 
 use crate::core::{
+    EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Neighbors, VertexSet,
     base::{EdgeReference, NeighborReference, VertexReference},
     connect::ConnectVertices,
     create::Create,
@@ -8,7 +9,6 @@ use crate::core::{
     id::{CompactIdMap, EdgeId, IntegerIdType, VertexId},
     marker::Direction,
     props::{NoReplace, StableId},
-    EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Neighbors, VertexSet,
 };
 
 use gryf_derive::{GraphBase, Guarantee};
@@ -523,7 +523,7 @@ mod tests {
             id::DefaultId,
             marker::{Directed, Undirected},
         },
-        storage::{tests::*, AdjList},
+        storage::{AdjList, tests::*},
     };
 
     use std::collections::HashSet;

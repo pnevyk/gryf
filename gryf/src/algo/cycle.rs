@@ -87,8 +87,8 @@ mod tests {
 
     use crate::{
         core::{
-            marker::{Directed, Undirected},
             GraphAdd,
+            marker::{Directed, Undirected},
         },
         storage::AdjList,
     };

@@ -3,10 +3,10 @@ use std::fmt;
 use gryf::{
     algo::ShortestPaths,
     core::{
+        GraphBase, Neighbors,
         base::NeighborRef,
         id::{IdType, IntegerIdType},
         marker::{Direction, Undirected},
-        GraphBase, Neighbors,
     },
 };
 

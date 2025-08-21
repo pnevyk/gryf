@@ -1,6 +1,7 @@
 use std::marker::PhantomData;
 
 use crate::core::{
+    EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Neighbors, VertexSet,
     base::{EdgeRef, NeighborRef, VertexRef},
     connect::ConnectVertices,
     create::Create,
@@ -8,7 +9,6 @@ use crate::core::{
     id::{CompactIdMap, DefaultId, IdPair, IdType, IntegerIdType},
     marker::{Direction, EdgeType},
     props::Guarantee,
-    EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Neighbors, VertexSet,
 };
 
 use super::shared;

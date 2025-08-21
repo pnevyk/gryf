@@ -1,4 +1,4 @@
-use crate::core::{marker::Direction, Neighbors};
+use crate::core::{Neighbors, marker::Direction};
 
 use gryf_derive::{EdgeSet, GraphBase, Guarantee, VertexSet};
 
@@ -57,7 +57,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate::{
-        core::{marker::Directed, GraphAdd},
+        core::{GraphAdd, marker::Directed},
         storage::AdjList,
     };
 

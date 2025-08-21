@@ -45,11 +45,7 @@ impl RandomEdges {
             *v += 1;
         }
 
-        if *v < n {
-            Some((*v, *w))
-        } else {
-            None
-        }
+        if *v < n { Some((*v, *w)) } else { None }
     }
 }
 

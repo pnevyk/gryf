@@ -1,6 +1,6 @@
 use crate::core::{GraphBase, Neighbors, VertexSet};
 
-use super::{dfs::dfs_find, Cycle};
+use super::{Cycle, dfs::dfs_find};
 
 pub struct CycleBuilder<'a, G>
 where

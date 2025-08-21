@@ -1,10 +1,10 @@
 use crate::{
     adapt::transpose::TransposeRef,
     core::{
+        GraphRef,
         base::EdgeReference,
         id::{CompactIdMap, IdType, IntegerIdType, Virtual},
         weight::{GetWeight, Weight},
-        GraphRef,
     },
 };
 
@@ -82,10 +82,10 @@ where
         }
     }
 
-    if let Some(goal) = goal {
-        if dist[vertex_map.to_virt(goal).unwrap().as_usize()] == W::inf() {
-            return Err(Error::GoalNotReached);
-        }
+    if let Some(goal) = goal
+        && dist[vertex_map.to_virt(goal).unwrap().as_usize()] == W::inf()
+    {
+        return Err(Error::GoalNotReached);
     }
 
     let dist = dist

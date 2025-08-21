@@ -21,11 +21,11 @@ mod tests {
 
     use crate::{
         core::{
+            EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, GraphWeak, Neighbors,
+            VertexSet,
             id::DefaultId,
             marker::Directed,
             props::{Guarantee, MultiEdge},
-            EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, GraphWeak, Neighbors,
-            VertexSet,
         },
         storage::AdjList,
     };

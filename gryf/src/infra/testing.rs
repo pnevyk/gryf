@@ -390,7 +390,7 @@ where
     E: fmt::Debug,
 {
     fn eq(&self, other: &Self) -> bool {
-        format!("{:?}", self) == format!("{:?}", other)
+        format!("{self:?}") == format!("{other:?}")
     }
 }
 

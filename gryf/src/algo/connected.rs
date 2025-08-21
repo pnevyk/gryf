@@ -82,9 +82,7 @@ mod tests {
                     while let Some(w) = stack.pop() {
                         assert!(
                             w != v,
-                            "algorithm reported connected vertices as disconnected ({:?}, {:?})",
-                            u,
-                            v
+                            "algorithm reported connected vertices as disconnected ({u:?}, {v:?})"
                         );
 
                         if visited.visit(w.clone()) {

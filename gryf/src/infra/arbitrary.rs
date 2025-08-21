@@ -187,7 +187,7 @@ impl<V: fmt::Debug, E: fmt::Debug> fmt::Debug for MutOpsSeq<V, E> {
         writeln!(f, "MutOpsSeq(vec![")?;
 
         for op in self.0.iter() {
-            writeln!(f, "    MutOp::{:?},", op)?;
+            writeln!(f, "    MutOp::{op:?},")?;
         }
 
         writeln!(f, "])")?;

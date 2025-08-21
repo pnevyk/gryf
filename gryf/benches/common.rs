@@ -57,8 +57,8 @@ pub fn gryf_random<Ty: gryf::core::marker::EdgeType>(
     vertex_count: usize,
     density: f32,
     rng: &mut Rng,
-) -> gryf::graph::Graph<u32, f32, Ty> {
-    let mut graph = gryf::graph::Graph::new();
+) -> gryf::domain::Graph<u32, f32, Ty> {
+    let mut graph = gryf::domain::Graph::new();
 
     for _ in 0..vertex_count {
         graph.add_vertex(rng.u32(0..100));
@@ -77,7 +77,7 @@ pub fn gryf_random_directed(
     vertex_count: usize,
     density: f32,
     rng: &mut Rng,
-) -> gryf::graph::Graph<u32, f32, gryf::core::marker::Directed> {
+) -> gryf::domain::Graph<u32, f32, gryf::core::marker::Directed> {
     gryf_random(vertex_count, density, rng)
 }
 

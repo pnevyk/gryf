@@ -1,4 +1,4 @@
-use gryf::{algo::ShortestPaths, graph::Graph};
+use gryf::{algo::ShortestPaths, domain::Graph};
 
 fn main() {
     // Default storage is adjacency list, but that can be simply changed by

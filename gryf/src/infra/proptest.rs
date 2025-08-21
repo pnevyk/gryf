@@ -12,7 +12,7 @@ use crate::{
         marker::{Directed, EdgeType, Undirected},
         GraphAdd,
     },
-    graph::Graph,
+    domain::Graph,
     visit::{Dfs, VisitSet, Visitor},
 };
 

@@ -6,6 +6,8 @@ pub mod infra;
 pub mod storage;
 pub mod visit;
 
+pub use graph::Graph;
+
 #[cfg(feature = "derive")]
 pub mod derive {
     pub use gryf_derive::*;

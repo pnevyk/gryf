@@ -17,7 +17,7 @@ impl Direction {
 
     #[inline]
     pub fn from_index(index: usize) -> Self {
-        if index % 2 == 0 {
+        if index.is_multiple_of(2) {
             Direction::Outgoing
         } else {
             Direction::Incoming

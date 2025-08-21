@@ -41,7 +41,7 @@ where
         BfsRooted { raw: &mut self.raw }
     }
 
-    pub fn start_all<'a>(&'a mut self, graph: &'a G) -> BfsMulti<'a, G, VisitAll<G>>
+    pub fn start_all<'a>(&'a mut self, graph: &'a G) -> BfsMulti<'a, G, VisitAll<'a, G>>
     where
         G: VertexSet,
     {

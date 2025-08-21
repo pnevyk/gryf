@@ -29,7 +29,11 @@ struct Neighbor {
 impl NeighborReference<VertexId, EdgeId> for Neighbor {
     fn id(&self) -> OwnableRef<'_, VertexId> {
         let n = self.pred.as_bits();
-        let c = if n % 2 == 0 { n / 2 } else { 3 * n + 1 };
+        let c = if n.is_multiple_of(2) {
+            n / 2
+        } else {
+            3 * n + 1
+        };
         OwnableRef::Owned(to_vertex(c))
     }
 

@@ -41,7 +41,7 @@ where
         DfsRooted { raw: &mut self.raw }
     }
 
-    pub fn start_all<'a>(&'a mut self, graph: &'a G) -> DfsMulti<'a, G, VisitAll<G>>
+    pub fn start_all<'a>(&'a mut self, graph: &'a G) -> DfsMulti<'a, G, VisitAll<'a, G>>
     where
         G: VertexSet,
     {
@@ -169,7 +169,7 @@ where
         }
     }
 
-    pub fn start_all<'a>(&'a mut self, graph: &'a G) -> DfsEventsMulti<'a, G, VisitAll<G>>
+    pub fn start_all<'a>(&'a mut self, graph: &'a G) -> DfsEventsMulti<'a, G, VisitAll<'a, G>>
     where
         G: VertexSet,
     {
@@ -406,7 +406,7 @@ where
         DfsPostOrderRooted { raw: &mut self.raw }
     }
 
-    pub fn start_all<'a>(&'a mut self, graph: &'a G) -> DfsPostOrderMulti<'a, G, VisitAll<G>>
+    pub fn start_all<'a>(&'a mut self, graph: &'a G) -> DfsPostOrderMulti<'a, G, VisitAll<'a, G>>
     where
         G: VertexSet,
     {
@@ -514,7 +514,7 @@ where
         DfsNoBacktrackRooted { raw: &mut self.raw }
     }
 
-    pub fn start_all<'a>(&'a mut self, graph: &'a G) -> DfsNoBacktrackMulti<'a, G, VisitAll<G>>
+    pub fn start_all<'a>(&'a mut self, graph: &'a G) -> DfsNoBacktrackMulti<'a, G, VisitAll<'a, G>>
     where
         G: VertexSet,
     {

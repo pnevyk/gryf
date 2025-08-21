@@ -3,7 +3,7 @@ use std::fmt;
 use thiserror::Error;
 
 use crate::{
-    core::{id::IntegerIdType, marker::Directed, GraphBase, Neighbors, VertexSet},
+    core::{GraphBase, Neighbors, VertexSet, id::IntegerIdType, marker::Directed},
     visit,
 };
 
@@ -146,7 +146,7 @@ mod tests {
     use super::*;
 
     use crate::{
-        core::{id::DefaultId, EdgeSet, GraphAdd},
+        core::{EdgeSet, GraphAdd, id::DefaultId},
         infra::proptest::graph_directed,
         storage::AdjList,
         visit::{DfsEvent, DfsEvents, Visitor},

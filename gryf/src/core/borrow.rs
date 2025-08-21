@@ -76,7 +76,7 @@ impl<T> Deref for OwnableRef<'_, T> {
     fn deref(&self) -> &Self::Target {
         match self {
             OwnableRef::Borrowed(attr) => attr,
-            OwnableRef::Owned(ref attr) => attr,
+            OwnableRef::Owned(attr) => attr,
         }
     }
 }
@@ -85,7 +85,7 @@ impl<T> AsRef<T> for OwnableRef<'_, T> {
     fn as_ref(&self) -> &T {
         match self {
             OwnableRef::Borrowed(attr) => attr,
-            OwnableRef::Owned(ref attr) => attr,
+            OwnableRef::Owned(attr) => attr,
         }
     }
 }

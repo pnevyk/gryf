@@ -1,6 +1,6 @@
 use crate::core::{GraphBase, Neighbors, VertexSet};
 
-use super::{dfs::dfs, Connected};
+use super::{Connected, dfs::dfs};
 
 pub struct ConnectedBuilder<'a, G>
 where

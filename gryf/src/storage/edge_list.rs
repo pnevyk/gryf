@@ -1,6 +1,7 @@
 use std::{iter::Enumerate, marker::PhantomData, slice};
 
 use crate::core::{
+    EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Neighbors, VertexSet,
     base::{EdgeRef, NeighborRef, VertexRef},
     connect::ConnectVertices,
     create::Create,
@@ -8,7 +9,6 @@ use crate::core::{
     id::{CompactIdMap, DefaultId, IdPair, IdType, IntegerIdType},
     marker::{Direction, EdgeType},
     props::{Guarantee, MultiEdge},
-    EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Neighbors, VertexSet,
 };
 
 use super::shared;
@@ -465,15 +465,15 @@ where
     type Item = NeighborRef<Id::VertexId, Id::EdgeId>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if Ty::is_directed() {
-            if let Some((id, dir)) = self.self_loop.take() {
-                return Some(NeighborRef {
-                    id: self.from,
-                    edge: id,
-                    pred: self.from,
-                    dir,
-                });
-            }
+        if Ty::is_directed()
+            && let Some((id, dir)) = self.self_loop.take()
+        {
+            return Some(NeighborRef {
+                id: self.from,
+                edge: id,
+                pred: self.from,
+                dir,
+            });
         }
 
         loop {

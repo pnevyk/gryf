@@ -1,13 +1,12 @@
 use crate::{
-    core::{id::IntegerIdType, marker::Directed, GraphBase, Neighbors, VertexSet},
+    core::{GraphBase, Neighbors, VertexSet, id::IntegerIdType, marker::Directed},
     visit::Visitor,
 };
 
 use super::{
-    algo,
-    dfs::{dfs_visit, DfsVisit},
+    Algo, TopoSort, TopoSortInner, algo,
+    dfs::{DfsVisit, dfs_visit},
     kahn::kahn,
-    Algo, TopoSort, TopoSortInner,
 };
 
 pub struct TopoSortBuilder<'a, G, A> {

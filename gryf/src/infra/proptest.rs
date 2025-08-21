@@ -8,9 +8,9 @@ use rustc_hash::FxHashSet;
 
 use crate::{
     core::{
+        GraphAdd,
         create::Create,
         marker::{Directed, EdgeType, Undirected},
-        GraphAdd,
     },
     domain::Graph,
     visit::{Dfs, VisitSet, Visitor},
@@ -717,8 +717,8 @@ mod tests {
     use crate::{
         algo::is_connected,
         core::{
-            base::{EdgeReference, VertexReference},
             EdgeSet, GraphRef, VertexSet,
+            base::{EdgeReference, VertexReference},
         },
     };
 

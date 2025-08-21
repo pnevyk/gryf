@@ -1,12 +1,12 @@
 use rustc_hash::FxHashSet;
 
 use crate::core::{
+    EdgeSet, GraphBase, GraphFull, Neighbors, VertexSet,
     base::{NeighborRef, NeighborReference},
     borrow::OwnableRef,
     facts,
     id::{IdType, IntegerIdType},
     marker::{Direction, Undirected},
-    EdgeSet, GraphBase, GraphFull, Neighbors, VertexSet,
 };
 
 use gryf_derive::{GraphBase, VertexSet};
@@ -143,8 +143,8 @@ where
 mod tests {
     use crate::{
         core::{
-            id::{DefaultId, VertexId},
             GraphAdd,
+            id::{DefaultId, VertexId},
         },
         storage::{AdjList, Stable},
     };

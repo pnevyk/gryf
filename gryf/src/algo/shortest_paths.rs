@@ -116,9 +116,9 @@ mod tests {
 
     use crate::{
         core::{
+            GraphAdd, GraphMut, VertexSet,
             id::{DefaultId, EdgeId, IdType, VertexId},
             marker::{Directed, Undirected},
-            GraphAdd, GraphMut, VertexSet,
         },
         infra::proptest::{graph_directed, graph_undirected},
         storage::AdjList,

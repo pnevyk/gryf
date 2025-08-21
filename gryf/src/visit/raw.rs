@@ -3,10 +3,10 @@ use std::{collections::VecDeque, marker::PhantomData};
 use rustc_hash::{FxBuildHasher, FxHashSet};
 
 use crate::core::{
+    GraphBase, Neighbors,
     base::NeighborReference,
     id::{IdPair, IdType, UseId, UseVertexId},
     marker::Direction,
-    GraphBase, Neighbors,
 };
 
 use super::{VisitRoots, VisitSet};

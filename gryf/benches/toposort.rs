@@ -1,6 +1,6 @@
 mod common;
 
-use common::{gryf_random_directed, petgraph_random_directed, RANDOM_SEED};
+use common::{RANDOM_SEED, gryf_random_directed, petgraph_random_directed};
 use fastrand::Rng;
 use gryf::visit::Visitor;
 

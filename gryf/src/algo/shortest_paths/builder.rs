@@ -1,13 +1,13 @@
 use std::marker::PhantomData;
 
 use crate::core::{
+    GraphBase, GraphRef, GraphWeak, Neighbors,
     id::IntegerIdType,
     weight::{self, GetWeight, IsConstWeight, Weight},
-    GraphBase, GraphRef, GraphWeak, Neighbors,
 };
 
 use super::{
-    algo, bellman_ford::bellman_ford, bfs::bfs, dijkstra::dijkstra, Algo, Error, ShortestPaths,
+    Algo, Error, ShortestPaths, algo, bellman_ford::bellman_ford, bfs::bfs, dijkstra::dijkstra,
 };
 
 enum AlgoExt {

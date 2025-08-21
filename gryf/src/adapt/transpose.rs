@@ -1,10 +1,10 @@
 use crate::core::{
+    EdgeSet, GraphBase, GraphFull, GraphRef, Neighbors,
     base::{EdgeReference, NeighborReference},
     borrow::OwnableRef,
     id::IdType,
     marker::{Directed, Direction},
     props::{Stability, StableId},
-    EdgeSet, GraphBase, GraphFull, GraphRef, Neighbors,
 };
 
 use gryf_derive::{GraphBase, GraphMut, Guarantee, VertexSet};
@@ -227,7 +227,7 @@ mod tests {
     use super::*;
 
     use crate::{
-        core::{id::DefaultId, GraphAdd},
+        core::{GraphAdd, id::DefaultId},
         storage::AdjList,
     };
 

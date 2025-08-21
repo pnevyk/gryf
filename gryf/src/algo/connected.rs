@@ -22,7 +22,7 @@ where
     }
 
     pub fn disconnected_any(&self) -> Option<(&G::VertexId, &G::VertexId)> {
-        self.disconnected_any.as_ref().map(|(ref u, ref v)| (u, v))
+        self.disconnected_any.as_ref().map(|(u, v)| (u, v))
     }
 
     pub fn as_undirected(&self) -> bool {
@@ -52,10 +52,10 @@ mod tests {
 
     use crate::{
         core::{
+            GraphAdd,
             base::NeighborReference,
             id::{IdType, VertexId},
             marker::{Directed, Direction, Undirected},
-            GraphAdd,
         },
         infra::proptest::{graph_directed, graph_undirected},
         storage::AdjList,

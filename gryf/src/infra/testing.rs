@@ -3,11 +3,11 @@ use std::{fmt, marker::PhantomData};
 use thiserror::Error;
 
 use crate::core::{
+    GraphRef, Neighbors,
     create::Create,
     facts,
     id::IntegerIdType,
     marker::{Direction, EdgeType},
-    GraphRef, Neighbors,
 };
 
 use gryf_derive::{

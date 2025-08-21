@@ -1,10 +1,10 @@
 use crate::{
     algo::Cycle,
     core::{
+        GraphBase, Neighbors, VertexSet,
         base::NeighborReference,
         id::{CompactIdMap, IdType, IntegerIdType, Virtual},
         marker::Direction,
-        GraphBase, Neighbors, VertexSet,
     },
 };
 

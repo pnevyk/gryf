@@ -18,8 +18,8 @@ pub use frozen::Frozen;
 #[cfg(test)]
 mod tests {
     use crate::core::{
-        connect::ConnectVertices, create::Create, facts, marker::Direction, props::MultiEdge,
-        GraphFull, Neighbors,
+        GraphFull, Neighbors, connect::ConnectVertices, create::Create, facts, marker::Direction,
+        props::MultiEdge,
     };
 
     pub fn test_basic<G>()

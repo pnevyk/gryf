@@ -6,6 +6,7 @@ use std::{
 
 use crate::{
     core::{
+        EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Neighbors, VertexSet,
         base::IntoEdge,
         connect::ConnectVertices,
         create::{Create, ExtendWithEdges, ExtendWithVertices},
@@ -15,7 +16,6 @@ use crate::{
         },
         id::{AsIdRef, DefaultId, IntegerIdType},
         marker::{Directed, Direction, EdgeType, Undirected},
-        EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Neighbors, VertexSet,
     },
     storage::{AdjList, Frozen, Stable},
 };

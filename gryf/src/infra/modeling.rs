@@ -3,11 +3,11 @@ use std::marker::PhantomData;
 use arbitrary::Arbitrary;
 
 use crate::core::{
+    EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Neighbors, VertexSet,
     base::{EdgeRef, NeighborRef, VertexRef},
     error::{AddEdgeError, AddEdgeErrorKind, AddVertexError, AddVertexErrorKind},
     id::{EdgeId, IdType, IntegerIdType, VertexId},
     marker::{Direction, EdgeType},
-    EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Neighbors, VertexSet,
 };
 
 use super::arbitrary::MutOp;
@@ -149,10 +149,10 @@ impl<V, E, Ty: EdgeType> Model<V, E, Ty> {
             MutOp::RemoveVertex(_)
                 if self.params.max_remove_vertices == Some(self.removed_vertices) =>
             {
-                return false
+                return false;
             }
             MutOp::RemoveEdge(_, _) if self.params.max_remove_edges == Some(self.removed_edges) => {
-                return false
+                return false;
             }
             _ => {}
         }
@@ -162,14 +162,14 @@ impl<V, E, Ty: EdgeType> Model<V, E, Ty> {
             _ => {}
         }
 
-        if !self.params.allow_multi_edges {
-            if let MutOp::AddEdge(from, to, _) = op {
-                let n = self.vertex_bound();
-                if let (Some(from), Some(to)) = (from.get(n), to.get(n)) {
-                    if self.edge_exists(from, to) {
-                        return false;
-                    }
-                }
+        if !self.params.allow_multi_edges
+            && let MutOp::AddEdge(from, to, _) = op
+        {
+            let n = self.vertex_bound();
+            if let (Some(from), Some(to)) = (from.get(n), to.get(n))
+                && self.edge_exists(from, to)
+            {
+                return false;
             }
         }
 
@@ -364,12 +364,12 @@ impl<V, E, Ty: EdgeType> GraphFull<V, E> for Model<V, E, Ty> {
             RemovalBehavior::SwapRemove => {
                 let mut i = 0;
                 while i < self.edges.len() {
-                    if let Some(&(from, to)) = self.neighbors[i].as_ref() {
-                        if from == index || to == index {
-                            self.edges.swap_remove(i);
-                            self.neighbors.swap_remove(i);
-                            continue;
-                        }
+                    if let Some(&(from, to)) = self.neighbors[i].as_ref()
+                        && (from == index || to == index)
+                    {
+                        self.edges.swap_remove(i);
+                        self.neighbors.swap_remove(i);
+                        continue;
                     }
 
                     i += 1;

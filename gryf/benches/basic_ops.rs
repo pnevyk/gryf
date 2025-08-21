@@ -5,7 +5,7 @@ use std::{
     hash::{BuildHasherDefault, DefaultHasher},
 };
 
-use common::{RandomEdges, RANDOM_SEED};
+use common::{RANDOM_SEED, RandomEdges};
 use fastrand::Rng;
 use petgraph::prelude::*;
 

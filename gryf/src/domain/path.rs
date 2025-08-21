@@ -9,13 +9,13 @@ use thiserror::Error;
 
 use crate::{
     core::{
+        EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Neighbors, VertexSet,
         base::NeighborReference,
         create::Create,
         error::{AddEdgeError, AddVertexError, ReplaceEdgeError, ReplaceVertexError},
         id::{AsIdRef, DefaultId, IntegerIdType},
         marker::{Directed, Direction, EdgeType, Undirected},
         props::{Constrained, Guarantee},
-        EdgeSet, GraphAdd, GraphBase, GraphFull, GraphMut, GraphRef, Neighbors, VertexSet,
     },
     storage::{AdjList, Frozen, Stable},
     visit::VisitSet,

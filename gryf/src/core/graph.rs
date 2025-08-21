@@ -63,11 +63,7 @@ pub trait Neighbors: GraphBase {
                     // Storages are required to yield a self-loop just once. If
                     // this requirement is satisfied, then this implementation
                     // of degree is correct.
-                    if neighbor.id().as_ref() == id {
-                        2
-                    } else {
-                        1
-                    }
+                    if neighbor.id().as_ref() == id { 2 } else { 1 }
                 })
                 .sum()
         }

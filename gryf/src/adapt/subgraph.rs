@@ -1,8 +1,8 @@
 use crate::core::{
+    EdgeSet, GraphBase, GraphRef, Neighbors, VertexSet,
     base::{EdgeReference, NeighborReference, VertexReference},
     id::IntegerIdType,
     marker::Direction,
-    EdgeSet, GraphBase, GraphRef, Neighbors, VertexSet,
 };
 
 use gryf_derive::GraphBase;
@@ -298,9 +298,9 @@ where
 mod tests {
     use crate::{
         core::{
+            GraphAdd,
             id::{DefaultId, EdgeId, IdType, VertexId},
             marker::Directed,
-            GraphAdd,
         },
         storage::AdjList,
     };

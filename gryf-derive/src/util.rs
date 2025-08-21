@@ -1,10 +1,10 @@
 use std::collections::VecDeque;
 
 use proc_macro2::{Punct, Spacing, Span, TokenStream as TokenStream2, TokenTree};
-use quote::{quote, ToTokens};
+use quote::{ToTokens, quote};
 use syn::{
-    parse_quote, Data, DataStruct, DeriveInput, Field, Fields, Ident, ImplGenerics, Path, Type,
-    WhereClause,
+    Data, DataStruct, DeriveInput, Field, Fields, Ident, ImplGenerics, Path, Type, WhereClause,
+    parse_quote,
 };
 
 pub fn get_gryf_path(input: &DeriveInput) -> Path {

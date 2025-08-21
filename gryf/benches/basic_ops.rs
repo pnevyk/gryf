@@ -14,7 +14,7 @@ fn main() {
 fn gryf_adj_list_add_remove<const N: usize, Ty: gryf::core::marker::EdgeType>(density: f32) {
     let mut rng = Rng::with_seed(RANDOM_SEED);
 
-    let mut graph = gryf::graph::Graph::<_, _, Ty>::new();
+    let mut graph = gryf::domain::Graph::<_, _, Ty>::new();
 
     for _ in 0..N {
         graph.add_vertex(rng.u32(0..100));
@@ -52,7 +52,7 @@ fn gryf_adj_matrix_add_remove<const N: usize, Ty: gryf::core::marker::EdgeType>(
     let mut rng = Rng::with_seed(RANDOM_SEED);
 
     let mut graph =
-        gryf::graph::Graph::<_, _, Ty, _>::new_in(
+        gryf::domain::Graph::<_, _, Ty, _>::new_in(
             gryf::storage::AdjMatrix::<_, _, Ty, _>::default(),
         );
 

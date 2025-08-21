@@ -1,6 +1,6 @@
 use gryf::{
     core::id::{CustomId, EdgeId, VertexId},
-    graph::Graph,
+    domain::Graph,
     storage::AdjList,
 };
 

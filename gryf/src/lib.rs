@@ -1,12 +1,12 @@
 pub mod adapt;
 pub mod algo;
 pub mod core;
-pub mod graph;
+pub mod domain;
 pub mod infra;
 pub mod storage;
 pub mod visit;
 
-pub use graph::Graph;
+pub use domain::Graph;
 
 #[cfg(feature = "derive")]
 pub mod derive {
@@ -271,8 +271,8 @@ mod tests {
     #[test]
     fn graph_impl_consistency() {
         let graph_traits_source = include_str!("core/graph.rs");
-        let generic_source = include_str!("graph/generic.rs");
-        let path_source = include_str!("graph/path.rs");
+        let generic_source = include_str!("domain/generic.rs");
+        let path_source = include_str!("domain/path.rs");
 
         let readonly_traits = vec!["GraphBase", "Neighbors", "VertexSet", "EdgeSet", "GraphRef"];
         let mutable_traits = readonly_traits

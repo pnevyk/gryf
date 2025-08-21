@@ -94,11 +94,13 @@ impl GraphBase for KingMove {
 }
 
 impl Neighbors for KingMove {
-    type NeighborRef<'a> = NeighborRef<ChessSquare, (ChessSquare, ChessSquare)>
+    type NeighborRef<'a>
+        = NeighborRef<ChessSquare, (ChessSquare, ChessSquare)>
     where
         Self: 'a;
 
-    type NeighborsIter<'a> = ChessNeighborsIter
+    type NeighborsIter<'a>
+        = ChessNeighborsIter
     where
         Self: 'a;
 

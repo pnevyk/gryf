@@ -81,11 +81,13 @@ impl<G, S> Neighbors for Subgraph<G, S>
 where
     G: Neighbors,
 {
-    type NeighborRef<'a> = G::NeighborRef<'a>
+    type NeighborRef<'a>
+        = G::NeighborRef<'a>
     where
         Self: 'a;
 
-    type NeighborsIter<'a> = SubgraphIter<'a, G::NeighborsIter<'a>, G::NeighborRef<'a>>
+    type NeighborsIter<'a>
+        = SubgraphIter<'a, G::NeighborsIter<'a>, G::NeighborRef<'a>>
     where
         Self: 'a;
 
@@ -118,7 +120,8 @@ impl<G, S> VertexSet for Subgraph<G, S>
 where
     G: VertexSet,
 {
-    type VerticesByIdIter<'a> = SubgraphIter<'a, G::VerticesByIdIter<'a>, G::VertexId>
+    type VerticesByIdIter<'a>
+        = SubgraphIter<'a, G::VerticesByIdIter<'a>, G::VertexId>
     where
         Self: 'a;
 
@@ -146,11 +149,13 @@ impl<G, S> EdgeSet for Subgraph<G, S>
 where
     G: EdgeSet,
 {
-    type EdgesByIdIter<'a> = SubgraphIter<'a, G::EdgesByIdIter<'a>, G::EdgeId>
+    type EdgesByIdIter<'a>
+        = SubgraphIter<'a, G::EdgesByIdIter<'a>, G::EdgeId>
     where
         Self: 'a;
 
-    type EdgeIdIter<'a> = SubgraphIter<'a, G::EdgeIdIter<'a>, G::EdgeId>
+    type EdgeIdIter<'a>
+        = SubgraphIter<'a, G::EdgeIdIter<'a>, G::EdgeId>
     where
         Self: 'a;
 
@@ -197,25 +202,29 @@ impl<V, E, G, S> GraphRef<V, E> for Subgraph<G, S>
 where
     G: GraphRef<V, E>,
 {
-    type VertexRef<'a> = G::VertexRef<'a>
+    type VertexRef<'a>
+        = G::VertexRef<'a>
     where
         Self: 'a,
         V: 'a;
 
-    type VerticesIter<'a> = SubgraphIter<'a, G::VerticesIter<'a>, G::VertexRef<'a>>
+    type VerticesIter<'a>
+        = SubgraphIter<'a, G::VerticesIter<'a>, G::VertexRef<'a>>
     where
         Self: 'a,
         V: 'a;
 
-    type EdgeRef<'a> = G::EdgeRef<'a>
-        where
-            Self: 'a,
-            E: 'a;
+    type EdgeRef<'a>
+        = G::EdgeRef<'a>
+    where
+        Self: 'a,
+        E: 'a;
 
-    type EdgesIter<'a> = SubgraphIter<'a, G::EdgesIter<'a>, G::EdgeRef<'a>>
-        where
-            Self: 'a,
-            E: 'a;
+    type EdgesIter<'a>
+        = SubgraphIter<'a, G::EdgesIter<'a>, G::EdgeRef<'a>>
+    where
+        Self: 'a,
+        E: 'a;
 
     fn vertices(&self) -> Self::VerticesIter<'_> {
         SubgraphIter::<_, G::VertexRef<'_>>::new(

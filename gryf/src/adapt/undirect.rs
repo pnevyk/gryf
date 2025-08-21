@@ -23,11 +23,13 @@ impl<G> Neighbors for Undirect<G>
 where
     G: Neighbors,
 {
-    type NeighborRef<'a> = G::NeighborRef<'a>
+    type NeighborRef<'a>
+        = G::NeighborRef<'a>
     where
         Self: 'a;
 
-    type NeighborsIter<'a> = G::NeighborsIter<'a>
+    type NeighborsIter<'a>
+        = G::NeighborsIter<'a>
     where
         Self: 'a;
 

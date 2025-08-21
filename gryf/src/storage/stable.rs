@@ -80,11 +80,13 @@ impl<G> Neighbors for Stable<G>
 where
     G: Neighbors,
 {
-    type NeighborRef<'a> = G::NeighborRef<'a>
+    type NeighborRef<'a>
+        = G::NeighborRef<'a>
     where
         Self: 'a;
 
-    type NeighborsIter<'a> = NeighborsIter<'a, G>
+    type NeighborsIter<'a>
+        = NeighborsIter<'a, G>
     where
         Self: 'a;
 
@@ -117,7 +119,8 @@ impl<G> VertexSet for Stable<G>
 where
     G: VertexSet,
 {
-    type VerticesByIdIter<'a>= VertexIds<'a, G>
+    type VerticesByIdIter<'a>
+        = VertexIds<'a, G>
     where
         Self: 'a;
 
@@ -159,11 +162,13 @@ impl<G> EdgeSet for Stable<G>
 where
     G: EdgeSet,
 {
-    type EdgesByIdIter<'a> = EdgesByIdIter<'a, G>
+    type EdgesByIdIter<'a>
+        = EdgesByIdIter<'a, G>
     where
         Self: 'a;
 
-    type EdgeIdIter<'a> = EdgeIdIter<'a, G>
+    type EdgeIdIter<'a>
+        = EdgeIdIter<'a, G>
     where
         Self: 'a;
 
@@ -223,22 +228,26 @@ impl<V, E, G> GraphRef<V, E> for Stable<G>
 where
     G: GraphRef<V, E>,
 {
-    type VertexRef<'a> = G::VertexRef<'a>
+    type VertexRef<'a>
+        = G::VertexRef<'a>
     where
         Self: 'a,
         V: 'a;
 
-    type VerticesIter<'a> = VerticesIter<'a, V, E, G>
+    type VerticesIter<'a>
+        = VerticesIter<'a, V, E, G>
     where
         Self: 'a,
         V: 'a;
 
-    type EdgeRef<'a> = G::EdgeRef<'a>
+    type EdgeRef<'a>
+        = G::EdgeRef<'a>
     where
         Self: 'a,
         E: 'a;
 
-    type EdgesIter<'a> = EdgesIter<'a, V, E, G>
+    type EdgesIter<'a>
+        = EdgesIter<'a, V, E, G>
     where
         Self: 'a,
         E: 'a;

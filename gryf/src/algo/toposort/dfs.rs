@@ -1,6 +1,4 @@
-use std::hash::BuildHasherDefault;
-
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxBuildHasher, FxHashSet};
 
 use crate::{
     adapt::Transpose,
@@ -21,10 +19,7 @@ where
     DfsVisit {
         raw: RawVisit::new(Some(graph.vertex_count())),
         multi: RawVisitMulti::new(VisitAll::new(graph)),
-        closed: FxHashSet::with_capacity_and_hasher(
-            graph.vertex_count(),
-            BuildHasherDefault::default(),
-        ),
+        closed: FxHashSet::with_capacity_and_hasher(graph.vertex_count(), FxBuildHasher),
         cycle: None,
     }
 }

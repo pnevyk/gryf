@@ -135,7 +135,7 @@ pub enum ConsistencyCheckError {
     DirectedUndirectedDegreeMismatch(usize, usize),
     #[error("sum of degrees ({0}) is not equal to doubled edge count ({1})")]
     HandshakingLemma(usize, usize),
-    #[error("sum of {} degrees ({0}) is not equal to edge count ({1})", degree_dir(*.2))]
+    #[error("sum of {dir} degrees ({0}) is not equal to edge count ({1})", dir = degree_dir(*.2))]
     HandshakingLemmaDirected(usize, usize, Direction),
 }
 

@@ -1,10 +1,6 @@
-use std::{
-    collections::{HashSet, VecDeque},
-    hash::BuildHasherDefault,
-    marker::PhantomData,
-};
+use std::{collections::VecDeque, marker::PhantomData};
 
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxBuildHasher, FxHashSet};
 
 use crate::core::{
     base::NeighborReference,
@@ -108,7 +104,7 @@ pub(crate) struct RawVisit<Id: IdPair, U: UseId<Id>, A: RawAlgo<Id, U>> {
 impl<Id: IdPair, U: UseId<Id>, A: RawAlgo<Id, U>> RawVisit<Id, U, A> {
     pub fn new(count_hint: Option<usize>) -> Self {
         let visited = count_hint
-            .map(|count| HashSet::with_capacity_and_hasher(count, BuildHasherDefault::default()))
+            .map(|count| FxHashSet::with_capacity_and_hasher(count, FxBuildHasher))
             .unwrap_or_default();
 
         Self {

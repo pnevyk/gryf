@@ -8,10 +8,7 @@ pub use bfs::Bfs;
 pub use dfs::{Dfs, DfsEvents, DfsNoBacktrack, DfsPostOrder};
 pub use visit_set::{TypedBitSet, VisitSet};
 
-use std::{
-    collections::{HashSet, VecDeque},
-    hash::BuildHasherDefault,
-};
+use std::collections::VecDeque;
 
 use rustc_hash::FxHashSet;
 

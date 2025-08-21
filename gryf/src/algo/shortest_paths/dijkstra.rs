@@ -1,10 +1,9 @@
 use std::{
     cmp::Reverse,
-    collections::{hash_map::Entry, BinaryHeap, HashSet},
-    hash::BuildHasherDefault,
+    collections::{hash_map::Entry, BinaryHeap},
 };
 
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 
 use crate::{
     core::{
@@ -33,10 +32,8 @@ where
     // early termination when reaching given goal. It is likely that reaching
     // goal means visiting a subgraph which is significantly smaller than the
     // original graph.
-    let mut visited: FxHashSet<_> = HashSet::with_capacity_and_hasher(
-        graph.vertex_count_hint().unwrap_or(32),
-        BuildHasherDefault::default(),
-    );
+    let mut visited =
+        FxHashSet::with_capacity_and_hasher(graph.vertex_count_hint().unwrap_or(32), FxBuildHasher);
 
     let mut dist = FxHashMap::default();
     let mut pred = FxHashMap::default();

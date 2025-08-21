@@ -54,11 +54,13 @@ where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
 {
-    type NeighborRef<'a> = NeighborRef<Self::VertexId, Self::EdgeId>
+    type NeighborRef<'a>
+        = NeighborRef<Self::VertexId, Self::EdgeId>
     where
         Self: 'a;
 
-    type NeighborsIter<'a> = NeighborsIter<'a, Ty, Id>
+    type NeighborsIter<'a>
+        = NeighborsIter<'a, Ty, Id>
     where
         Self: 'a;
 
@@ -113,7 +115,8 @@ impl<V, E, Ty: EdgeType, Id: IdPair> VertexSet for AdjMatrix<V, E, Ty, Id>
 where
     Id::VertexId: IntegerIdType,
 {
-    type VerticesByIdIter<'a> = VertexIds<Self::VertexId>
+    type VerticesByIdIter<'a>
+        = VertexIds<Self::VertexId>
     where
         Self: 'a;
 
@@ -149,11 +152,13 @@ where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
 {
-    type EdgesByIdIter<'a> = EdgesByIdIter<'a, Ty, Id>
+    type EdgesByIdIter<'a>
+        = EdgesByIdIter<'a, Ty, Id>
     where
         Self: 'a;
 
-    type EdgeIdIter<'a> = std::option::IntoIter<Self::EdgeId>
+    type EdgeIdIter<'a>
+        = std::option::IntoIter<Self::EdgeId>
     where
         Self: 'a;
 
@@ -201,22 +206,26 @@ where
     Id::VertexId: IntegerIdType,
     Id::EdgeId: IntegerIdType,
 {
-    type VertexRef<'a> = VertexRef<'a, Self::VertexId, V>
+    type VertexRef<'a>
+        = VertexRef<'a, Self::VertexId, V>
     where
         Self: 'a,
         V: 'a;
 
-    type VerticesIter<'a> = VerticesIter<'a, Id, V>
+    type VerticesIter<'a>
+        = VerticesIter<'a, Id, V>
     where
         Self: 'a,
         V: 'a;
 
-    type EdgeRef<'a> = EdgeRef<'a, Self::VertexId, Self::EdgeId, E>
+    type EdgeRef<'a>
+        = EdgeRef<'a, Self::VertexId, Self::EdgeId, E>
     where
         Self: 'a,
         E: 'a;
 
-    type EdgesIter<'a> = EdgesIter<'a, E, Ty, Id>
+    type EdgesIter<'a>
+        = EdgesIter<'a, E, Ty, Id>
     where
         Self: 'a,
         E: 'a;

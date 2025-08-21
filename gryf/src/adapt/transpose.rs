@@ -52,11 +52,13 @@ impl<G> Neighbors for Transpose<G>
 where
     G: Neighbors,
 {
-    type NeighborRef<'a> = TransposeRef<G::NeighborRef<'a>>
+    type NeighborRef<'a>
+        = TransposeRef<G::NeighborRef<'a>>
     where
         Self: 'a;
 
-    type NeighborsIter<'a> = Iter<G::NeighborsIter<'a>>
+    type NeighborsIter<'a>
+        = Iter<G::NeighborsIter<'a>>
     where
         Self: 'a;
 
@@ -81,11 +83,13 @@ impl<G> EdgeSet for Transpose<G>
 where
     G: EdgeSet,
 {
-    type EdgesByIdIter<'a> = G::EdgesByIdIter<'a>
+    type EdgesByIdIter<'a>
+        = G::EdgesByIdIter<'a>
     where
         Self: 'a;
 
-    type EdgeIdIter<'a> = G::EdgeIdIter<'a>
+    type EdgeIdIter<'a>
+        = G::EdgeIdIter<'a>
     where
         Self: 'a;
 
@@ -110,22 +114,26 @@ impl<V, E, G> GraphRef<V, E> for Transpose<G>
 where
     G: GraphRef<V, E>,
 {
-    type VertexRef<'a> = G::VertexRef<'a>
+    type VertexRef<'a>
+        = G::VertexRef<'a>
     where
         Self: 'a,
         V: 'a;
 
-    type VerticesIter<'a> = G::VerticesIter<'a>
+    type VerticesIter<'a>
+        = G::VerticesIter<'a>
     where
         Self: 'a,
         V: 'a;
 
-    type EdgeRef<'a> = TransposeRef<G::EdgeRef<'a>>
+    type EdgeRef<'a>
+        = TransposeRef<G::EdgeRef<'a>>
     where
         Self: 'a,
         E: 'a;
 
-    type EdgesIter<'a> = Iter<G::EdgesIter<'a>>
+    type EdgesIter<'a>
+        = Iter<G::EdgesIter<'a>>
     where
         Self: 'a,
         E: 'a;

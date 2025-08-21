@@ -69,11 +69,13 @@ where
     G: Neighbors + VertexSet,
     G::EdgeId: IntegerIdType,
 {
-    type NeighborRef<'a> = NeighborRef<G::VertexId, G::EdgeId>
+    type NeighborRef<'a>
+        = NeighborRef<G::VertexId, G::EdgeId>
     where
         Self: 'a;
 
-    type NeighborsIter<'a> = NeighborsIter<'a, G>
+    type NeighborsIter<'a>
+        = NeighborsIter<'a, G>
     where
         Self: 'a;
 

@@ -55,7 +55,8 @@ impl GraphBase for Collatz {
 impl Neighbors for Collatz {
     type NeighborRef<'a> = Neighbor;
 
-    type NeighborsIter<'a> = iter::Once<Self::NeighborRef<'a>>
+    type NeighborsIter<'a>
+        = iter::Once<Self::NeighborRef<'a>>
     where
         Self: 'a;
 

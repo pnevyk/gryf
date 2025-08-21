@@ -192,7 +192,8 @@ impl<V, E, Ty: EdgeType> GraphBase for Model<V, E, Ty> {
 }
 
 impl<V, E, Ty: EdgeType> VertexSet for Model<V, E, Ty> {
-    type VerticesByIdIter<'a> = IdIter<'a, VertexId, V>
+    type VerticesByIdIter<'a>
+        = IdIter<'a, VertexId, V>
     where
         Self: 'a;
 
@@ -214,11 +215,13 @@ impl<V, E, Ty: EdgeType> VertexSet for Model<V, E, Ty> {
 }
 
 impl<V, E, Ty: EdgeType> EdgeSet for Model<V, E, Ty> {
-    type EdgesByIdIter<'a> = IdIter<'a, EdgeId, E>
+    type EdgesByIdIter<'a>
+        = IdIter<'a, EdgeId, E>
     where
         Self: 'a;
 
-    type EdgeIdIter<'a> = EdgeIdIter<'a, Ty>
+    type EdgeIdIter<'a>
+        = EdgeIdIter<'a, Ty>
     where
         Self: 'a;
 
@@ -250,25 +253,29 @@ impl<V, E, Ty: EdgeType> EdgeSet for Model<V, E, Ty> {
 }
 
 impl<V, E, Ty: EdgeType> GraphRef<V, E> for Model<V, E, Ty> {
-    type VertexRef<'a> = VertexRef<'a, VertexId, V>
+    type VertexRef<'a>
+        = VertexRef<'a, VertexId, V>
     where
         Self: 'a,
         V: 'a;
 
-    type VerticesIter<'a> = VerticesIter<'a, V>
+    type VerticesIter<'a>
+        = VerticesIter<'a, V>
     where
         Self: 'a,
         V: 'a;
 
-    type EdgeRef<'a> = EdgeRef<'a, Self::VertexId, Self::EdgeId, E>
-        where
-            Self: 'a,
-            E: 'a;
+    type EdgeRef<'a>
+        = EdgeRef<'a, Self::VertexId, Self::EdgeId, E>
+    where
+        Self: 'a,
+        E: 'a;
 
-    type EdgesIter<'a> = EdgesIter<'a, E>
-        where
-            Self: 'a,
-            E: 'a;
+    type EdgesIter<'a>
+        = EdgesIter<'a, E>
+    where
+        Self: 'a,
+        E: 'a;
 
     fn vertices(&self) -> Self::VerticesIter<'_> {
         VerticesIter::new(&self.vertices)
@@ -412,11 +419,13 @@ impl<V, E, Ty: EdgeType> GraphFull<V, E> for Model<V, E, Ty> {
 }
 
 impl<V, E, Ty: EdgeType> Neighbors for Model<V, E, Ty> {
-    type NeighborRef<'a> = NeighborRef<VertexId, EdgeId>
+    type NeighborRef<'a>
+        = NeighborRef<VertexId, EdgeId>
     where
         Self: 'a;
 
-    type NeighborsIter<'a> = NeighborsIter<'a, Ty>
+    type NeighborsIter<'a>
+        = NeighborsIter<'a, Ty>
     where
         Self: 'a;
 

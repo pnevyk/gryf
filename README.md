@@ -6,13 +6,8 @@
 
 </div>
 
-**Status:** The library is not released on crates.io yet. It is incomplete,
-lacks documentation and contains bugs. Breaking changes are expected. Design
-contributions are very welcome!
-
-```toml
-gryf = { git = "https://github.com/pnevyk/gryf.git" }
-```
+**Status:** This library is experimental. It is incomplete and contains bugs.
+Breaking changes are expected. Design contributions are very welcome!
 
 ## Example
 

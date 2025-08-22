@@ -83,3 +83,36 @@ jobs:
       - run: cargo test
       - run: cargo test proptest_ -- --ignored
         if: matrix.rust == 'stable'
+
+  commits:
+    name: Check commits
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo install convco cargo-semver-checks cargo-edit
+
+      # Only the latest commit only by default
+      - name: Get base commit
+        run: echo "COMMIT_BASE=${{ github.sha }}^" >> $GITHUB_ENV
+
+      # Commits in the pull request
+      - name: Update base commit
+        if: github.event_name == 'pull_request'
+        run: echo "COMMIT_BASE=${{ github.event.pull_request.base.sha }}" >> $GITHUB_ENV
+
+      # Commits since last push
+      - name: Update base commit
+        if: github.event_name == 'push' && !github.event.forced
+        run: echo "COMMIT_BASE=${{ github.event.before }}" >> $GITHUB_ENV
+
+      - name: Lint commits
+        id: lint-commits
+        run: convco check $COMMIT_BASE..HEAD
+
+      - name: Check API breakage
+        run: |
+          cargo set-version "$(convco version --bump)"
+          cargo semver-checks --baseline-rev $COMMIT_BASE

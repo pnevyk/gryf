@@ -4,6 +4,11 @@
 
 > Graph data structure library aspiring to be convenient, versatile, correct and performant.
 
+[![Cargo](https://img.shields.io/crates/v/gryf.svg)](https://crates.io/crates/gryf)
+[![License](https://img.shields.io/badge/license-MIT_OR_Unlicense-blue.svg)](https://github.com/pnevyk/gryf)
+[![Lint and test](https://github.com/pnevyk/gryf/actions/workflows/main.yml/badge.svg)](https://github.com/pnevyk/gryf/actions/workflows/main.yml)
+[![Documentation](https://docs.rs/gryf/badge.svg)](https://docs.rs/gryf)
+
 </div>
 
 **Status:** This library is experimental. It is incomplete and contains bugs.

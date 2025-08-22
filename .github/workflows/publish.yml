@@ -1,3 +1,5 @@
+name: Publish
+
 on:
   push:
     tags:
@@ -13,6 +15,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo test
       - uses: obi1kenobi/cargo-semver-checks-action@v2
-      - run: cargo publish --workspace
+      - run: |
+          cargo publish --package gryf-derive
+          cargo publish --package gryf
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}

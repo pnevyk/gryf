@@ -159,10 +159,7 @@ where
         !self.removed_vertices.contains(id) && self.inner.contains_vertex(id)
     }
 
-    fn vertex_id_map(&self) -> CompactIdMap<Self::VertexId>
-    where
-        Self::VertexId: IntegerIdType,
-    {
+    fn vertex_id_map(&self) -> CompactIdMap<Self::VertexId> {
         if self.removed_vertices.is_empty() {
             self.inner.vertex_id_map()
         } else {
@@ -225,10 +222,7 @@ where
         !self.removed_edges.contains(id) && self.inner.contains_edge(id)
     }
 
-    fn edge_id_map(&self) -> CompactIdMap<Self::EdgeId>
-    where
-        Self::EdgeId: IntegerIdType,
-    {
+    fn edge_id_map(&self) -> CompactIdMap<Self::EdgeId> {
         if self.removed_edges.is_empty() {
             self.inner.edge_id_map()
         } else {

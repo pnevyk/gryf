@@ -179,10 +179,7 @@ where
         self.vertices.get(id.as_usize()).is_some()
     }
 
-    fn vertex_id_map(&self) -> CompactIdMap<Self::VertexId>
-    where
-        Self::VertexId: IntegerIdType,
-    {
+    fn vertex_id_map(&self) -> CompactIdMap<Self::VertexId> {
         CompactIdMap::isomorphic(self.vertices.len())
     }
 }
@@ -236,10 +233,7 @@ where
         self.edges.get(id.as_usize()).is_some()
     }
 
-    fn edge_id_map(&self) -> CompactIdMap<Self::EdgeId>
-    where
-        Self::EdgeId: IntegerIdType,
-    {
+    fn edge_id_map(&self) -> CompactIdMap<Self::EdgeId> {
         CompactIdMap::isomorphic(self.edges.len())
     }
 }

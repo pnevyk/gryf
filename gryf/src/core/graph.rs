@@ -138,10 +138,7 @@ pub trait VertexSet: GraphBase {
     }
 
     #[doc = include_str!("../../docs/include/vertex_set.vertex_id_map.md")]
-    fn vertex_id_map(&self) -> CompactIdMap<Self::VertexId>
-    where
-        Self::VertexId: IntegerIdType,
-    {
+    fn vertex_id_map(&self) -> CompactIdMap<Self::VertexId> {
         // Should be overridden to use `isomorphic` whenever possible.
         CompactIdMap::new(self.vertices_by_id())
     }
@@ -203,10 +200,7 @@ pub trait EdgeSet: GraphBase {
     }
 
     #[doc = include_str!("../../docs/include/edge_set.edge_id_map.md")]
-    fn edge_id_map(&self) -> CompactIdMap<Self::EdgeId>
-    where
-        Self::EdgeId: IntegerIdType,
-    {
+    fn edge_id_map(&self) -> CompactIdMap<Self::EdgeId> {
         // Should be overridden to use `isomorphic` whenever possible.
         CompactIdMap::new(self.edges_by_id())
     }
@@ -575,10 +569,7 @@ mod imp {
                     (**self).contains_vertex(id)
                 }
 
-                fn vertex_id_map(&self) -> CompactIdMap<Self::VertexId>
-                where
-                    Self::VertexId: IntegerIdType,
-                {
+                fn vertex_id_map(&self) -> CompactIdMap<Self::VertexId> {
                     (**self).vertex_id_map()
                 }
             }
@@ -637,10 +628,7 @@ mod imp {
                     (**self).edge_id_any(from, to)
                 }
 
-                fn edge_id_map(&self) -> CompactIdMap<Self::EdgeId>
-                where
-                    Self::EdgeId: IntegerIdType,
-                {
+                fn edge_id_map(&self) -> CompactIdMap<Self::EdgeId> {
                     (**self).edge_id_map()
                 }
             }

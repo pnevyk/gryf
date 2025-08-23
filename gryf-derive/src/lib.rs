@@ -133,10 +133,7 @@ pub fn vertex_set(tokens: TokenStream) -> TokenStream {
                 <#field_type as #gryf::core::VertexSet>::contains_vertex(&self.#field_name, id)
             }
 
-            fn vertex_id_map(&self) -> #gryf::core::id::CompactIdMap<Self::VertexId>
-            where
-                Self::VertexId: #gryf::core::id::IntegerIdType
-            {
+            fn vertex_id_map(&self) -> #gryf::core::id::CompactIdMap<Self::VertexId> {
                 <#field_type as #gryf::core::VertexSet>::vertex_id_map(&self.#field_name)
             }
         }
@@ -208,10 +205,7 @@ pub fn edge_set(tokens: TokenStream) -> TokenStream {
                 <#field_type as #gryf::core::EdgeSet>::edge_id_any(&self.#field_name, from, to)
             }
 
-            fn edge_id_map(&self) -> #gryf::core::id::CompactIdMap<Self::EdgeId>
-            where
-                Self::EdgeId: #gryf::core::id::IntegerIdType
-            {
+            fn edge_id_map(&self) -> #gryf::core::id::CompactIdMap<Self::EdgeId> {
                 <#field_type as #gryf::core::EdgeSet>::edge_id_map(&self.#field_name)
             }
         }

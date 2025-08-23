@@ -2,7 +2,6 @@ use std::marker::PhantomData;
 
 use crate::core::{
     GraphBase, GraphRef, GraphWeak, Neighbors,
-    id::IntegerIdType,
     weight::{self, GetWeight, IsConstWeight, Weight},
 };
 
@@ -140,7 +139,6 @@ where
     pub fn bellman_ford<V, E>(self) -> ShortestPathsBuilder<'a, W, G, F, algo::BellmanFord>
     where
         G: GraphRef<V, E>,
-        G::VertexId: IntegerIdType,
     {
         ShortestPathsBuilder {
             graph: self.graph,
@@ -173,7 +171,6 @@ where
     pub fn using<V, E>(self, algo: Algo) -> ShortestPathsBuilder<'a, W, G, F, algo::SpecificAlgo>
     where
         G: Neighbors + GraphRef<V, E>,
-        G::VertexId: IntegerIdType,
     {
         ShortestPathsBuilder {
             graph: self.graph,
@@ -191,7 +188,6 @@ where
     ) -> ShortestPathsBuilder<'a, W, G, F, algo::SpecificAlgo>
     where
         G: Neighbors + GraphRef<V, E>,
-        G::VertexId: IntegerIdType,
     {
         ShortestPathsBuilder {
             graph: self.graph,
@@ -211,7 +207,6 @@ where
     pub fn run<V, E>(self, source: G::VertexId) -> Result<ShortestPaths<W, G>, Error>
     where
         G: Neighbors + GraphRef<V, E>,
-        G::VertexId: IntegerIdType,
         F: GetWeight<E, W>,
         W: Weight,
     {
@@ -261,7 +256,6 @@ where
     pub fn run<V, E>(self, source: G::VertexId) -> Result<ShortestPaths<W, G>, Error>
     where
         G: GraphRef<V, E>,
-        G::VertexId: IntegerIdType,
         F: GetWeight<E, W>,
         W: Weight,
     {
@@ -305,7 +299,6 @@ where
     pub fn run<V, E>(self, source: G::VertexId) -> Result<ShortestPaths<W, G>, Error>
     where
         G: Neighbors + GraphRef<V, E>,
-        G::VertexId: IntegerIdType,
         F: GetWeight<E, W>,
         W: Weight,
     {
@@ -336,7 +329,6 @@ where
     fn choose_algo<V, E>(&self) -> AlgoExt
     where
         G: Neighbors + GraphRef<V, E>,
-        G::VertexId: IntegerIdType,
         F: GetWeight<E, W>,
         W: Weight,
     {

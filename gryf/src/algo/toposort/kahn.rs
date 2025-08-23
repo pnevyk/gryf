@@ -3,7 +3,7 @@ use crate::{
     core::{
         GraphBase, Neighbors, VertexSet,
         base::NeighborReference,
-        id::{CompactIdMap, IdType, IntegerIdType, Virtual},
+        id::{CompactIdMap, IdType, Virtual},
         marker::Direction,
     },
 };
@@ -13,7 +13,6 @@ use super::Error;
 pub fn kahn<'a, G>(graph: &'a G) -> KahnIter<'a, G>
 where
     G: Neighbors + VertexSet + 'a,
-    G::VertexId: IntegerIdType,
 {
     let map = graph.vertex_id_map();
     let mut in_deg = Vec::with_capacity(map.len());
@@ -55,7 +54,6 @@ where
 impl<'a, G> Iterator for KahnIter<'a, G>
 where
     G: Neighbors,
-    G::VertexId: IntegerIdType,
 {
     type Item = Result<G::VertexId, Error<G>>;
 
@@ -64,12 +62,12 @@ where
             self.visited += 1;
 
             for n in self.graph.neighbors_directed(&vertex, Direction::Outgoing) {
-                let i = self.map.to_virt(*n.id()).unwrap().as_usize();
+                let i = self.map.to_virt(n.id().into_owned()).unwrap().as_usize();
                 let deg = &mut self.in_deg[i];
                 *deg -= 1;
 
                 if *deg == 0 {
-                    self.queue.push(*n.id());
+                    self.queue.push(n.id().into_owned());
                 }
             }
 
@@ -101,7 +99,7 @@ where
                     .graph
                     .neighbors_directed(&v, Direction::Incoming)
                     .find_map(|n| {
-                        let i = self.map.to_virt(*n.id()).unwrap().as_usize();
+                        let i = self.map.to_virt(n.id().into_owned()).unwrap().as_usize();
                         if self.in_deg[i] > 0 {
                             Some(n.edge().into_owned())
                         } else {

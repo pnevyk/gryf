@@ -48,7 +48,7 @@ use std::fmt;
 use thiserror::Error;
 
 use crate::{
-    core::{GraphBase, Neighbors, VertexSet, id::IntegerIdType, marker::Directed},
+    core::{GraphBase, Neighbors, VertexSet, marker::Directed},
     visit,
 };
 
@@ -80,7 +80,6 @@ where
 impl<'a, G> Iterator for TopoSort<'a, G>
 where
     G: GraphBase<EdgeType = Directed> + Neighbors + VertexSet,
-    G::VertexId: IntegerIdType,
 {
     type Item = Result<G::VertexId, Error<G>>;
 
@@ -92,7 +91,6 @@ where
 impl<'a, G> TopoSort<'a, G>
 where
     G: GraphBase<EdgeType = Directed> + Neighbors + VertexSet,
-    G::VertexId: IntegerIdType,
 {
     /// Returns the topologically sorted collection of vertices as [`Vec`],
     /// `Err` if a cycle is detected.
@@ -214,7 +212,6 @@ where
 impl<'a, G> Iterator for TopoSortInner<'a, G>
 where
     G: GraphBase<EdgeType = Directed> + Neighbors + VertexSet,
-    G::VertexId: IntegerIdType,
 {
     type Item = Result<G::VertexId, Error<G>>;
 
@@ -245,7 +242,6 @@ mod tests {
     fn assert_valid<'a, G>(toposort: TopoSort<'a, G>, graph: &'a G)
     where
         G: GraphBase<EdgeType = Directed> + Neighbors + VertexSet + EdgeSet,
-        G::VertexId: IntegerIdType,
     {
         let sorted = toposort.collect::<Result<Vec<_>, _>>();
 
@@ -270,7 +266,7 @@ mod tests {
             (Ok(sorted), None) => {
                 let map = sorted
                     .iter()
-                    .copied()
+                    .cloned()
                     .enumerate()
                     .map(|(k, v)| (v, k))
                     .collect::<HashMap<_, _>>();

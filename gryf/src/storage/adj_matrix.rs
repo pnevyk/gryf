@@ -151,10 +151,7 @@ where
         self.vertices.get(id.as_usize()).is_some()
     }
 
-    fn vertex_id_map(&self) -> CompactIdMap<Self::VertexId>
-    where
-        Self::VertexId: IntegerIdType,
-    {
+    fn vertex_id_map(&self) -> CompactIdMap<Self::VertexId> {
         CompactIdMap::isomorphic(self.vertices.len())
     }
 }

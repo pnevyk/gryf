@@ -1,5 +1,5 @@
 use crate::{
-    core::{GraphBase, Neighbors, VertexSet, id::IntegerIdType, marker::Directed},
+    core::{GraphBase, Neighbors, VertexSet, marker::Directed},
     visit::Visitor,
 };
 
@@ -45,7 +45,6 @@ impl<'a, G, A> TopoSortBuilder<'a, G, A> {
     pub fn kahn(self) -> TopoSortBuilder<'a, G, algo::Kahn>
     where
         G: GraphBase,
-        G::VertexId: IntegerIdType,
     {
         TopoSortBuilder {
             graph: self.graph,
@@ -57,7 +56,6 @@ impl<'a, G, A> TopoSortBuilder<'a, G, A> {
     pub fn using(self, algo: Algo) -> TopoSortBuilder<'a, G, algo::SpecificAlgo>
     where
         G: GraphBase,
-        G::VertexId: IntegerIdType,
     {
         TopoSortBuilder {
             graph: self.graph,
@@ -69,7 +67,6 @@ impl<'a, G, A> TopoSortBuilder<'a, G, A> {
     pub fn using_opt(self, algo: Option<Algo>) -> TopoSortBuilder<'a, G, algo::SpecificAlgo>
     where
         G: GraphBase,
-        G::VertexId: IntegerIdType,
     {
         TopoSortBuilder {
             graph: self.graph,
@@ -86,7 +83,6 @@ where
     pub fn run(self) -> TopoSort<'a, G>
     where
         G: Neighbors,
-        G::VertexId: IntegerIdType,
     {
         TopoSort {
             inner: TopoSortInner::Kahn(kahn(self.graph)),
@@ -112,7 +108,6 @@ where
     pub fn run(self) -> TopoSort<'a, G>
     where
         G: Neighbors,
-        G::VertexId: IntegerIdType,
     {
         TopoSort {
             inner: TopoSortInner::Kahn(kahn(self.graph)),
@@ -128,7 +123,6 @@ where
     pub fn run(self) -> TopoSort<'a, G>
     where
         G: Neighbors,
-        G::VertexId: IntegerIdType,
     {
         let inner = match self.algo.0 {
             Some(Algo::Dfs) | None => {

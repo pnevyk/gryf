@@ -3,7 +3,7 @@ use crate::{
     core::{
         GraphRef,
         base::EdgeReference,
-        id::{CompactIdMap, IdType, IntegerIdType, Virtual},
+        id::{CompactIdMap, IdType, Virtual},
         weight::{GetWeight, Weight},
     },
 };
@@ -18,7 +18,6 @@ pub fn bellman_ford<V, E, G, W, F>(
 ) -> Result<ShortestPaths<W, G>, Error>
 where
     G: GraphRef<V, E>,
-    G::VertexId: IntegerIdType,
     W: Weight,
     F: GetWeight<E, W>,
 {
@@ -27,7 +26,7 @@ where
     let mut dist = vec![W::inf(); vertex_map.len()];
     let mut pred = vec![Virtual::sentinel(); vertex_map.len()];
 
-    dist[vertex_map.to_virt(source).unwrap().as_usize()] = W::zero();
+    dist[vertex_map.to_virt(source.clone()).unwrap().as_usize()] = W::zero();
 
     let mut terminated_early = false;
 
@@ -126,20 +125,20 @@ fn process_edge<VI, EI, ER, E, W, F>(
     dist: &[W],
 ) -> Option<(W, Virtual<VI>, Virtual<VI>)>
 where
-    VI: IntegerIdType,
+    VI: IdType,
     EI: IdType,
     ER: EdgeReference<VI, EI, E>,
     W: Weight,
     F: GetWeight<E, W>,
 {
-    let u = vertex_map.to_virt(*edge.from()).unwrap();
+    let u = vertex_map.to_virt(edge.from().clone()).unwrap();
 
     let short_dist = &dist[u.as_usize()];
     if short_dist == &W::inf() {
         return None;
     }
 
-    let v = vertex_map.to_virt(*edge.to()).unwrap();
+    let v = vertex_map.to_virt(edge.to().clone()).unwrap();
 
     let edge_dist = edge_weight.get(edge.attr());
     let next_dist = short_dist.clone() + edge_dist;

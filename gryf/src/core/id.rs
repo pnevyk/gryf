@@ -205,25 +205,25 @@ impl<I: IdType> IdType for Virtual<I> {
     }
 }
 
-impl<I: IntegerIdType> From<usize> for Virtual<I> {
+impl<I: IdType> From<usize> for Virtual<I> {
     fn from(index: usize) -> Self {
         Self::from_usize(index)
     }
 }
 
-impl<I: IntegerIdType> From<Virtual<I>> for usize {
+impl<I: IdType> From<Virtual<I>> for usize {
     fn from(id: Virtual<I>) -> Self {
         id.as_usize()
     }
 }
 
-impl<I: IntegerIdType> From<u64> for Virtual<I> {
+impl<I: IdType> From<u64> for Virtual<I> {
     fn from(bits: u64) -> Self {
         Self::from_bits(bits)
     }
 }
 
-impl<I: IntegerIdType> From<Virtual<I>> for u64 {
+impl<I: IdType> From<Virtual<I>> for u64 {
     fn from(id: Virtual<I>) -> Self {
         id.as_bits()
     }

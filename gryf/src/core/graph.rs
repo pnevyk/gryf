@@ -264,8 +264,9 @@ pub trait GraphRef<V, E>: VertexSet + EdgeSet {
 /// Trait for read-only access to graph attributes of potentially [implicit]
 /// graphs.
 ///
-/// This trait should be preferred over [`GraphRef`] whenever possible, because
-/// it allows accepting a wider spectrum of graphs, including implicit ones.
+/// In algorithms, this trait should be preferred over [`GraphRef`] whenever
+/// possible, because it allows accepting a wider spectrum of graphs, including
+/// implicit ones.
 ///
 /// [implicit]: https://en.wikipedia.org/wiki/Implicit_graph
 ///

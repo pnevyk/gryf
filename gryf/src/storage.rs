@@ -38,17 +38,27 @@
 //! * _E_ – edge count
 //! * _d_ – vertex degree
 //! * _O*(..)_ – amortized complexity
+//!
+//! # Implicit graphs
+//!
+//! The [`implicit`] module provides a wrapper over a function returning
+//! neighbors of a vertex that implements traits that enable to use it with
+//! algorithms that do not require graph finiteness.
 
 pub mod adj_list;
 pub mod adj_matrix;
 pub mod edge_list;
+pub mod implicit;
 mod shared;
 pub mod stable;
 
 #[doc(hidden)]
 pub mod frozen;
 #[doc(inline)]
-pub use self::{adj_list::AdjList, adj_matrix::AdjMatrix, edge_list::EdgeList, stable::Stable};
+pub use self::{
+    adj_list::AdjList, adj_matrix::AdjMatrix, edge_list::EdgeList, implicit::Implicit,
+    stable::Stable,
+};
 
 #[doc(hidden)]
 pub use frozen::Frozen;

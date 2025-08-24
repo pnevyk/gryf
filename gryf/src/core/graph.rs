@@ -278,10 +278,10 @@ pub trait GraphRef<V, E>: VertexSet + EdgeSet {
 /// # Implementation notes
 pub trait GraphWeak<V, E>: GraphBase {
     #[doc = include_str!("../../docs/include/graph_weak.vertex_weak.md")]
-    fn vertex_weak(&self, id: &Self::VertexId) -> Option<OwnableRef<'_, V>>;
+    fn vertex_weak<'a>(&'a self, id: &'a Self::VertexId) -> Option<OwnableRef<'a, V>>;
 
     #[doc = include_str!("../../docs/include/graph_weak.edge_weak.md")]
-    fn edge_weak(&self, id: &Self::EdgeId) -> Option<OwnableRef<'_, E>>;
+    fn edge_weak<'a>(&'a self, id: &'a Self::EdgeId) -> Option<OwnableRef<'a, E>>;
 }
 
 /// Trait for mutable access to graph attributes.
@@ -477,11 +477,11 @@ mod imp {
     where
         G: GraphRef<V, E>,
     {
-        fn vertex_weak(&self, id: &Self::VertexId) -> Option<OwnableRef<'_, V>> {
+        fn vertex_weak<'a>(&'a self, id: &'a Self::VertexId) -> Option<OwnableRef<'a, V>> {
             self.vertex(id).map(OwnableRef::Borrowed)
         }
 
-        fn edge_weak(&self, id: &Self::EdgeId) -> Option<OwnableRef<'_, E>> {
+        fn edge_weak<'a>(&'a self, id: &'a Self::EdgeId) -> Option<OwnableRef<'a, E>> {
             self.edge(id).map(OwnableRef::Borrowed)
         }
     }

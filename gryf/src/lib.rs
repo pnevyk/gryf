@@ -211,6 +211,16 @@
 //!
 //! [design document]: https://github.com/pnevyk/gryf/blob/main/DESIGN.md
 //!
+//! # Implicit graphs
+//!
+//! Gryf has a decent support for [implicit
+//! graphs](https://en.wikipedia.org/wiki/Implicit_graph). Some algorithms
+//! support (custom) graph types that implement only
+//! [`Neighbors`](crate::core::Neighbors) and
+//! [`GraphWeak`](crate::core::GraphWeak). There is also the
+//! [`implicit`](crate::storage::implicit) module that provides a wrapper over a
+//! function returning neighbors of a vertex that implements mentioned traits.
+//!
 //! # Comparison with alternatives
 //!
 //! Check the [rusty graphs](https://github.com/pnevyk/rusty-graphs) repository

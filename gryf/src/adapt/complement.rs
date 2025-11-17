@@ -1,3 +1,9 @@
+//! The [complement] of an undirected graph, that is, a graph with the same
+//! vertices but they are connected if and only if they were not connected in
+//! the original graph.
+//!
+//! [complement]: https://en.wikipedia.org/wiki/Complement_graph
+
 use rustc_hash::FxHashSet;
 
 use crate::core::{
@@ -5,12 +11,46 @@ use crate::core::{
     base::{NeighborRef, NeighborReference},
     borrow::OwnableRef,
     facts,
-    id::{IdType, IntegerIdType},
+    id::{AsIdRef, IdType, IntegerIdType},
     marker::{Direction, Undirected},
 };
 
 use gryf_derive::{GraphBase, VertexSet};
 
+/// The [complement] of an undirected graph, that is, a graph with the same
+/// vertices but they are connected if and only if they were not connected in
+/// the original graph.
+///
+/// [complement]: https://en.wikipedia.org/wiki/Complement_graph
+///
+/// # Examples
+///
+/// ```
+/// use gryf::{Graph, adapt::Complement, core::Neighbors};
+///
+/// let mut graph = Graph::new_undirected();
+///
+/// let v0 = graph.add_vertex(());
+/// let v1 = graph.add_vertex(());
+/// let v2 = graph.add_vertex(());
+///
+/// graph.add_edge(&v0, &v1, "original");
+///
+/// assert_eq!(graph.edge_count(), 1);
+///
+/// let neighbor = graph.neighbors_undirected(&v0).next().unwrap();
+/// assert_eq!(neighbor.id, v1);
+/// assert_eq!(graph.edge(&neighbor.edge), Some(&"original"));
+///
+/// // Create graph complement.
+/// let complement = Complement::new(graph, "complement");
+///
+/// assert_eq!(complement.edge_count(), 2);
+///
+/// let neighbor = complement.neighbors_undirected(&v0).next().unwrap();
+/// assert_eq!(neighbor.id, v2);
+/// assert_eq!(complement.edge(&neighbor.edge), Some(&"complement"));
+/// ```
 #[derive(Debug, GraphBase, VertexSet)]
 #[gryf_crate]
 pub struct Complement<E, G> {
@@ -23,19 +63,36 @@ impl<E, G> Complement<E, G>
 where
     G: GraphBase<EdgeType = Undirected> + VertexSet + EdgeSet,
 {
+    /// Creates a complement of the given graph, using `edge` value for all
+    /// complement edges.
     pub fn new(graph: G, edge: E) -> Self {
         Self { graph, edge }
     }
 
+    /// Consumes the adapter and returns the wrapped graph.
     pub fn into_inner(self) -> G {
         self.graph
     }
 
+    #[doc = include_str!("../../docs/include/edge_set.edge_count.md")]
     pub fn edge_count(&self) -> usize {
         facts::complete_graph_edge_count::<Undirected>(self.graph.vertex_count())
             - self.graph.edge_count()
     }
 
+    #[doc = include_str!("../../docs/include/graph_ref.edge.md")]
+    pub fn edge<EI>(&self, id: EI) -> Option<&E>
+    where
+        EI: AsIdRef<G::EdgeId>,
+    {
+        if id.as_id().is_sentinel() {
+            Some(&self.edge)
+        } else {
+            None
+        }
+    }
+
+    #[doc(hidden)]
     pub fn apply<V>(self) -> G
     where
         G: GraphFull<V, E>,

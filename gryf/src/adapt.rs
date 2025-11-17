@@ -1,20 +1,15 @@
 //! Various graph adapters.
 
-#[doc(hidden)]
 pub mod complement;
-#[doc(hidden)]
+pub mod subgraph;
 pub mod transpose;
-#[doc(hidden)]
 pub mod undirect;
 
-pub mod subgraph;
-
-#[doc(hidden)]
+#[doc(inline)]
 pub use complement::Complement;
-#[doc(hidden)]
-pub use transpose::Transpose;
-#[doc(hidden)]
-pub use undirect::Undirect;
-
 #[doc(inline)]
 pub use subgraph::Subgraph;
+#[doc(inline)]
+pub use transpose::Transpose;
+#[doc(inline)]
+pub use undirect::Undirect;

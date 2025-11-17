@@ -1,3 +1,8 @@
+//! The [transpose] of a directed graph, that is, the same graph but with
+//! orientation of edges reversed.
+//!
+//! [transpose]: https://en.wikipedia.org/wiki/Transpose_graph
+
 use crate::core::{
     EdgeSet, GraphBase, GraphFull, GraphRef, Neighbors,
     base::{EdgeReference, NeighborReference},
@@ -9,6 +14,10 @@ use crate::core::{
 
 use gryf_derive::{GraphBase, GraphMut, Guarantee, VertexSet};
 
+/// The [transpose] of a directed graph, that is, the same graph but with
+/// orientation of edges reversed.
+///
+/// [transpose]: https://en.wikipedia.org/wiki/Transpose_graph
 #[derive(Debug, GraphBase, VertexSet, GraphMut, Guarantee)]
 #[gryf_crate]
 pub struct Transpose<G> {
@@ -20,14 +29,17 @@ impl<G> Transpose<G>
 where
     G: GraphBase<EdgeType = Directed>,
 {
+    /// Creates a transpose of the given graph.
     pub fn new(graph: G) -> Self {
         Self { graph }
     }
 
+    /// Consumes the adapter and returns the wrapped graph.
     pub fn into_inner(self) -> G {
         self.graph
     }
 
+    #[doc(hidden)]
     pub fn apply<V, E, S: Stability>(self) -> G
     where
         G: GraphFull<V, E> + StableId<G::EdgeId, S>,

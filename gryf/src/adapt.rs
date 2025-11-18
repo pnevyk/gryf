@@ -1,5 +1,6 @@
 //! Various graph adapters.
 
+pub mod cast;
 pub mod complement;
 pub mod subgraph;
 pub mod transpose;

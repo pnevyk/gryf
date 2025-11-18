@@ -18,6 +18,7 @@
 //!     https://rust-unofficial.github.io/patterns/patterns/creational/builder.html
 
 pub mod connected;
+pub mod connected_components;
 pub mod cycle;
 pub mod shortest_paths;
 pub mod toposort;

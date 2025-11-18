@@ -2,6 +2,11 @@
 //!
 //! See available parameters [here](ConnectedBuilder#implementations).
 //!
+//! For directed graphs, the default behavior is weak connectivity, that is, the
+//! connectivity is checked as if the graph was undirected. To determine
+//! **strong connectivity**, see [ConnectedBuilder::strong] or
+//! [is_strongly_connected].
+//!
 //! [connected]: https://en.wikipedia.org/wiki/Connectivity_(graph_theory)
 //!
 //! # Examples
@@ -26,7 +31,7 @@
 //! assert!(is_connected(&graph));
 //! ```
 
-use crate::core::{GraphBase, Neighbors, VertexSet};
+use crate::core::{GraphBase, Neighbors, VertexSet, marker::Directed};
 
 mod builder;
 mod dfs;
@@ -41,7 +46,7 @@ where
     G: GraphBase,
 {
     disconnected_any: Option<(G::VertexId, G::VertexId)>,
-    as_undirected: bool,
+    strong: bool,
 }
 
 impl<G> Connected<G>
@@ -58,20 +63,41 @@ where
     pub fn disconnected_any(&self) -> Option<(&G::VertexId, &G::VertexId)> {
         self.disconnected_any.as_ref().map(|(u, v)| (u, v))
     }
+}
 
-    /// Returns `true` if the connectivity was determined with the information
-    /// about edge directions ignored.
-    pub fn as_undirected(&self) -> bool {
-        self.as_undirected
+impl<G> Connected<G>
+where
+    G: GraphBase<EdgeType = Directed>,
+{
+    /// Returns `true` if the connectivity corresponds to strong connectivity.
+    pub fn strong(&self) -> bool {
+        self.strong
+    }
+
+    /// Returns `true` if the connectivity was determined with directionality of
+    /// the edges ignored.
+    pub fn weak(&self) -> bool {
+        !self.strong
     }
 }
 
 /// Returns `true` if the graph is connected.
+///
+/// Note that for directed graph, this function performs weak connectivity
+/// check. For strong connectivity, use [is_strongly_connected].
 pub fn is_connected<G>(graph: &G) -> bool
 where
     G: Neighbors + VertexSet,
 {
     Connected::on(graph).run().is()
+}
+
+/// Returns `true` if the graph is **strongly** connected.
+pub fn is_strongly_connected<G>(graph: &G) -> bool
+where
+    G: GraphBase<EdgeType = Directed> + Neighbors + VertexSet,
+{
+    Connected::on(graph).strong().run().is()
 }
 
 /// Returns `true` if there is a path between given vertices.
@@ -259,7 +285,7 @@ mod tests {
     }
 
     #[test]
-    fn disconnected_weakly_basic_directed() {
+    fn strongly_connected_basic_directed() {
         let mut graph = AdjList::<_, _, Directed, _>::default();
 
         let v0 = graph.add_vertex(());
@@ -267,11 +293,26 @@ mod tests {
         let v2 = graph.add_vertex(());
 
         graph.add_edge(&v0, &v1, ());
-        graph.add_edge(&v2, &v1, ());
+        graph.add_edge(&v1, &v2, ());
+        graph.add_edge(&v2, &v0, ());
 
-        let connected = Connected::on(&graph).run();
+        let connected = Connected::on(&graph).strong().run();
+        assert!(connected.is());
+    }
+
+    #[test]
+    fn strongly_disconnected_basic_directed() {
+        let mut graph = AdjList::<_, _, Directed, _>::default();
+
+        let v0 = graph.add_vertex(());
+        let v1 = graph.add_vertex(());
+        let v2 = graph.add_vertex(());
+
+        graph.add_edge(&v0, &v1, ());
+        graph.add_edge(&v1, &v2, ());
+
+        let connected = Connected::on(&graph).strong().run();
         assert!(!connected.is());
-        assert_eq!(connected.disconnected_any(), Some((&v0, &v2)));
     }
 
     #[test]
@@ -299,7 +340,7 @@ mod tests {
     }
 
     #[test]
-    fn connected_directed_as_undirected() {
+    fn connected_directed() {
         let mut graph = AdjList::<_, _, Directed, _>::default();
 
         let v0 = graph.add_vertex(());
@@ -309,9 +350,9 @@ mod tests {
         graph.add_edge(&v0, &v1, ());
         graph.add_edge(&v2, &v1, ());
 
-        let connected = Connected::on(&graph).as_undirected().run();
+        let connected = Connected::on(&graph).run();
         assert!(connected.is());
-        assert!(connected.as_undirected());
+        assert!(connected.weak());
     }
 
     #[test]

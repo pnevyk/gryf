@@ -1,8 +1,14 @@
-use rustc_hash::FxHashSet;
-
 use crate::{
-    core::{Neighbors, VertexSet, base::NeighborReference, marker::Direction},
-    visit::VisitSet,
+    adapt::{
+        Transpose, Undirect,
+        cast::{CastAsDirected, CastAsUndirected},
+    },
+    core::{
+        GraphBase, Neighbors, VertexSet,
+        id::IdType,
+        marker::{Directed, Undirected},
+    },
+    visit::{Dfs, VisitSet, Visitor},
 };
 
 use super::Connected;
@@ -10,136 +16,146 @@ use super::Connected;
 pub fn dfs<G>(
     graph: &G,
     between: Option<(&G::VertexId, &G::VertexId)>,
-    as_undirected: bool,
+    strong: bool,
 ) -> Connected<G>
 where
     G: Neighbors + VertexSet,
 {
-    let (start, goal) = match between {
-        Some((start, goal)) => {
-            if start == goal {
-                // A vertex is trivially connected with itself.
-                return Connected {
-                    disconnected_any: None,
-                    as_undirected,
-                };
-            } else {
-                (start.clone(), Some(goal))
-            }
-        }
-        None if graph.is_directed() && !as_undirected => match graph
-            .vertices_by_id()
-            // For directed graph, we can't start in any vertex, because then we
-            // might miss the predecessors of such vertex and incorrectly mark
-            // the graph as disconnected. Only if there is no vertex with in
-            // degree 0, it is safe to start in any vertex.
-            .find(|v| graph.degree_directed(v, Direction::Incoming) == 0)
-            .or_else(|| graph.vertices_by_id().next())
-        {
-            Some(v) => (v, None),
-            None => {
-                // Empty graph is trivially "connected".
-                return Connected {
-                    disconnected_any: None,
-                    as_undirected,
-                };
-            }
-        },
-        None => match graph.vertices_by_id().next() {
-            Some(v) => (v, None),
-            None => {
-                // Empty graph is trivially "connected".
-                return Connected {
-                    disconnected_any: None,
-                    as_undirected,
-                };
-            }
-        },
-    };
-
-    let mut visited = FxHashSet::default();
-    visited.reserve(graph.vertex_count());
-    let mut stack = vec![start.clone()];
-
-    match (goal, as_undirected) {
-        (None, false) => {
-            while let Some(v) = stack.pop() {
-                if visited.visit(v.clone()) {
-                    for n in graph.neighbors_directed(&v, Direction::Outgoing) {
-                        stack.push(n.id().into_owned());
-                    }
-                }
-            }
-        }
-        (None, true) => {
-            while let Some(v) = stack.pop() {
-                if visited.visit(v.clone()) {
-                    for n in graph.neighbors_undirected(&v) {
-                        stack.push(n.id().into_owned());
-                    }
-                }
-            }
-        }
-        (Some(goal), false) => {
-            while let Some(v) = stack.pop() {
-                if &v == goal {
-                    return Connected {
-                        disconnected_any: None,
-                        as_undirected,
-                    };
-                }
-
-                if visited.visit(v.clone()) {
-                    for n in graph.neighbors_directed(&v, Direction::Outgoing) {
-                        stack.push(n.id().into_owned());
-                    }
-                }
-            }
-        }
-        (Some(goal), true) => {
-            while let Some(v) = stack.pop() {
-                if &v == goal {
-                    return Connected {
-                        disconnected_any: None,
-                        as_undirected,
-                    };
-                }
-
-                if visited.visit(v.clone()) {
-                    for n in graph.neighbors_undirected(&v) {
-                        stack.push(n.id().into_owned());
-                    }
-                }
-            }
-        }
+    if let Some((start, goal)) = between
+        && start == goal
+    {
+        // A vertex is trivially connected with itself.
+        return Connected {
+            disconnected_any: None,
+            strong: false,
+        };
     }
 
-    if visited.visited_count() == graph.vertex_count() {
-        Connected {
-            disconnected_any: None,
-            as_undirected,
-        }
+    let disconnected_any = if graph.is_directed() {
+        dfs_directed(&CastAsDirected::new(graph), between, strong)
     } else {
-        if let Some(goal) = goal {
-            // If the goal was not visited, we can use it specifically for
-            // disconnected pair without looking for an arbitrary unvisited
-            // vertex.
-            if !visited.is_visited(goal) {
-                return Connected {
-                    disconnected_any: Some((start, goal.clone())),
-                    as_undirected,
-                };
+        dfs_undirected(&CastAsUndirected::new(graph), between)
+    };
+
+    Connected {
+        disconnected_any,
+        strong,
+    }
+}
+
+fn dfs_undirected<G, VI>(graph: &G, between: Option<(&VI, &VI)>) -> Option<(VI, VI)>
+where
+    VI: IdType,
+    G: GraphBase<EdgeType = Undirected, VertexId = VI> + Neighbors + VertexSet,
+{
+    let mut traversal = Dfs::new(&graph);
+
+    match between {
+        Some((start, goal)) => {
+            for vertex in traversal.start(start.clone()).into_iter(&graph) {
+                if &vertex == goal {
+                    return None;
+                }
             }
+
+            Some((start.clone(), goal.clone()))
         }
+        None => {
+            let Some(any_vertex) = graph.vertices_by_id().next() else {
+                // Empty graph trivially connected.
+                return None;
+            };
 
-        let v = graph
-            .vertices_by_id()
-            .find(|v| !visited.is_visited(v))
-            .expect("unvisited vertex");
+            for _ in traversal.start(any_vertex.clone()).into_iter(&graph) {}
 
-        Connected {
-            disconnected_any: Some((start, v)),
-            as_undirected,
+            if traversal.visited().visited_count() == graph.vertex_count() {
+                // Visited all vertices.
+                return None;
+            }
+
+            let other_vertex = graph
+                .vertices_by_id()
+                .find(|vertex| !traversal.visited().is_visited(vertex))
+                .unwrap();
+
+            Some((any_vertex, other_vertex))
+        }
+    }
+}
+
+fn dfs_directed<G, VI>(graph: &G, between: Option<(&VI, &VI)>, strong: bool) -> Option<(VI, VI)>
+where
+    VI: IdType,
+    G: GraphBase<EdgeType = Directed, VertexId = VI> + Neighbors + VertexSet,
+{
+    if !strong {
+        return dfs_undirected(&Undirect::new(graph), between);
+    }
+
+    let mut traversal = Dfs::new(graph);
+
+    match between {
+        Some((start, goal)) => {
+            let mut found = false;
+
+            for vertex in traversal.start(start.clone()).into_iter(graph) {
+                if &vertex == goal {
+                    found = true;
+                    break;
+                }
+            }
+
+            if !found {
+                return Some((start.clone(), goal.clone()));
+            }
+
+            // Backwards pass.
+            for vertex in traversal.start(goal.clone()).into_iter(graph) {
+                if &vertex == start {
+                    return None;
+                }
+            }
+
+            Some((start.clone(), goal.clone()))
+        }
+        None => {
+            let Some(any_vertex) = graph.vertices_by_id().next() else {
+                // Empty graph trivially connected.
+                return None;
+            };
+
+            for _ in traversal.start(any_vertex.clone()).into_iter(graph) {}
+
+            if traversal.visited().visited_count() != graph.vertex_count() {
+                let other_vertex = graph
+                    .vertices_by_id()
+                    .find(|vertex| !traversal.visited().is_visited(vertex))
+                    .unwrap();
+
+                return Some((any_vertex, other_vertex));
+            }
+
+            // Backwards pass.
+            let transpose = Transpose::new(graph);
+            let mut backwards = Dfs::new(&transpose);
+
+            for vertex in backwards.start(any_vertex.clone()).into_iter(&transpose) {
+                if !traversal.visited_mut().unvisit(&vertex) {
+                    return Some((any_vertex.clone(), vertex));
+                }
+            }
+
+            if traversal.visited().visited_count() == 0 {
+                // Visited all vertices.
+                None
+            } else {
+                let other_vertex = graph
+                    .vertices_by_id()
+                    .find(|vertex| !traversal.visited().is_visited(vertex))
+                    .unwrap();
+
+                Some((any_vertex, other_vertex))
+            }
         }
     }
 }

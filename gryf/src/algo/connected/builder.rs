@@ -1,4 +1,4 @@
-use crate::core::{GraphBase, Neighbors, VertexSet};
+use crate::core::{GraphBase, Neighbors, VertexSet, marker::Directed};
 
 use super::{Connected, dfs::dfs};
 
@@ -9,7 +9,7 @@ where
 {
     graph: &'a G,
     between: Option<(&'a G::VertexId, &'a G::VertexId)>,
-    as_undirected: bool,
+    strong: bool,
 }
 
 impl<G> Connected<G>
@@ -21,7 +21,7 @@ where
         ConnectedBuilder {
             graph,
             between: None,
-            as_undirected: false,
+            strong: false,
         }
     }
 }
@@ -37,11 +37,17 @@ where
             ..self
         }
     }
+}
 
-    /// Instructs the algorithm to ignore the direction of the edges.
-    pub fn as_undirected(self) -> Self {
+impl<'a, G> ConnectedBuilder<'a, G>
+where
+    G: GraphBase<EdgeType = Directed>,
+{
+    /// Instructs the algorithm to perform strong connectivity check on the
+    /// directed graph.
+    pub fn strong(self) -> Self {
         Self {
-            as_undirected: true,
+            strong: true,
             ..self
         }
     }
@@ -56,6 +62,6 @@ where
     where
         G: Neighbors + VertexSet,
     {
-        dfs(self.graph, self.between, self.as_undirected)
+        dfs(self.graph, self.between, self.strong)
     }
 }

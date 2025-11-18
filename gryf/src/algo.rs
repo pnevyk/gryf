@@ -24,7 +24,7 @@ pub mod toposort;
 
 #[doc(inline)]
 pub use self::{
-    connected::{Connected, is_connected, is_path_between},
+    connected::{Connected, is_connected, is_path_between, is_strongly_connected},
     cycle::{Cycle, is_cyclic, is_cyclic_undirected},
     shortest_paths::ShortestPaths,
     toposort::TopoSort,

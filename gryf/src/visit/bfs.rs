@@ -81,6 +81,11 @@ where
     pub fn visited(&self) -> &impl VisitSet<G::VertexId> {
         &self.raw.visited
     }
+
+    #[doc = include_str!("../../docs/include/visit.visited_mut.md")]
+    pub fn visited_mut(&mut self) -> &mut impl VisitSet<G::VertexId> {
+        &mut self.raw.visited
+    }
 }
 
 impl<'a, G> Visitor<G> for BfsRooted<'a, G>

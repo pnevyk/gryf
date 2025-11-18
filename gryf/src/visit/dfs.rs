@@ -81,6 +81,11 @@ where
     pub fn visited(&self) -> &impl VisitSet<G::VertexId> {
         &self.raw.visited
     }
+
+    #[doc = include_str!("../../docs/include/visit.visited_mut.md")]
+    pub fn visited_mut(&mut self) -> &mut impl VisitSet<G::VertexId> {
+        &mut self.raw.visited
+    }
 }
 
 impl<'a, G> Visitor<G> for DfsRooted<'a, G>
@@ -278,6 +283,11 @@ where
     #[doc = include_str!("../../docs/include/visit.visited.md")]
     pub fn visited(&self) -> &impl VisitSet<G::VertexId> {
         &self.raw.visited
+    }
+
+    #[doc = include_str!("../../docs/include/visit.visited_mut.md")]
+    pub fn visited_mut(&mut self) -> &mut impl VisitSet<G::VertexId> {
+        &mut self.raw.visited
     }
 
     fn process_next_callback(
@@ -543,6 +553,11 @@ where
     pub fn visited(&self) -> &impl VisitSet<G::VertexId> {
         &self.raw.visited
     }
+
+    #[doc = include_str!("../../docs/include/visit.visited_mut.md")]
+    pub fn visited_mut(&mut self) -> &mut impl VisitSet<G::VertexId> {
+        &mut self.raw.visited
+    }
 }
 
 impl<'a, G> Visitor<G> for DfsPostOrderRooted<'a, G>
@@ -667,6 +682,11 @@ where
     #[doc = include_str!("../../docs/include/visit.visited.md")]
     pub fn visited(&self) -> &impl VisitSet<G::VertexId> {
         &self.raw.visited
+    }
+
+    #[doc = include_str!("../../docs/include/visit.visited_mut.md")]
+    pub fn visited_mut(&mut self) -> &mut impl VisitSet<G::VertexId> {
+        &mut self.raw.visited
     }
 }
 

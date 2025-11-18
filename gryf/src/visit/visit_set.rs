@@ -23,6 +23,11 @@ pub trait VisitSet<I: IdType> {
     /// Returns the number of visited elements.
     fn visited_count(&self) -> usize;
 
+    /// Marks the element as not visited.
+    ///
+    /// Returns `true` when the element was visited before.
+    fn unvisit(&mut self, id: &I) -> bool;
+
     /// Resets the set of visited elements to be empty.
     fn reset_visited(&mut self);
 }
@@ -38,6 +43,10 @@ impl<I: IdType> VisitSet<I> for BTreeSet<I> {
 
     fn visited_count(&self) -> usize {
         self.len()
+    }
+
+    fn unvisit(&mut self, id: &I) -> bool {
+        self.remove(id)
     }
 
     fn reset_visited(&mut self) {
@@ -56,6 +65,10 @@ impl<I: IdType, S: BuildHasher> VisitSet<I> for HashSet<I, S> {
 
     fn visited_count(&self) -> usize {
         self.len()
+    }
+
+    fn unvisit(&mut self, id: &I) -> bool {
+        self.remove(id)
     }
 
     fn reset_visited(&mut self) {
@@ -79,6 +92,15 @@ impl<I: IntegerIdType> VisitSet<I> for FixedBitSet {
         self.count_ones(0..self.len())
     }
 
+    fn unvisit(&mut self, id: &I) -> bool {
+        if self.len() < id.as_usize() {
+            return false;
+        }
+        let visited = self.contains(id.as_usize());
+        self.remove(id.as_usize());
+        visited
+    }
+
     fn reset_visited(&mut self) {
         self.clear()
     }
@@ -95,6 +117,10 @@ impl<I: IntegerIdType> VisitSet<I> for TypedBitSet<I> {
 
     fn visited_count(&self) -> usize {
         VisitSet::<I>::visited_count(&**self)
+    }
+
+    fn unvisit(&mut self, id: &I) -> bool {
+        (**self).unvisit(id)
     }
 
     fn reset_visited(&mut self) {

@@ -110,6 +110,11 @@ where
     ///
     /// The predicate takes the vertex ID, the original graph and the state that
     /// was passed in via [`Subgraph::with_state`] (if any).
+    ///
+    /// If you run into "something may not live long enough" compiler error due
+    /// to `'static` lifetime bound on the predicate, pass the borrowed value as
+    /// part of the `state` via [Subgraph::with_state] and access it through the
+    /// last argument of the predicate.
     pub fn filter_vertex<F>(self, predicate: F) -> Self
     where
         F: Fn(&G::VertexId, &G, &S) -> bool + 'static,
@@ -124,6 +129,11 @@ where
     ///
     /// The predicate takes the edge ID, the original graph and the state that
     /// was passed in via [`Subgraph::with_state`] (if any).
+    ///
+    /// If you run into "something may not live long enough" compiler error due
+    /// to `'static` lifetime bound on the predicate, pass the borrowed value as
+    /// part of the `state` via [Subgraph::with_state] and access it through the
+    /// last argument of the predicate.
     pub fn filter_edge<F>(self, predicate: F) -> Self
     where
         F: Fn(&G::EdgeId, &G, &S) -> bool + 'static,

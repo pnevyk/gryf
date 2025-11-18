@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [[0.2.0](https://github.com/pnevyk/gryf/tree/v0.2.0)] - 2025-11-18
+
+### Added
+
+- Support non-integer IDs in CompactIdMap ([ed0a29f](https://github.com/pnevyk/gryf/commit/ed0a29f2f764c2f4b3f77d20dce9652a303359fa))
+- Implement Implicit type for representing graphs as just functions ([8aec5ba](https://github.com/pnevyk/gryf/commit/8aec5bad1da1be5be9cb64d536145bd3a94bf4c6))
+- Add cast adapters ([7179abd](https://github.com/pnevyk/gryf/commit/7179abd8aaf3f1756585364a90de2ca21376cba9))
+- Implement unvisit and visited_mut on visitors ([2b67228](https://github.com/pnevyk/gryf/commit/2b67228ebeedd5555b492398aa5f273b5e508b2d))
+- Implement connected components algorithm ([161d239](https://github.com/pnevyk/gryf/commit/161d2396e5d1cccdd7f608d430411a981f3db8ba))
+
+### Changed
+
+- [**breaking**] Change GraphWeak lifetimes to allow borrowing from ID ([45bc09f](https://github.com/pnevyk/gryf/commit/45bc09f2dc6e9055049accd57b2f99abdb50c576))
+- Expose existing adapters in the docs ([30ca0e6](https://github.com/pnevyk/gryf/commit/30ca0e6a6b2a41361c4ccdef2137d87e414b7748))
+- [**breaking**] Clarify and extend connectivity algorithm ([c1d54f3](https://github.com/pnevyk/gryf/commit/c1d54f3492a9b0b5dce81fb14e3151d0e97129f9))
+
+### Fixed
+
+- Fix edge type of Undirect adapter ([168ab9b](https://github.com/pnevyk/gryf/commit/168ab9bac7d4fdedf5799bf32941817557eda584))
+
 
 ## [[0.1.0](https://github.com/pnevyk/gryf/tree/v0.1.0)] - 2025-08-22
 

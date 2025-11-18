@@ -1,6 +1,6 @@
 [package]
 name = "gryf"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Petr Nevyhoštěný"]
 edition = "2024"
 license = "MIT OR Unlicense"
@@ -19,7 +19,7 @@ rustc-hash = "2.1.1"
 thiserror = "2.0.16"
 
 # gryf-derive is not optional, because we use it in gryf itself. This might change in the future.
-gryf-derive = { version = "=0.1.0", path = "../gryf-derive" }
+gryf-derive = { version = "=0.2.0", path = "../gryf-derive" }
 
 arbitrary = { version = "1.2.3", features = ["derive"], optional = true }
 proptest = { version = "1.1.0", optional = true }

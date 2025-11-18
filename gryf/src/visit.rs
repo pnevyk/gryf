@@ -227,8 +227,13 @@ where
 ///
 /// This is useful to some algorithms that base their decision on the event time
 /// comparison.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Time(pub usize);
+
+impl Time {
+    /// The largest possible value of time.
+    pub const MAX: Time = Time(usize::MAX);
+}
 
 /// Depth-first search visitor event.
 ///

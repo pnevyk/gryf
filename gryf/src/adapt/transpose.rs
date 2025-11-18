@@ -18,6 +18,8 @@ use gryf_derive::{GraphBase, GraphMut, Guarantee, VertexSet};
 /// orientation of edges reversed.
 ///
 /// [transpose]: https://en.wikipedia.org/wiki/Transpose_graph
+#[doc(alias = "reverse")]
+#[doc(alias = "Reversed")]
 #[derive(Debug, GraphBase, VertexSet, GraphMut, Guarantee)]
 #[gryf_crate]
 pub struct Transpose<G> {

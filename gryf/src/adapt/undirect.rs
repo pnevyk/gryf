@@ -1,11 +1,14 @@
 //! Adapter that removes directionality of edges of a directed graph.
 
-use crate::core::{Neighbors, marker::Direction};
+use crate::core::{
+    GraphBase, Neighbors,
+    marker::{Direction, Undirected},
+};
 
-use gryf_derive::{EdgeSet, GraphBase, Guarantee, VertexSet};
+use gryf_derive::{EdgeSet, Guarantee, VertexSet};
 
 /// Adapter that removes directionality of edges of a directed graph.
-#[derive(Debug, GraphBase, VertexSet, EdgeSet, Guarantee)]
+#[derive(Debug, VertexSet, EdgeSet, Guarantee)]
 #[gryf_crate]
 pub struct Undirect<G> {
     #[graph]
@@ -23,6 +26,15 @@ impl<G> Undirect<G> {
     pub fn into_inner(self) -> G {
         self.graph
     }
+}
+
+impl<G> GraphBase for Undirect<G>
+where
+    G: GraphBase,
+{
+    type VertexId = G::VertexId;
+    type EdgeId = G::EdgeId;
+    type EdgeType = Undirected;
 }
 
 impl<G> Neighbors for Undirect<G>

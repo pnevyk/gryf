@@ -75,7 +75,7 @@ Failing in any of these should be considered an issue to be reported.
 
 ## Design
 
-_For more details, see the [design doc](./DESIGN.md)._
+_For more details, see the [design doc](./DESIGN.md) or the [introductory blog post](https://pnevyk.github.io/posts/introducing-gryf/)._
 
 ### Problems instead of algorithms
 

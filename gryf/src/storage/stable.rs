@@ -333,7 +333,25 @@ where
             return Err(AddEdgeError::new(edge, AddEdgeErrorKind::HeadAbsent));
         }
 
-        self.inner.try_add_edge(from, to, edge)
+        match self.inner.try_add_edge(from, to, edge) {
+            Err(error) if error.kind == AddEdgeErrorKind::MultiEdge => {
+                // The edge already exists in the underlying graph and the
+                // storage doesn't support multiple edges between two vertices.
+                // Thus we need to replace the original edge. We could
+                // preemptively check that in all cases, but that would
+                // introduce an unnecessary performance penalty.
+                let id = self
+                    .inner
+                    .edge_id_any(from, to)
+                    .expect("edge exists when adding failed on multi-edge");
+                self.inner.replace_edge(&id, error.attr);
+
+                self.removed_edges.remove(&id);
+
+                Ok(id)
+            }
+            result => result,
+        }
     }
 }
 
@@ -530,7 +548,7 @@ mod tests {
             id::DefaultId,
             marker::{Directed, Undirected},
         },
-        storage::{AdjList, tests::*},
+        storage::{AdjList, AdjMatrix, tests::*},
     };
 
     use std::collections::HashSet;
@@ -649,5 +667,33 @@ mod tests {
 
         graph.remove_edge(&e);
         graph.replace_edge(&e, ());
+    }
+
+    #[test]
+    fn multi_edge_in_single_edge_graphs() {
+        let mut graph: Stable<AdjMatrix<_, _, Directed, DefaultId>> = Stable::new(AdjMatrix::new());
+
+        let v0 = graph.add_vertex(());
+        let v1 = graph.add_vertex(());
+        let e0 = graph.add_edge(&v0, &v1, 1);
+
+        assert!(graph.edge_mut(&e0).is_some());
+
+        graph.remove_edge(&e0);
+
+        assert!(graph.edge_mut(&e0).is_none());
+
+        // Should not panic.
+        let e1 = graph.add_edge(&v0, &v1, 2);
+
+        assert_eq!(graph.edge(&e1), Some(&2));
+
+        let graph = graph.apply();
+
+        // The edge exists after applying mutations.
+        assert_eq!(graph.edge_count(), 1);
+
+        let e = graph.edge_id_any(&v0, &v1).unwrap();
+        assert_eq!(graph.edge(&e), Some(&2));
     }
 }
